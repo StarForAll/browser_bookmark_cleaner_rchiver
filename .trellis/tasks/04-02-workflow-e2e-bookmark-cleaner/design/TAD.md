@@ -20,6 +20,20 @@ The first release uses a Chrome Manifest V3 extension with a dedicated extension
 - React officially fits interactive local-state-heavy UIs through declarative state-driven rendering.
 - Chrome officially exposes bookmark management through the `chrome.bookmarks` extension API and supports dedicated extension pages and side panels; the chosen surface here is a dedicated page.
 
+Evidence sources:
+
+- https://developer.chrome.com/docs/extensions/reference/api
+- https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions?hl=en
+- https://developer.chrome.com/docs/extensions/reference/permissions
+- https://vite.dev/guide/build.html
+- https://react.dev/learn/managing-state
+
+Implementation note:
+
+- Current Vite docs describe multi-entry builds with `build.rolldownOptions.input`.
+- If the repo pins an older Vite major during implementation, the equivalent configuration may be `build.rollupOptions.input`.
+- This design decision is about multi-page capability, not a forced pin to one Vite major today.
+
 ### Runtime Boundaries
 
 1. Extension Page
@@ -84,6 +98,28 @@ Reason:
 - Reduces setup complexity
 - Keeps first-release sync flows understandable
 
+### Decision 5: Runtime-granted host access for user-defined WebDAV endpoints
+
+- Browser bookmark APIs use named extension permissions.
+- WebDAV networking uses host permissions because the endpoint is user-defined.
+- The extension requests runtime host access after the user enters a WebDAV URL instead of hard-wiring one fixed origin.
+- Cloud actions stay disabled until both host access and connectivity test succeed.
+
+Reason:
+- Matches the requirement that WebDAV is user-configured, not pre-bundled
+- Reduces unnecessary install-time permission surface
+- Gives a concrete contract for enabling or disabling cloud actions
+
+### Manifest-Level Contract
+
+- Required permissions:
+  - `bookmarks`
+  - `storage`
+- Expected optional host permission strategy:
+  - `optional_host_permissions` for user-entered WebDAV origins
+- No background worker is required for v1 core flows
+- A background script may still be added later for alarms or background sync without changing the domain model
+
 ## Proposed Directory Shape
 
 ```text
@@ -129,5 +165,6 @@ vite.config.ts
 ### Bad
 
 - WebDAV is misconfigured, but cloud actions are still enabled
+- WebDAV host permission is missing, but network actions are still enabled
 - Restore overwrites browser bookmarks without first generating a local backup
 - Undo changes browser bookmarks directly

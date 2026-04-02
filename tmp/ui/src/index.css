@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-primary: #545f74;
+  --color-primary-dim: #454e5f;
+  --color-on-primary: #ffffff;
+  
+  --color-secondary: #506076;
+  --color-on-secondary: #ffffff;
+  
+  --color-surface: #faf9f8;
+  --color-on-surface: #303333;
+  
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f4f3;
+  --color-surface-container-high: #ebeceb;
+  --color-surface-container-highest: #e2e3e2;
+  
+  --color-outline-variant: rgba(48, 51, 51, 0.15);
+  --color-error: #a83836;
+
+  --shadow-ambient: 0 20px 40px -10px rgba(48, 51, 51, 0.06);
+  --shadow-glass: 0 8px 32px 0 rgba(48, 51, 51, 0.08);
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased;
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply backdrop-blur-[30px] bg-surface-container-lowest/80 border border-outline-variant/20 shadow-glass;
+  }
+  
+  .artifact-card {
+    @apply bg-surface-container-lowest shadow-ambient rounded-2xl p-6 transition-all duration-300;
+  }
+}

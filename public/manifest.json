@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "书签清理与归档器",
+  "description": "以草稿优先的图谱工作区整理 Chrome 书签，并提供 WebDAV 版本保存与恢复能力。",
+  "version": "0.1.0",
+  "permissions": ["bookmarks", "storage"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "options_page": "index.html",
+  "action": {
+    "default_title": "打开书签清理与归档器"
+  }
+}

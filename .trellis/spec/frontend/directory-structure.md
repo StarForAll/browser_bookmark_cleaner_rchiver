@@ -6,49 +6,54 @@
 
 ## Overview
 
-<!--
-Document your project's frontend directory structure here.
+This project uses a feature-first React + TypeScript structure for a Chrome extension page.
 
-Questions to answer:
-- Where do components live?
-- How are features/modules organized?
-- Where are shared utilities?
-- How are assets organized?
--->
+Keep runtime code under `src/` and separate it by responsibility:
 
-(To be filled by the team)
+- `app/` for application shell and page composition
+- `features/` for user-facing feature modules
+- `domain/` for pure business models and mutation logic
+- `adapters/` for browser APIs, local persistence, and WebDAV integration
+- `shared/` for reusable UI primitives, utilities, and shared types
 
 ---
 
 ## Directory Layout
 
-```
-<!-- Replace with your actual structure -->
+```text
+public/
+  manifest.json
 src/
-├── ...
-└── ...
+  app/
+  features/
+  domain/
+  adapters/
+  shared/
+  test/
 ```
 
 ---
 
 ## Module Organization
 
-<!-- How should new features be organized? -->
-
-(To be filled by the team)
+- UI composition belongs in `src/app/` or `src/features/`
+- Browser-specific logic belongs in `src/adapters/`
+- Bookmark graph shape, draft mutation rules, undo rules, and sync contracts belong in `src/domain/`
+- Do not let feature components call `chrome.*` or raw WebDAV fetch logic directly
 
 ---
 
 ## Naming Conventions
 
-<!-- File and folder naming rules -->
-
-(To be filled by the team)
+- React components: `PascalCase.tsx`
+- Utilities, adapters, hooks: `camelCase.ts` or `<feature>.ts`
+- Feature folders: `kebab-case`
+- Prefer one concept per file unless co-location improves readability
 
 ---
 
 ## Examples
 
-<!-- Link to well-organized modules as examples -->
-
-(To be filled by the team)
+- App shell entry: `src/app/App.tsx`
+- Feature module example target: `src/features/bookmark-graph/`
+- Adapter example target: `src/adapters/chrome-bookmarks/`

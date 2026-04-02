@@ -6,46 +6,49 @@
 
 ## Overview
 
-<!--
-Document your project's quality standards here.
+The first release must keep verification lightweight but real. Every implemented change should be able to point to a concrete command or manual check.
 
-Questions to answer:
-- What patterns are forbidden?
-- What linting rules do you enforce?
-- What are your testing requirements?
-- What code review standards apply?
--->
+Baseline commands:
 
-(To be filled by the team)
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
 
 ---
 
 ## Forbidden Patterns
 
-<!-- Patterns that should never be used and why -->
-
-(To be filled by the team)
+- Copying code from `tmp/ui/` into the production app
+- Calling `chrome.bookmarks` directly from React presentation components
+- Mixing draft-only mutations with browser-write side effects in the same function
+- Introducing `any` without a documented reason
+- Hiding failed sync or restore actions without user-visible feedback
 
 ---
 
 ## Required Patterns
 
-<!-- Patterns that must always be used -->
-
-(To be filled by the team)
+- Keep draft mutations inside domain or feature-state modules
+- Keep browser API access and WebDAV access behind adapter modules
+- Use TypeScript strict mode
+- Make user-facing error states explicit
+- Treat verification results as `pass` / `fail` / `not run`
 
 ---
 
 ## Testing Requirements
 
-<!-- What level of testing is expected -->
-
-(To be filled by the team)
+- Unit tests use Vitest
+- React component tests use Testing Library with `jsdom`
+- New domain mutation logic should have at least one automated test
+- High-risk flows still require manual verification in Chrome extension runtime
 
 ---
 
 ## Code Review Checklist
 
-<!-- What reviewers should check -->
-
-(To be filled by the team)
+- Does the change keep draft state and browser side effects separated?
+- Are cloud-disabled reasons visible when WebDAV is unavailable?
+- Did the change add or update relevant tests?
+- Does the code follow the feature/domain/adapter boundary?

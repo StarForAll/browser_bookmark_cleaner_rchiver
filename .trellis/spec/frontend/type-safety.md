@@ -6,46 +6,36 @@
 
 ## Overview
 
-<!--
-Document your project's type safety conventions here.
-
-Questions to answer:
-- What type system do you use?
-- How are types organized?
-- What validation library do you use?
-- How do you handle type inference?
--->
-
-(To be filled by the team)
+This project uses TypeScript strict mode. Data contracts between browser adapters, local persistence, WebDAV payloads, and the draft graph must be explicit.
 
 ---
 
 ## Type Organization
 
-<!-- Where types are defined, shared types vs local types -->
-
-(To be filled by the team)
+- Shared domain types belong close to the domain module they model
+- Adapter input/output types should live with the adapter unless reused broadly
+- UI-only prop types stay beside the component
 
 ---
 
 ## Validation
 
-<!-- Runtime validation patterns (Zod, Yup, io-ts, etc.) -->
-
-(To be filled by the team)
+- Browser API results should be normalized before entering the draft graph
+- Restored WebDAV payloads should not be treated as trusted internal state without validation
+- If runtime validation is introduced later, keep it at adapter boundaries rather than deep inside UI components
 
 ---
 
 ## Common Patterns
 
-<!-- Type utilities, generics, type guards -->
-
-(To be filled by the team)
+- Prefer discriminated unions for node kinds such as `folder` vs `bookmark`
+- Use explicit nullable fields instead of overloaded empty strings
+- Use narrow helper functions for adapter-to-domain mapping
 
 ---
 
 ## Forbidden Patterns
 
-<!-- any, type assertions, etc. -->
-
-(To be filled by the team)
+- `any`
+- Blind `as` assertions on external payloads
+- Reusing browser-native shapes directly as UI state without normalization

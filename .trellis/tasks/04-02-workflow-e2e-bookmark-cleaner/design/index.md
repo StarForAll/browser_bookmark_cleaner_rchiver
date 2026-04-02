@@ -4,6 +4,41 @@
 
 This design package translates [docs/PRD.md](/ops/projects/personal/browser_bookmark_cleaner_rchiver/docs/PRD.md) into implementation-ready technical decisions for the first Chrome-extension release.
 
+## Phase Status
+
+- Status: active design package
+- Entry date: 2026-04-02
+- Goal: freeze architecture, module boundaries, runtime contracts, and validation scenarios before `plan`
+
+## Mandatory UI Prototyping Reminder
+
+This task has already entered the stage where page structure and interaction comfort matter. Do not keep UI discussion only inside the CLI.
+
+The user must be explicitly reminded to finish a first-pass UI prototype in external design tools before implementation details are frozen.
+
+Recommended wording:
+
+> 现在已经进入需要外部 UI 设计的阶段。请先去 `https://www.uiprompt.site/zh/styles` 选择接近目标的 UI 风格提示词，再把页面目标、关键模块、交互要求和风格提示词一起带到 `https://stitch.withgoogle.com/` 生成首版 UI 原型。原型确认后，再回到当前工作流继续冻结页面结构、组件清单和实现边界。
+
+## Prototype Artifact Boundary
+
+- Generated UI examples are recorded under `/ops/projects/personal/browser_bookmark_cleaner_rchiver/tmp/ui`
+- Those files are design-reference assets for layout, hierarchy, interaction tone, and visual style only
+- Actual product implementation must not copy, import, or evolve the example code in `tmp/ui`
+- Engineering work should re-implement the approved UI direction inside the real project codebase with project-specific architecture and constraints
+
+## Evidence Base
+
+- Chrome extension permissions and host access:
+  - https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions?hl=en
+  - https://developer.chrome.com/docs/extensions/reference/permissions
+- Chrome extension APIs:
+  - https://developer.chrome.com/docs/extensions/reference/api
+- Vite multi-page build:
+  - https://vite.dev/guide/build.html
+- React interactive state patterns:
+  - https://react.dev/learn/managing-state
+
 ## Documents
 
 - `BRD.md`: business framing and user-facing design constraints
@@ -16,9 +51,54 @@ This design package translates [docs/PRD.md](/ops/projects/personal/browser_book
 ## Module Specs
 
 - `specs/bookmark-graph.md`
+- `specs/search-and-focus.md`
+- `specs/visual-system.md`
 - `specs/webdav-sync.md`
 - `specs/history-and-recovery.md`
 
 ## Pages
 
+- `pages/visual-direction.md`
 - `pages/workspace.md`
+- `pages/node-editor.md`
+- `pages/create-child.md`
+- `pages/webdav-settings.md`
+- `pages/restore-version.md`
+- `pages/system-states.md`
+
+## UI Coverage Checklist
+
+- [x] Main workspace shell and graph canvas
+- [x] Visual direction and style boundary from `tmp/ui/`
+- [x] Node edit surface
+- [x] Create-child surface
+- [x] WebDAV settings surface
+- [x] Restore/version picker surface
+- [x] Empty / disabled / error state gallery
+
+## Prototype Validation Scenarios
+
+- Main flow:
+  - read browser bookmarks
+  - edit draft graph
+  - save draft snapshot to WebDAV
+  - restore one remote draft version back into the workspace
+- Exception flow:
+  - WebDAV host permission missing or connectivity test fails
+  - cloud actions remain disabled
+  - workspace shows readable error and expandable technical detail
+- Empty-data flow:
+  - browser bookmark tree contains no user bookmark nodes
+  - workspace renders an empty-state canvas with create/import guidance
+  - graph editing shell still stays available
+
+## UI Prototype Note
+
+If the next step requires visual polishing rather than just technical design, use an external UI tool first:
+
+1. pick a style prompt from `https://www.uiprompt.site/zh/styles`
+2. combine that prompt with this task's page goals and interaction rules
+3. generate a first-pass workspace prototype in `https://stitch.withgoogle.com/`
+4. store the generated reference artifact under `tmp/ui/`
+5. bring the confirmed layout back into `design/pages/` and `design/specs/`
+6. keep implementation code independent from the prototype code in `tmp/ui/`

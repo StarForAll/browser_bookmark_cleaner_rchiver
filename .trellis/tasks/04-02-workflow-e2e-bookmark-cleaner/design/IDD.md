@@ -32,6 +32,7 @@ Data categories:
 - Draft state
 - Undo history
 - Last local restore backup metadata
+- WebDAV host-access grant state
 
 ### WebDAV
 
@@ -42,6 +43,7 @@ Purpose:
 
 Required actions:
 
+- Request host access for the configured endpoint when needed
 - Test connectivity
 - Upload new version
 - Download selected version
@@ -62,7 +64,14 @@ Rules:
 
 - Bookmark and draft artifacts are separated
 - Latest pointer and historical versions must stay consistent
-- Cloud functions are disabled unless the WebDAV profile is configured and passes availability checks
+- Cloud functions are disabled unless the WebDAV profile is configured, host access is granted, and availability checks pass
+
+Permission contract:
+
+- `bookmarks` permission is required for browser tree read/write
+- `storage` permission is required for local state, draft state, and settings persistence
+- WebDAV network access uses host permissions tied to the configured endpoint origin
+- If host access is denied, the app must remain fully usable for local draft editing
 
 ## Integration Validation
 
@@ -78,4 +87,5 @@ Rules:
 ### Bad
 
 - WebDAV unavailable but sync buttons remain enabled
+- Host access denied but upload still starts
 - Bookmark restore starts without local pre-restore backup generation
