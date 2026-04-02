@@ -1,0 +1,28 @@
+{
+  "trellis_version": "0.4.0-beta.8",
+  "installed": "2026-04-02T08:32:57.524721+00:00",
+  "cli_types": [
+    "claude",
+    "opencode",
+    "codex"
+  ],
+  "commands": [
+    "feasibility",
+    "brainstorm",
+    "design",
+    "plan",
+    "test-first",
+    "self-review",
+    "check",
+    "delivery"
+  ],
+  "scripts": [
+    "feasibility-check.py",
+    "design-export.py",
+    "plan-validate.py",
+    "self-review-check.py",
+    "delivery-control-validate.py",
+    "metadata-autocommit-guard.py",
+    "record-session-helper.py"
+  ]
+}
