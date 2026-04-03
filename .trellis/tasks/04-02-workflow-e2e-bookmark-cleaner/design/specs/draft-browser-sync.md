@@ -24,7 +24,7 @@ The flow belongs to Step 2 functional specification and is independent from WebD
 ## Entry and Confirmation
 
 - this flow is triggered by an explicit user action
-- it uses its own dedicated "sync to browser bookmarks" action entry
+- it uses one dedicated top-right "sync current draft to browser bookmarks" action entry
 - it does not share a button with WebDAV upload or browser-to-draft overwrite
 - the action is disabled when the current draft is empty
 - browser writability is validated at execution time, not only through pre-disabled UI state
@@ -98,14 +98,18 @@ Before execution, the UI must show an explicit confirmation that states:
 ## Status Feedback
 
 - after user confirmation, the app enters an in-progress sync state
+- completion feedback is written into the bottom-right status history
+- each completed status entry includes:
+  - action description
+  - action time
+  - action result
+- failed entries also include a short failure reason
+- the status-history UI keeps the newest three completed entries with newest first
 - completion feedback must distinguish at least:
   - sync succeeded
   - sync failed and automatic rollback succeeded
   - sync failed and automatic rollback failed
   - sync was blocked before execution started
-- success feedback should also remind the user that:
-  - the current draft remains editable
-  - later draft changes still require another explicit sync to update browser bookmarks
 
 ## Relationship to Other Specs
 

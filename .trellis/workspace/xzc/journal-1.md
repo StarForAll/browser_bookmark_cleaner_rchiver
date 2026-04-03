@@ -125,3 +125,47 @@ Completed the interactive brainstorm and design preparation for the browser book
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Design Step 2 功能规格冻结
+
+**Date**: 2026-04-03
+**Task**: Design Step 2 功能规格冻结
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| 项目 | 说明 |
+|------|------|
+| 阶段 | 当前仍处于 `design`，已完成 `Step 2 功能规格说明`，`Step 3 可执行原型验证` 尚未开始 |
+| 需求冻结 | 已补齐中文优先显示与未来多语言扩展边界 |
+| 规格补全 | 已逐项确认并写实书签图谱、搜索与重复聚焦、历史与恢复、WebDAV 同步、浏览器到草稿覆盖、草稿到浏览器同步、重复节点悬浮展示规则 |
+| 文档同步 | 已同步更新任务 PRD、design index、相关 specs / AID / pages，并记录 `finish-work` 工程级验证矩阵当前为 `deferred` |
+| 校验 | design 包完整性校验通过；本轮记录阶段性设计进展，不归档任务 |
+
+**Next**:
+- 严格按阶段顺序进入 `design / Step 3 可执行原型验证`
+- 技术架构与验证命令冻结后，再补全 `finish-work` 的工程级验证矩阵
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3a448c5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

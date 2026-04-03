@@ -2,43 +2,80 @@
 
 ## Purpose
 
-Define the modal used for editing an existing node after double click.
+Define the draft-only editor opened by double-clicking an existing node in the graph.
+
+This surface edits the current draft node only. It never mutates browser bookmarks directly.
+
+## Entry
+
+- opened from double click on one node
+- can edit folder nodes and bookmark nodes
+- node type is visible but cannot be changed
 
 ## Layout
 
-- modal or centered dialog
-- top row: title + close action
-- body: form fields
-- footer: cancel / save actions
+1. Header
+   - title
+   - close action
 
-## Folder Mode
+2. Node summary block
+   - current node title
+   - node type
+   - full path
 
-- editable fields:
+3. Editable form
+   - title field for all nodes
+   - URL field for bookmark nodes only
+
+4. Footer
+   - cancel
+   - save
+
+## Mode Rules
+
+### Folder node
+
+- editable:
   - title
-- hidden or disabled fields:
+- not editable:
   - URL
-- helper copy:
-  - explain that folder nodes only store structure and title
 
-## Bookmark Mode
+### Bookmark node
 
-- editable fields:
+- editable:
   - title
   - URL
-- validation:
-  - URL required
-  - invalid URL shows inline error
+- URL is required
 
 ## Interaction Rules
 
-- node type is visible but locked
 - `Esc` closes without saving
-- `Enter` can submit only when validation passes
-- save updates draft only; it does not write to browser bookmarks
+- submit is allowed only when validation passes
+- save updates the current draft only
+- save success creates one draft-history entry
+- save success does not trigger browser sync
+- save success does not create WebDAV versions
+- save success does not create a bottom-right status-history entry
+- invalid input stays local to the form and does not create a status-history record
 
-## Visual Notes
+## Validation Rules
 
-- editing surface should feel focused and quiet
-- form density should be moderate, not oversized
-- destructive actions do not live in this modal
-- all labels, helper copy, validation messages, and action text use Chinese in v1
+- title is required for all node types
+- bookmark URL is required for bookmark nodes
+- node type remains locked during the full edit flow
+
+## Success Result
+
+- the edited node updates immediately in the draft graph
+- hover information and duplicate calculations refresh if title or URL changed
+- browser bookmarks remain unchanged until a later explicit sync action
+
+## Failure Result
+
+- invalid input keeps the dialog open
+- the current draft remains unchanged
+
+## Copy Rules
+
+- all labels, helper copy, validation messages, and actions use Chinese in v1
+- wording should make it obvious that the surface edits the current draft node, not live browser bookmarks

@@ -2,77 +2,135 @@
 
 ## Purpose
 
-Primary extension page for bookmark graph management.
+Define the primary extension workspace where the user views and edits the current draft graph.
 
-## Key Regions
+The workspace always represents the current draft, not live browser bookmarks.
 
-- header actions
-- search and filter controls
-- graph canvas
-- hover info
-- status bar
-- shortcut help surface
-- restore/version picker surface
-- empty-state hint area
+## Main Regions
 
-## Primary Actions
+1. Top shell
+   - page title
+   - seven explicit action buttons
+   - auto-layout reset
+   - WebDAV settings / test entry
 
-- edit node
-- create child node
-- drag node
-- delete node
-- sync bookmarks to browser
-- upload bookmarks to WebDAV
-- upload draft to WebDAV
-- restore from WebDAV
-- reset layout
-- test WebDAV
+2. Search and focus strip
+   - title or URL search
+   - duplicate-only toggle
 
-## Page States
+3. Graph canvas
+   - draft graph rendering
+   - selection
+   - drag and drop
+   - hover detail
 
-### Ready state
+4. Bottom-left operation hint area
+   - always-visible low-emphasis help block
+   - one line per operation hint
+   - mouse and keyboard operations in one unified list
 
-- bookmark graph is visible
-- search, duplicate filter, and shortcuts are immediately usable
+5. Bottom-right result area
+   - latest-result popup
+   - close action
+   - reopen anchor
+   - newest-three history
 
-### Empty state
+## Top-Right Explicit Actions
 
-- no graph nodes are shown
-- the page explains that there are no current bookmark nodes to render
-- the user can still create a draft node or refresh the browser snapshot
+The following seven actions must be directly visible and understandable from button text alone:
 
-### Cloud-disabled state
+1. overwrite current draft from browser bookmarks
+2. sync current draft to browser bookmarks
+3. upload current draft to WebDAV
+4. upload current browser bookmarks to WebDAV
+5. restore a WebDAV draft version to the current draft
+6. restore a WebDAV bookmark version to browser bookmarks
+7. undo overwrite operation
 
-- WebDAV actions stay visible but disabled
-- the page shows whether the blocker is missing config, missing host permission, or failed test
+No extra action grouping is required as long as each button is individually clear.
 
-### Error state
+## Core Workspace Behaviors
 
-- graph stays mounted when possible
-- action-level failures are shown near the action and mirrored in the status bar
+### Draft editing
 
-## UX Notes
+- select node
+- double click to edit
+- `Enter` to create child
+- drag to move
+- `Delete` or `Backspace` to remove node or subtree directly without secondary confirmation
+- `Ctrl+Z` to undo one draft-content mutation
 
-- shortcuts must stay visible
-- duplicate information should stay readable without exposing internal identifiers
-- hover info always shows title, type, and human-readable full path
-- bookmark-node hover also shows URL, while folder-node hover does not render URL placeholders
-- duplicate hover behavior applies only to duplicate-URL bookmark nodes, not repeated folder titles
-- duplicate hover shows duplicate count and the first two duplicate paths by default, including the currently hovered node
-- when more than two duplicate paths exist, the remaining entries are revealed through an inline expand-more action inside the hover card
-- duplicate hover cards may use readable order suffixes such as `#1` and `#2` when path text alone is not enough to distinguish entries
-- destructive and remote actions need explicit confirmation or explicit status feedback
-- browser sync warning must be visually stronger than routine cloud upload feedback
-- all system-visible controls, empty states, and feedback copy on this page use Chinese in v1
-- labels and layout spacing should still tolerate longer future multilingual replacements without redesigning the shell
+### Search and duplicate focus
 
-## External Prototype Handoff
+- search matches title and URL only
+- duplicate-only mode filters the current draft view
+- search and duplicate-only mode can coexist
 
-Before visual implementation starts, produce a first-pass external prototype for this page.
+### Hover information
 
-- first choose a style prompt from `https://www.uiprompt.site/zh/styles`
-- then generate the workspace prototype in `https://stitch.withgoogle.com/`
-- store the generated UI example under `tmp/ui/`
-- treat `tmp/ui/` as style-reference-only assets
-- do not reuse or adapt the prototype code directly in actual implementation
-- after that, sync the confirmed layout, regions, and component priorities back into this page spec
+- all hover cards show title, node type, and full path
+- bookmark-node hover also shows URL
+- duplicate bookmark hover shows:
+  - duplicate total count
+  - first two duplicate paths by default
+  - inline expand-more when more than two exist
+
+## Secondary Surfaces Opened From The Workspace
+
+- node editor
+- create-child flow
+- create-root flow
+- shared overwrite confirmation dialog
+- WebDAV settings
+- remote restore picker
+- local backup recovery
+- status-history popup
+
+## Undo Overwrite Rules
+
+- the top-right `undo overwrite operation` action is a unified entry, not two separate buttons
+- clicking it opens a second-step chooser instead of executing recovery immediately
+- the chooser exposes:
+  - undo overwrite on browser bookmarks
+  - undo overwrite on current draft
+- if neither recovery target is currently available, the top-right action stays disabled
+- when the top-right action is disabled, hover feedback states that there is no completed overwrite action available to undo right now
+- if only one recovery target is unavailable, the chooser still opens and the unavailable target remains disabled with a target-specific unavailable reason
+
+## Operation Hint Rules
+
+- the bottom-left operation hint area is always visible
+- it must stay low-emphasis enough to avoid competing with the graph canvas
+- it must still remain readable when the user looks for guidance
+- the area shows these six operation hints in one-line-per-item format:
+  - click: select node
+  - double click: edit node
+  - drag: move node
+  - `Enter`: create child node
+  - `Delete / Backspace`: delete node
+  - `Ctrl+Z`: undo one draft edit
+
+## Empty-State Rules
+
+- when browser bookmark data is empty, the workspace still renders as a valid draft workspace
+- the status area reports the empty browser-data situation
+- the main draft area still communicates that node editing or creation can continue
+- the empty-canvas hint area can open the root-create flow
+
+## Status Rules
+
+- result entries appear only after an explicit system action completes
+- every entry shows:
+  - action description
+  - action time
+  - result
+- failed entries also show a short failure reason
+- newest three entries are retained
+- newest entry appears first
+- closing the popup preserves the retained history
+- routine draft editing actions such as create-child, node edit, drag, delete, and undo do not enter this status history
+
+## Copy Rules
+
+- all controls, hints, warnings, empty-state text, and result summaries use Chinese in v1
+- the shell must still tolerate future multilingual expansion without redesign

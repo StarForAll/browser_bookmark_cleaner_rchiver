@@ -2,20 +2,23 @@
 
 ## Workspace Model
 
-The extension page is a single focused workspace with four persistent zones:
+The extension page is a single focused workspace with five persistent zones plus one secondary-surface layer:
 
 1. Top bar
    - page title
-   - sync to browser
-   - save draft to WebDAV
-   - sync bookmarks to WebDAV
+   - overwrite current draft from browser bookmarks
+   - sync current draft to browser bookmarks
+   - upload current draft to WebDAV
+   - upload current browser bookmarks to WebDAV
+   - restore a WebDAV draft version to the current draft
+   - restore a WebDAV bookmark version to browser bookmarks
+   - undo overwrite operation
    - auto-layout reset
    - WebDAV test button
 
-2. Left utility rail or top utility strip
+2. Search and focus strip
    - search
    - duplicate-only filter
-   - shortcut reference entry
 
 3. Main graph canvas
    - draggable nodes
@@ -23,14 +26,23 @@ The extension page is a single focused workspace with four persistent zones:
    - hover card for URL and duplicate info
    - duplicate hover summary with inline expand-more behavior
 
-4. Fixed status bar
-   - last sync target
-   - last sync time
-   - success/error status
+4. Bottom-left operation hint panel
+   - always-visible low-emphasis operation guidance
+   - mouse actions and keyboard actions in one list
+   - one-line-per-item layout
 
-5. Secondary surfaces
-   - confirm modal for sync-to-browser
-   - restore/version picker drawer or modal
+5. Bottom-right status popup and history anchor
+   - latest action result popup
+   - close action
+   - reopen entry after close
+   - newest-three history list
+   - success/error result with short failure reason when applicable
+
+6. Secondary surfaces
+   - shared confirmation modal for overwrite-risk actions
+   - restore-version picker for draft restore
+   - restore-version picker for browser-bookmark restore
+   - undo-overwrite target chooser and recovery confirmation
    - inline empty-state panel when no user bookmark nodes are available
 
 ## Visual Direction
@@ -65,28 +77,34 @@ Primary components:
 - duplicate-only switch
 - graph node card
 - hover detail card
-- shortcut hint card
-- fixed sync status bar
+- operation hint panel
+- bottom-right status popup
+- latest-result history anchor
 
 Secondary components:
 
 - node editor modal
 - create-child modal
-- restore version drawer/modal
+- restore draft version drawer/modal
+- restore browser version drawer/modal
 - WebDAV settings drawer/modal
-- sync-to-browser warning modal
-- toast
-- expandable technical detail panel
+- shared overwrite confirmation modal
 
 ## Interaction Rules
 
 - Double click: enter edit mode
 - Enter on selected node: open create-child dialog
 - Ctrl+Z: undo one draft mutation
-- Delete/Backspace: delete selected node and subtree
+- Delete/Backspace: delete selected node and subtree without extra confirmation
 - Drag and drop: move node under another folder node
-- Sync to browser: always requires explicit warning/confirm step
-- Restore from WebDAV: always chooses source artifact and restore target explicitly
+- Main graph workspace always represents the current draft only
+- The seven top-right action buttons must be understandable from button text alone
+- Sync current draft to browser bookmarks: always requires explicit warning/confirm step
+- Overwrite current draft from browser bookmarks: always requires explicit warning/confirm step
+- Restore draft from WebDAV: always uses its own dedicated restore action and warning/confirm step
+- Restore browser bookmarks from WebDAV: always uses its own dedicated restore action and warning/confirm step
+- Undo overwrite operation: opens a target chooser instead of directly running recovery
+- Undo overwrite operation stays disabled when neither browser-target nor draft-target overwrite backup is available
 
 ## Edit Dialog Rules
 
@@ -112,9 +130,11 @@ Secondary components:
 - duplicate hover shows duplicate count plus the first two duplicate paths by default, and the current hovered node is included in that default slice
 - when duplicate count is greater than two, remaining entries expand inside the same hover card instead of opening a separate surface
 - duplicate path labels stay human-readable and may use order suffixes like `#1` and `#2` when path text alone is not enough to distinguish entries
-- Success actions produce toast + status bar update
-- Failed actions produce readable error + expandable raw detail
-- Disabled cloud actions always explain whether the blocker is missing config, missing host access, or failed connectivity test
+- Completed actions create a bottom-right status entry with action description, action time, and result
+- Failed actions also include a short failure reason in the same status entry
+- The status popup can be closed and later reopened from the latest-result anchor
+- The status area retains the newest three entries with newest first
+- Cloud-unavailable presentation does not need exception-type-specific UI branching at the prototype-validation level
 
 ## Default Layout
 
@@ -128,20 +148,28 @@ Secondary components:
 
 - Show a friendly empty canvas instead of a broken graph
 - Keep search/filter visible but disabled when they have no target data
-- Offer direct actions to refresh bookmarks or create a first draft node
+- Use the status area to indicate that current browser bookmark data is empty
+- Keep the draft workspace messaging explicit that draft editing or node creation can still continue
 
 ### WebDAV unavailable state
 
 - Keep cloud buttons visible but disabled
-- Show the exact unmet prerequisite near the action area
+- Show a generic unavailable state and rely on the status area for recent failure logs
+
+### Undo overwrite unavailable state
+
+- Keep the undo-overwrite button visible in the top bar
+- Disable it when no undoable overwrite backup exists for either target
+- Hover feedback must explain that there is currently no overwrite operation that can be undone
 
 ### Browser sync warning state
 
-- Show overwrite semantics clearly before applying draft changes to browser bookmarks
-- State explicitly that `Ctrl+Z` does not revert already-applied browser writes
+- The same shared confirmation dialog pattern is reused for all overwrite-risk actions
+- Warning copy must state overwrite semantics clearly before applying draft changes to browser bookmarks
+- Warning copy must state explicitly that `Ctrl+Z` does not revert already-applied browser writes
 
 ### Restore picker state
 
-- User must choose artifact type first: bookmark snapshot or draft snapshot
-- User must choose restore target explicitly
+- Restore entry is already fixed by the action button the user chose
+- The restore picker only needs to show versions for that already-fixed restore path
 - The UI must surface pre-restore backup behavior before the final confirm action

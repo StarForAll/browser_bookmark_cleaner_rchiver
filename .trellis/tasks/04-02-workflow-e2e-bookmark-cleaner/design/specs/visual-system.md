@@ -56,11 +56,10 @@ The implementation effect of real product pages should visibly reference the app
 ## Feedback Severity Layers
 
 - routine success feedback:
-  - light toast
-  - fixed status-bar update
+  - bottom-right result popup
+  - retained status-history entry
 - routine failure feedback:
-  - readable error first
-  - expandable technical detail second
+  - failed status entry with short failure reason
 - high-risk overwrite actions:
   - stronger warning contrast than routine upload or save interactions
 

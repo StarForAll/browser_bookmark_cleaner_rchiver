@@ -2,32 +2,56 @@
 
 ## Purpose
 
-Summarize the approved visual language before detailed page implementation starts.
+Freeze the visual and interaction tone that Step 4 page specs must follow.
 
-## Reference Basis
+## Trusted Inputs
 
-- `tmp/ui/metadata.json`: high-end editorial bookmarking workspace
-- `tmp/ui/src/App.tsx`: calm side navigation + centered canvas + floating helper surfaces
-- `tmp/ui/src/index.css`: warm paper background, muted slate palette, tactile glass/card layers
+- `docs/PRD.md`
+- Step 2 design specs
+- Step 3 prototype-validation conclusions
+- `tmp/ui/` atmosphere only
 
-## Approved Product Translation
+## Approved Direction
 
-- keep the editorial calm and tactile depth
-- replace English brand mood with Chinese product language
-- retain the “workspace first” feeling rather than a dashboard or table manager
-- keep the graph canvas visually dominant
+- editorial workspace instead of dashboard
+- calm, quiet, tactile, and information-dense
+- graph canvas remains the visual center
+- utility surfaces stay secondary
+- Chinese-first product language replaces any decorative English brand treatment
 
-## Key Styling Decisions
+## Surface Hierarchy
 
-- default theme: bright warm-light, not dark mode first
-- control accents: muted blue-gray / blue-green
-- cards: rounded, soft shadow, light translucency allowed in small doses
-- spacing: airy on the shell, compact inside dense utility panels
-- icons: light editorial weight, not playful illustration style
+1. Graph canvas
+   - primary focal area
+
+2. Node and hover surfaces
+   - interactive and movable
+   - stronger than utility rails
+
+3. Top action bar and search strip
+   - always visible
+   - clear but not louder than the graph
+
+4. Bottom-right status popup/history
+   - noticeable enough for results
+   - visually secondary to active graph editing
+
+## Color and Density Rules
+
+- warm light background only in v1
+- muted blue-gray or blue-green accents
+- destructive or overwrite actions use stronger warning contrast
+- spacing is airy at shell level and tighter inside dense utilities
+
+## Typography Rules
+
+- Chinese copy is first-class, not an afterthought
+- typography must remain readable at dense information scales
+- layout widths should still tolerate future longer multilingual labels
 
 ## Must Avoid
 
-- copying code from `tmp/ui/`
-- pasting English-only brand treatment into the actual product
-- turning the workspace into a conventional enterprise admin layout
-- making the top bar louder than the graph canvas
+- direct reuse of any `tmp/ui` code
+- English-only branding treatment
+- admin-panel styling
+- making the top action region visually heavier than the graph canvas

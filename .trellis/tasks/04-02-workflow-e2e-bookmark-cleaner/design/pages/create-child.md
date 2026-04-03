@@ -2,38 +2,84 @@
 
 ## Purpose
 
-Define the create-child flow opened from `Enter` on the selected node.
+Define the draft-only create-child flow opened from `Enter` on the currently selected node.
+
+This surface exists to add one new child node under the selected parent without leaving the graph workspace.
+
+## Entry
+
+- opened only when a node is currently selected
+- triggered by `Enter`
+- always creates a child under the selected parent node
+- this surface is not used for creating the very first root node in an empty draft
+- does not write to browser bookmarks
+- does not create WebDAV versions
 
 ## Layout
 
-- first block: selected parent summary
-- second block: node type selector
-- third block: create form
-- footer: cancel / create
+1. Header
+   - title
+   - close action
 
-## Required Inputs
+2. Parent context block
+   - selected parent title
+   - parent node type
+   - parent full path
 
-- node type:
-  - folder
-  - bookmark
-- title
-- URL when bookmark is selected
+3. Node type section
+   - folder option
+   - bookmark option
 
-## Validation Rules
+4. Form section
+   - title field
+   - URL field when bookmark type is selected
 
-- folder creation must not accept URL
-- bookmark creation requires non-empty URL
-- parent context stays visible so the user understands where the new node will be inserted
+5. Footer
+   - cancel
+   - create
 
 ## Interaction Rules
 
 - default focus lands on the title field
-- type switching updates visible fields immediately
-- create action mutates draft only
+- switching node type updates visible fields immediately
+- folder type hides or disables URL input
+- bookmark type requires URL input before submit
+- parent context stays visible during the whole flow
+- successful submit creates one draft-history entry
+- successful submit keeps the user inside the draft workspace
+- create success does not create a bottom-right status-history entry
+- failed create validation is shown inline and does not create a status-history record
 
-## Visual Notes
+## Validation Rules
 
-- the parent summary should be secondary but always visible
-- type selector should be obvious enough to avoid user confusion
-- the create flow should feel quicker and lighter than the edit flow
-- all labels, type descriptions, validation copy, and footer actions use Chinese in v1
+### Folder child
+
+- required:
+  - title
+- forbidden:
+  - URL
+
+### Bookmark child
+
+- required:
+  - title
+  - URL
+- URL must not be empty
+
+## Success Result
+
+- the new node appears under the selected parent
+- the graph remains in draft mode
+- browser bookmarks remain unchanged
+- the bottom-right status area remains reserved for explicit overwrite, sync, upload, restore, recovery, and availability-test results
+
+## Failure Result
+
+- invalid input keeps the dialog open
+- parent context remains visible
+- the current draft stays unchanged
+
+## Copy Rules
+
+- all labels, type descriptions, validation copy, and actions use Chinese in v1
+- wording should make it obvious that this flow creates a child in the current draft only

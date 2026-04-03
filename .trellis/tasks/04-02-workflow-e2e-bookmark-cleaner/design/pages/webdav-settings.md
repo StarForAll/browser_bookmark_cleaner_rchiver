@@ -2,35 +2,46 @@
 
 ## Purpose
 
-Define the settings drawer or modal for configuring the single WebDAV profile.
+Define the configuration surface for the single WebDAV profile used in v1.
 
 ## Layout
 
-- header: title + close
-- credential form:
-  - endpoint URL
-  - username
-  - password
-- action row:
-  - test availability
-  - save settings
-- result panel:
-  - readable status
-  - expandable technical detail when failed
+1. Header
+   - title
+   - close action
+
+2. Credential form
+   - endpoint URL
+   - username
+   - password
+
+3. Action row
+   - test availability
+   - save settings
+
+4. Result area
+   - latest availability result
+   - optional detail summary
 
 ## Interaction Rules
 
-- save does not imply successful connectivity
+- save does not imply that connectivity passed
 - test availability is a first-class action
-- cloud actions stay disabled until both permission and test prerequisites pass
-- the UI must explain whether the blocker is:
-  - missing config
-  - host permission not granted
-  - connectivity/auth failure
+- cloud actions remain unavailable until prerequisites and test success are satisfied
+- page-level copy may use one generic unavailable expression
+- exception-type-specific branching is not required in this page spec
 
-## Visual Notes
+## Success Result
 
-- this surface should feel operational, not threatening
-- failure copy should remain readable for non-technical users
-- technical detail should be collapsed by default
-- form labels, button text, blocker reasons, and status summaries use Chinese in v1
+- successful test writes one completed-action entry to the bottom-right status history
+- successful save updates local configuration without implying upload or restore
+
+## Failure Result
+
+- failed test writes one completed-action entry with short failure reason
+- failed save or invalid form input keeps the user in the settings surface
+
+## Copy Rules
+
+- all labels, button text, helper copy, and result summaries use Chinese in v1
+- wording should remain readable for non-technical users

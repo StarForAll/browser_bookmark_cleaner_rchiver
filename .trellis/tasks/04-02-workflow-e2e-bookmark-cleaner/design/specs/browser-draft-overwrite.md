@@ -23,7 +23,7 @@ The flow belongs to Step 2 functional specification and is independent from WebD
 ## Entry and Confirmation
 
 - this flow is triggered by an explicit user action
-- it uses its own dedicated action entry and does not share a button with "sync draft to browser bookmarks"
+- it uses one dedicated top-right "overwrite current draft from browser bookmarks" action entry and does not share a button with "sync current draft to browser bookmarks"
 - the action may be shown when the current draft is empty or non-empty
 - browser readability is validated at execution time, not only through pre-disabled UI state
 
@@ -90,6 +90,9 @@ Before execution, the UI must show an explicit confirmation that states:
 
 - on success, the UI should clearly state that the draft has been rebuilt from the current browser bookmark tree
 - on success, the UI should also remind the user that the previous draft can be restored from the local draft backup entry
+- completed status feedback is written into the bottom-right status history with action description, action time, and result
+- failed status feedback also includes a short failure reason
+- the status-history UI keeps the newest three completed entries with newest first
 
 ## Relationship to Other Specs
 

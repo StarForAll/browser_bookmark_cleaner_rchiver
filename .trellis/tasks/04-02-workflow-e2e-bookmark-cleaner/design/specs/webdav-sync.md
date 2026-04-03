@@ -49,6 +49,7 @@ Rules:
 - only newest five versions are retained per category
 - cloud actions are disabled until WebDAV config exists and passes test
 - upload-browser and upload-draft are separate actions
+- restore-browser and restore-draft are separate actions
 - each category keeps its own `latest.json` and history list
 
 ## Upload Contract
@@ -93,6 +94,8 @@ If both history-version write and `latest.json` update succeed, but prune fails:
 - bookmark WebDAV versions can only restore to browser bookmarks
 - draft WebDAV versions can only restore to current draft
 - cross-type restore is not allowed
+- the UI must not expose one generic restore action that asks the user to choose any source-target combination
+- restore-current-draft and restore-browser-bookmarks each use their own explicit action entry
 
 ### Restore Preconditions
 
@@ -144,6 +147,17 @@ Definitions:
 - `partial-success`: the primary action succeeded, but cleanup such as old-version pruning failed
 - `blocked`: prerequisites were not satisfied, so execution did not start
 - `error`: execution started but failed before the requested primary result was achieved
+
+### Status-History Contract
+
+- every completed cloud action appends one entry to the bottom-right status history
+- each entry includes:
+  - action description
+  - action time
+  - action result
+- failed entries also include a short failure reason
+- the newest three entries are retained with newest first
+- exception-type-specific UI branching is not required at the Step 3 prototype-validation level as long as completed results remain visible
 
 ## Test Points
 

@@ -10,7 +10,7 @@ This design package translates [docs/PRD.md](/ops/projects/personal/browser_book
 - Entry date: 2026-04-02
 - Goal: freeze architecture, module boundaries, runtime contracts, and validation scenarios before `plan`
 - 2026-04-03 refresh: Chinese-first visible UI copy is now a hard v1 constraint, and the design package must keep future multilingual expansion possible without restructuring core UI flows
-- Current checkpoint: Design Step 2 (functional specifications) is complete after human review; Design Step 3 (executable prototype validation) has not started yet
+- Current checkpoint: Design Step 2 (functional specifications) is complete after human review; Design Step 3 (discussion-based executable prototype validation against `tmp/ui/`) is complete; Design Step 4 page interaction specs have been re-authored from trusted PRD + Step 2 + Step 3 inputs instead of inheriting prior page-doc content
 - Finish-work status for this checkpoint: project-level verification matrix is deferred until architecture and verification commands are frozen; only design-package validation is currently required and has passed
 
 ## Mandatory UI Prototyping Reminder
@@ -50,6 +50,7 @@ Recommended wording:
 - `IDD.md`: integration contracts for Chrome APIs, WebDAV, and local persistence
 - `AID.md`: interaction and UI state design
 - `ODD.md`: operational flows, sync, backup, rollback, and failure handling
+- `prototype-validation.md`: Step 3 validation record for the existing `tmp/ui/` reference assets
 
 ## Module Specs
 
@@ -66,9 +67,13 @@ Recommended wording:
 - `pages/visual-direction.md`
 - `pages/workspace.md`
 - `pages/node-editor.md`
+- `pages/create-root.md`
 - `pages/create-child.md`
 - `pages/webdav-settings.md`
 - `pages/restore-version.md`
+- `pages/local-backup-recovery.md`
+- `pages/overwrite-confirmation.md`
+- `pages/status-history.md`
 - `pages/system-states.md`
 
 ## UI Coverage Checklist
@@ -76,26 +81,31 @@ Recommended wording:
 - [x] Main workspace shell and graph canvas
 - [x] Visual direction and style boundary from `tmp/ui/`
 - [x] Node edit surface
+- [x] Empty-state root-create surface
 - [x] Create-child surface
 - [x] WebDAV settings surface
 - [x] Restore/version picker surface
+- [x] Local backup recovery surface
+- [x] Shared overwrite confirmation surface
+- [x] Status-history surface
 - [x] Empty / disabled / error state gallery
 
 ## Prototype Validation Scenarios
 
 - Main flow:
-  - read browser bookmarks
-  - edit draft graph
-  - save draft snapshot to WebDAV
-  - restore one remote draft version back into the workspace
+  - verify that the main workspace is always expressed as the current draft
+  - verify that seven explicit action buttons are distinguishable from text alone
+  - verify that overwrite-risk actions use one shared confirmation-dialog pattern
+  - verify that the bottom-left operation-hint area stays visible without overpowering the graph canvas
 - Exception flow:
-  - WebDAV host permission missing or connectivity test fails
-  - cloud actions remain disabled
-  - workspace shows readable error and expandable technical detail
+  - action failure is visible in the status area
+  - exception-type differentiation is not required at the prototype-validation level
 - Empty-data flow:
   - browser bookmark tree contains no user bookmark nodes
-  - workspace renders an empty-state canvas with create/import guidance
-  - graph editing shell still stays available
+  - status area reflects the empty-data situation
+  - the draft workspace still communicates that editing can continue
+
+See `prototype-validation.md` for the final Step 3 discussion result and the required adjustments that replace conflicting prototype semantics.
 
 ## UI Prototype Note
 

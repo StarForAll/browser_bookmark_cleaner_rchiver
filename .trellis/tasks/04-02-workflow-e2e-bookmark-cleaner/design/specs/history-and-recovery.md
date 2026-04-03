@@ -96,12 +96,14 @@ Rules:
 
 ### Local Recovery Entry Points
 
-- the page exposes two separate recovery actions:
-  - restore browser backup
-  - restore draft backup
-- each action is disabled if no matching local backup exists
-- each action is also disabled if the matching local backup exists but fails structural validation
-- each recovery entry must display at least:
+- the workspace exposes one unified recovery entry for undoing overwrite operations
+- opening that entry reveals two target-specific recovery choices:
+  - undo overwrite on browser bookmarks
+  - undo overwrite on current draft
+- the top-level recovery entry is disabled when neither target has a matching valid local backup
+- each target-specific recovery choice is disabled if no matching local backup exists
+- each target-specific recovery choice is also disabled if the matching local backup exists but fails structural validation
+- each recovery choice must display at least:
   - backup created time
   - backup source origin
   - source version label when available
@@ -199,7 +201,7 @@ Browser recovery rules:
 - syncing draft to browser bookmarks first creates a browser-type local restore backup
 - overwriting current draft from browser bookmarks first creates a draft-type local restore backup
 - a failed backup generation blocks the overwrite action and preserves the previous local backup
-- browser backup recovery and draft backup recovery are exposed as separate actions
+- browser backup recovery and draft backup recovery are exposed as separate choices under one undo-overwrite entry
 - a structurally invalid local backup disables its matching recovery action
 - failed draft recovery keeps the original draft unchanged
 - failed browser recovery attempts best-effort rollback to the pre-recovery browser state
