@@ -4,6 +4,8 @@
 
 Translate the `tmp/ui/` reference into reusable visual rules for the actual product without reusing prototype code.
 
+The implementation effect of real product pages should visibly reference the approved atmosphere and visual outcome shown in `tmp/ui/`, while keeping production code independent from the prototype source.
+
 ## Design Reference Boundary
 
 - `tmp/ui/` is a visual and interaction reference asset only
@@ -14,6 +16,7 @@ Translate the `tmp/ui/` reference into reusable visual rules for the actual prod
   - surface hierarchy
   - typography tone
   - control prominence ordering
+- actual shipped page effect should stay recognizably aligned with the visual result demonstrated by `tmp/ui/`
 
 ## Visual Direction
 
@@ -22,6 +25,7 @@ Translate the `tmp/ui/` reference into reusable visual rules for the actual prod
 - tactile card surfaces
 - airy but not sparse
 - visual focus on the graph canvas
+- first release is warm-light only, not dark-mode first
 
 ## Color Intent
 
@@ -37,6 +41,7 @@ Translate the `tmp/ui/` reference into reusable visual rules for the actual prod
 - heading tone should feel curated and premium, not generic SaaS
 - body text should remain highly legible at dense information scales
 - component widths must tolerate longer English copy in future
+- freeze typography tone and layout tolerance first; exact font-family selection may be finalized later
 
 ## Surface Rules
 
@@ -44,6 +49,20 @@ Translate the `tmp/ui/` reference into reusable visual rules for the actual prod
 - graph node cards should look movable and editable, not static list items
 - floating helper panels should stay visually secondary to the graph itself
 - browser-sync warning modal should have stronger contrast than routine upload dialogs
+- node cards must attract more visual attention than utility rails and status surfaces
+- selected, hovered, and actively dragged nodes must remain visually distinguishable without relying on neon or overly saturated accents
+- duplicate-path information remains secondary to the node title and graph structure, even when duplicate-only mode is active
+
+## Feedback Severity Layers
+
+- routine success feedback:
+  - light toast
+  - fixed status-bar update
+- routine failure feedback:
+  - readable error first
+  - expandable technical detail second
+- high-risk overwrite actions:
+  - stronger warning contrast than routine upload or save interactions
 
 ## Test Points
 
@@ -51,3 +70,6 @@ Translate the `tmp/ui/` reference into reusable visual rules for the actual prod
 - the same layout can accept longer English labels without obvious breakage
 - the graph canvas remains the dominant focal area
 - sync warning looks more severe than regular save-to-WebDAV interactions
+- the real implementation remains visually aligned with the approved `tmp/ui/` reference effect without copying prototype code
+- node selection, hover, and drag states are visually distinct while staying within the muted palette
+- duplicate-path display stays readable without overpowering node titles

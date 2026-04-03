@@ -22,6 +22,8 @@ Build a Chrome extension that opens in a dedicated extension page and turns the 
 - Separate editing from external side effects
 - Make destructive or remote effects explicit
 - Preserve user comfort with stable layout, visible shortcuts, and quick recovery
+- Keep all first-release system-visible UI copy in Chinese
+- Reserve a centralized copy boundary so future multilingual expansion does not require redesigning core interaction flows
 
 ## Non-Goals
 

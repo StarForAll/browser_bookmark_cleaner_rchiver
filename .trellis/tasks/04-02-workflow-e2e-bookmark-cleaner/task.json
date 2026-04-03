@@ -15,22 +15,26 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 1,
+  "current_phase": 0,
   "next_action": [
     {
       "phase": 1,
-      "action": "implement"
+      "action": "plan"
     },
     {
       "phase": 2,
-      "action": "check"
+      "action": "implement"
     },
     {
       "phase": 3,
-      "action": "finish"
+      "action": "check"
     },
     {
       "phase": 4,
+      "action": "finish"
+    },
+    {
+      "phase": 5,
       "action": "create-pr"
     }
   ],
@@ -43,7 +47,7 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
     "tmp/workflow-e2e-issues.md"
   ],
-  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm closed, design artifacts created.",
+  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement, and the task remains in design until the human-reviewed design workflow is fully closed. Design Step 2 (functional specifications) is now complete, including browser-to-draft overwrite, draft-to-browser sync, and duplicate-hover display rules. Design Step 3 has not started yet. The project-level finish-work command matrix is temporarily deferred until the technical architecture and verification commands are frozen; only document-level validation has been executed so far.",
   "meta": {
     "task_type": "interactive-product-implementation",
     "product_name": "browser-bookmark-cleaner-archiver",

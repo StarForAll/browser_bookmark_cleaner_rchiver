@@ -9,6 +9,9 @@ This design package translates [docs/PRD.md](/ops/projects/personal/browser_book
 - Status: active design package
 - Entry date: 2026-04-02
 - Goal: freeze architecture, module boundaries, runtime contracts, and validation scenarios before `plan`
+- 2026-04-03 refresh: Chinese-first visible UI copy is now a hard v1 constraint, and the design package must keep future multilingual expansion possible without restructuring core UI flows
+- Current checkpoint: Design Step 2 (functional specifications) is complete after human review; Design Step 3 (executable prototype validation) has not started yet
+- Finish-work status for this checkpoint: project-level verification matrix is deferred until architecture and verification commands are frozen; only design-package validation is currently required and has passed
 
 ## Mandatory UI Prototyping Reminder
 
@@ -51,6 +54,8 @@ Recommended wording:
 ## Module Specs
 
 - `specs/bookmark-graph.md`
+- `specs/draft-browser-sync.md`
+- `specs/browser-draft-overwrite.md`
 - `specs/search-and-focus.md`
 - `specs/visual-system.md`
 - `specs/webdav-sync.md`

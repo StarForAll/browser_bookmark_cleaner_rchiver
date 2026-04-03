@@ -31,3 +31,4 @@ Define the restore picker used for recovering a bookmark snapshot or draft snaps
 - version list should support quick scanning
 - warning hierarchy should intensify when browser bookmarks are the restore target
 - backup notice should look reassuring rather than punitive
+- source labels, target labels, overwrite warnings, and confirm actions use Chinese in v1

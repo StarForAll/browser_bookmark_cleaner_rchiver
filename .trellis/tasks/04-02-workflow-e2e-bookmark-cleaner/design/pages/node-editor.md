@@ -41,3 +41,4 @@ Define the modal used for editing an existing node after double click.
 - editing surface should feel focused and quiet
 - form density should be moderate, not oversized
 - destructive actions do not live in this modal
+- all labels, helper copy, validation messages, and action text use Chinese in v1

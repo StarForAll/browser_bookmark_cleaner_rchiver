@@ -33,3 +33,4 @@ Define the settings drawer or modal for configuring the single WebDAV profile.
 - this surface should feel operational, not threatening
 - failure copy should remain readable for non-technical users
 - technical detail should be collapsed by default
+- form labels, button text, blocker reasons, and status summaries use Chinese in v1

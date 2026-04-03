@@ -110,6 +110,17 @@ Reason:
 - Reduces unnecessary install-time permission surface
 - Gives a concrete contract for enabling or disabling cloud actions
 
+### Decision 6: Centralized Chinese-first copy boundary
+
+- All system-visible UI copy is defined through centralized local copy resources
+- The first release ships only Chinese product copy
+- Component logic should consume copy keys or structured copy modules instead of scattering inline UI strings
+
+Reason:
+- Satisfies the v1 Chinese-only interface constraint
+- Preserves room for future multilingual support without changing domain logic, page structure, or adapter contracts
+- Reduces the risk of English placeholder text leaking into production UI
+
 ### Manifest-Level Contract
 
 - Required permissions:
@@ -146,6 +157,7 @@ src/
     webdav/
   shared/
     ui/
+    copy/
     utils/
     types/
 manifest.json

@@ -36,3 +36,4 @@ Define the create-child flow opened from `Enter` on the selected node.
 - the parent summary should be secondary but always visible
 - type selector should be obvious enough to avoid user confusion
 - the create flow should feel quicker and lighter than the edit flow
+- all labels, type descriptions, validation copy, and footer actions use Chinese in v1

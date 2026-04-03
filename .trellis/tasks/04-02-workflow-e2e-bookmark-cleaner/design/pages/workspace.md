@@ -55,8 +55,16 @@ Primary extension page for bookmark graph management.
 
 - shortcuts must stay visible
 - duplicate information should stay readable without exposing internal identifiers
+- hover info always shows title, type, and human-readable full path
+- bookmark-node hover also shows URL, while folder-node hover does not render URL placeholders
+- duplicate hover behavior applies only to duplicate-URL bookmark nodes, not repeated folder titles
+- duplicate hover shows duplicate count and the first two duplicate paths by default, including the currently hovered node
+- when more than two duplicate paths exist, the remaining entries are revealed through an inline expand-more action inside the hover card
+- duplicate hover cards may use readable order suffixes such as `#1` and `#2` when path text alone is not enough to distinguish entries
 - destructive and remote actions need explicit confirmation or explicit status feedback
 - browser sync warning must be visually stronger than routine cloud upload feedback
+- all system-visible controls, empty states, and feedback copy on this page use Chinese in v1
+- labels and layout spacing should still tolerate longer future multilingual replacements without redesigning the shell
 
 ## External Prototype Handoff
 

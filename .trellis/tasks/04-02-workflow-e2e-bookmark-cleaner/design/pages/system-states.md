@@ -52,3 +52,19 @@ Collect non-happy-path UI states that were previously only implied.
   - friendly no-result copy
   - quick clear action
   - graph remains mounted
+
+## Duplicate Hover Overflow State
+
+- trigger:
+  - duplicate bookmark count is greater than two
+  - duplicate paths or URLs are long enough to exceed the compact hover summary height
+- required UI:
+  - default hover still shows duplicate count and the first two duplicate paths
+  - remaining duplicate entries expand inside the same hover card
+  - expanded entries use internal scrolling instead of unbounded hover-card growth
+  - closing the hover card resets the duplicate list back to its default collapsed state
+
+## Copy Rules
+
+- all empty, disabled, warning, success, and failure state summaries use Chinese in v1
+- state-specific copy stays under the same centralized copy boundary as the rest of the workspace so future multilingual expansion does not force state-flow rewrites

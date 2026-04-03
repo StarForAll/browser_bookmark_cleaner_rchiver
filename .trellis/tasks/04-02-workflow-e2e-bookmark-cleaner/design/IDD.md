@@ -34,6 +34,18 @@ Data categories:
 - Last local restore backup metadata
 - WebDAV host-access grant state
 
+### UI Copy Resources
+
+Purpose:
+
+- Provide one centralized source for system-visible product copy
+
+Contract:
+
+- The first release bundles Chinese copy only
+- Page-level UI should read product copy from shared copy resources instead of scattering ad hoc inline strings
+- Future locale additions must not require changes to bookmark, draft, sync, or WebDAV contracts
+
 ### WebDAV
 
 Purpose:

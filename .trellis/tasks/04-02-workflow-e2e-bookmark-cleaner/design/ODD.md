@@ -8,6 +8,7 @@
 2. Normalize into draft graph
 3. Load local expanded state and layout coordinates
 4. Render default or saved layout
+5. Resolve system-visible page copy from the centralized Chinese-first copy source
 
 ### Flow 2: Edit draft
 
@@ -67,6 +68,7 @@ Rules:
 - Readable message first, technical detail second
 - Failed remote actions do not mutate unrelated local state
 - Cloud actions stay disabled when config, host access, or connectivity prerequisites are missing
+- Empty, warning, success, and error states all follow the same centralized copy boundary so future multilingual expansion does not change the control flow design
 
 ## Rollback Policy
 

@@ -1,6 +1,6 @@
 ---
 name: finish-work
-description: "Pre-commit quality checklist covering lint, typecheck, tests, code-spec sync, API changes, database migrations, cross-layer verification, and manual testing. Blocks commit if infra or cross-layer specs lack executable depth. Use when code is written and tested but not yet committed, before submitting changes, or as a final review before git commit."
+description: "Pre-commit quality checklist covering verification readiness, code-spec sync, API changes, database migrations, cross-layer verification, and manual testing. Blocks commit if infra or cross-layer specs lack executable depth. Use when code is written and tested but not yet committed, before submitting changes, or as a final review before git commit."
 ---
 
 # Finish Work - Pre-Commit Checklist
@@ -15,16 +15,9 @@ Before submitting or committing, use this checklist to ensure work completeness.
 
 ### 1. Code Quality
 
-```bash
-# Must pass
-pnpm lint
-pnpm type-check
-pnpm test
-```
-
-- [ ] `pnpm lint` passes with 0 errors?
-- [ ] `pnpm type-check` passes with no type errors?
-- [ ] Tests pass?
+- [ ] Project verification commands are already frozen for the current architecture?
+- [ ] The frozen verification matrix was executed and results were recorded truthfully as `pass / fail / not run`?
+- [ ] If the project has not frozen verification commands yet, did you explicitly record that this section is deferred?
 - [ ] No `console.log` statements (use logger)?
 - [ ] No non-null assertions (the `x!` operator)?
 - [ ] No `any` types?
@@ -95,16 +88,10 @@ If the change spans multiple layers:
 
 ## Quick Check Flow
 
-```bash
-# 1. Code checks
-pnpm lint && pnpm type-check
-
-# 2. View changes
-git status
-git diff --name-only
-
-# 3. Based on changed files, check relevant items above
-```
+1. Confirm whether the project's verification commands are frozen.
+2. If yes, run the frozen verification matrix and record real outcomes.
+3. Review changed files with `git status` and `git diff --name-only`.
+4. Based on changed files, check the relevant items above.
 
 ---
 
@@ -116,7 +103,7 @@ git diff --name-only
 | Spec text is abstract only | Easy regressions in infra/cross-layer changes | Require signature/contract/matrix/cases/tests |
 | Migration not created | Schema out of sync | Check db/migrations/ |
 | Types not synced | Runtime errors | Check shared types |
-| Tests not updated | False confidence | Run full test suite |
+| Verification matrix not frozen yet but treated as complete | False confidence | Mark verification as deferred until architecture/commands are frozen |
 | Console.log left in | Noisy production logs | Search for console.log |
 
 ---

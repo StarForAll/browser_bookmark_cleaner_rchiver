@@ -69,3 +69,59 @@ Completed the interactive brainstorm and design preparation for the browser book
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: Design Phase Expansion For Bookmark Cleaner
+
+**Date**: 2026-04-02
+**Task**: Design Phase Expansion For Bookmark Cleaner
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Area | Description |
+|------|-------------|
+| Design package | Expanded the bookmark cleaner design package beyond the main workspace page into a complete UI design set |
+| UI reference boundary | Recorded that `tmp/ui/` is style-reference-only and must not be used as implementation code |
+| Page coverage | Added design docs for visual direction, node editor, create-child flow, WebDAV settings, restore version picker, and system states |
+| Interaction design | Refined AID with visual direction, component inventory, restore picker rules, and state-specific behavior |
+| Workflow alignment | Kept the task in design stage instead of continuing implementation after the interruption |
+
+**Design artifacts added**:
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/visual-system.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/visual-direction.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/node-editor.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/create-child.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/webdav-settings.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/restore-version.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/system-states.md`
+
+**Updated artifacts**:
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/index.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md`
+
+**Archive decision**:
+- Current task was not archived because the overall bookmark cleaner implementation is not complete yet; this session only closed the design-phase gaps.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `581021d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

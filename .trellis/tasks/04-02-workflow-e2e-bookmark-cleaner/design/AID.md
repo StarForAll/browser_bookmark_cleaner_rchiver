@@ -21,6 +21,7 @@ The extension page is a single focused workspace with four persistent zones:
    - draggable nodes
    - visible selection state
    - hover card for URL and duplicate info
+   - duplicate hover summary with inline expand-more behavior
 
 4. Fixed status bar
    - last sync target
@@ -53,6 +54,7 @@ Mandatory adjustments for the real product:
 - layout must tolerate future English and multilingual expansion
 - remove any dependency on decorative English branding such as `The Silent Curator`
 - visual direction may borrow atmosphere from `tmp/ui`, but implementation must be product-specific
+- system-visible copy should come from centralized product copy resources, not scattered inline strings
 
 ## Component Inventory
 
@@ -106,6 +108,10 @@ Secondary components:
 ## Visual Feedback
 
 - Hover cards surface friendly path-based duplicate information
+- duplicate hover applies only to bookmark nodes with duplicate URLs, not to repeated folder titles
+- duplicate hover shows duplicate count plus the first two duplicate paths by default, and the current hovered node is included in that default slice
+- when duplicate count is greater than two, remaining entries expand inside the same hover card instead of opening a separate surface
+- duplicate path labels stay human-readable and may use order suffixes like `#1` and `#2` when path text alone is not enough to distinguish entries
 - Success actions produce toast + status bar update
 - Failed actions produce readable error + expandable raw detail
 - Disabled cloud actions always explain whether the blocker is missing config, missing host access, or failed connectivity test
