@@ -11,18 +11,31 @@ Before submitting or committing, use this checklist to ensure work completeness.
 ### 1. Code Quality
 
 ```bash
-# Must pass
+# Target matrix after PLAN-01 scaffold exists
 pnpm lint
-pnpm type-check
+pnpm typecheck
 pnpm test
+pnpm build
+sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.
 ```
 
 - [ ] `pnpm lint` passes with 0 errors?
-- [ ] `pnpm type-check` passes with no type errors?
+- [ ] `pnpm typecheck` passes with no type errors?
 - [ ] Tests pass?
+- [ ] `pnpm build` passes?
+- [ ] `sonar-scanner ...` passes, or is truthfully marked `not run` / `deferred`?
 - [ ] No `console.log` statements (use logger)?
 - [ ] No non-null assertions (the `x!` operator)?
 - [ ] No `any` types?
+
+### 1.5. Test Coverage
+
+Check if your change needs new or updated tests (see `.trellis/spec/frontend/quality-guidelines.md`):
+
+- [ ] New pure function or domain mutation → test added in `src/**/*.test.ts`?
+- [ ] Component behavior change → test added or updated in `src/**/*.test.tsx`?
+- [ ] Shared fixtures or runtime helpers needed → placed under `test/`?
+- [ ] No logic change (text/data only) → no test needed
 
 ### 2. Code-Spec Sync
 
@@ -33,6 +46,12 @@ pnpm test
   - New components, new hooks, new patterns
 - [ ] Does `.trellis/spec/guides/` need updates?
   - New cross-layer flows, lessons from bugs
+- [ ] If this is a Trellis-related change, were all linked current-entry hidden directories checked and synchronized as needed?
+  - `.trellis/`
+  - `.claude/`
+  - `.opencode/`
+  - `.agents/skills/`
+  - `.codex/`
 
 **Key Question**: 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me (or others) won't hit the same issue?"
@@ -93,7 +112,7 @@ If the change spans multiple layers:
 
 ```bash
 # 1. Code checks
-pnpm lint && pnpm type-check
+pnpm lint && pnpm typecheck
 
 # 2. View changes
 git status

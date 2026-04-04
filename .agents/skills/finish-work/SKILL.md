@@ -15,12 +15,37 @@ Before submitting or committing, use this checklist to ensure work completeness.
 
 ### 1. Code Quality
 
+Current project target matrix after `PLAN-01` scaffold exists:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.`
+
+Checklist:
+
 - [ ] Project verification commands are already frozen for the current architecture?
 - [ ] The frozen verification matrix was executed and results were recorded truthfully as `pass / fail / not run`?
-- [ ] If the project has not frozen verification commands yet, did you explicitly record that this section is deferred?
+- [ ] If the real engineering scaffold is not ready yet, did you explicitly record that this section is `deferred` or `not run` instead of pretending success?
 - [ ] No `console.log` statements (use logger)?
 - [ ] No non-null assertions (the `x!` operator)?
 - [ ] No `any` types?
+
+### 1.5. Test Coverage
+
+Current project testing conventions:
+
+- unit or application logic tests: `src/**/*.test.ts`
+- React component tests: `src/**/*.test.tsx`
+- shared fixtures, mocks, and helpers: `test/`
+- no mandatory `tests/evals/EVAL-<id>.yaml` in v1 unless a later task explicitly introduces it
+
+Checklist:
+
+- [ ] New pure function or domain mutation → test added or updated?
+- [ ] Component behavior change → corresponding component test added or updated?
+- [ ] No logic change (text/data/spec-only) → no test required and reason is clear?
 
 ### 2. Code-Spec Sync
 
@@ -31,6 +56,12 @@ Before submitting or committing, use this checklist to ensure work completeness.
   - New components, new hooks, new patterns
 - [ ] Does `.trellis/spec/guides/` need updates?
   - New cross-layer flows, lessons from bugs
+- [ ] If this is a Trellis-related change, were all linked current-entry hidden directories checked and synchronized as needed?
+  - `.trellis/`
+  - `.claude/`
+  - `.opencode/`
+  - `.agents/skills/`
+  - `.codex/`
 
 **Key Question**: 
 > "If I fixed a bug or discovered something non-obvious, should I document it so future me (or others) won't hit the same issue?"
@@ -92,6 +123,7 @@ If the change spans multiple layers:
 2. If yes, run the frozen verification matrix and record real outcomes.
 3. Review changed files with `git status` and `git diff --name-only`.
 4. Based on changed files, check the relevant items above.
+5. If the task is the current session's final close-out, archive the completed task and then use `record-session-helper.py`.
 
 ---
 

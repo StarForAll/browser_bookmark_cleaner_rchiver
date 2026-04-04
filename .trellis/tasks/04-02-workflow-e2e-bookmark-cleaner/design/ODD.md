@@ -4,12 +4,17 @@
 
 ### Flow 1: Load workspace
 
-1. Read current browser bookmark tree
-2. Normalize into draft graph
-3. Load local expanded state and layout coordinates
-4. Render default or saved layout
-5. Resolve system-visible page copy from the centralized Chinese-first copy source
-6. Present the workspace as the current draft workspace rather than as direct live browser-bookmark editing
+1. Restore the local draft session and persisted workspace state
+2. Load local expanded state, layout coordinates, backup metadata, and WebDAV configuration state
+3. Render the restored or default workspace layout
+4. Resolve system-visible page copy from the centralized Chinese-first copy source
+5. Present the workspace as the current draft workspace rather than as direct live browser-bookmark editing
+
+Rules:
+
+- workspace startup restores local session state before touching browser or WebDAV data
+- browser bookmark reads happen only when no local draft exists yet or when the user explicitly triggers browser-to-draft overwrite
+- WebDAV connectivity and version loading are never automatic startup side effects
 
 ### Flow 2: Overwrite current draft from browser bookmarks
 
@@ -34,14 +39,15 @@
 1. User clicks sync to browser
 2. System shows the shared overwrite confirmation dialog with draft-to-browser wording
 3. User confirms the browser write action
-4. System converts the draft graph into browser bookmark mutations
-5. Chrome bookmark write runs
+4. System creates a controlled full-reconstruction write plan for the managed browser bookmark scope
+5. Chrome bookmark write runs and rebuilds the managed browser scope to match the current draft
 6. Bottom-right status history records success or failure
 
 Rules:
 
 - This flow never runs silently
 - `Ctrl+Z` does not revert already-applied browser writes
+- successful completion means the managed browser bookmark scope now matches the current draft
 
 ### Flow 5: Sync browser bookmarks to WebDAV
 
@@ -105,6 +111,7 @@ Rules:
 - Failed remote actions do not mutate unrelated local state
 - Cloud actions stay disabled when config, host access, or connectivity prerequisites are missing
 - Empty, warning, success, and error states all follow the same centralized copy boundary so future multilingual expansion does not change the control flow design
+- current draft state is preserved as the first priority when overwrite, sync, or restore actions fail
 
 ## Rollback Policy
 
@@ -112,6 +119,12 @@ Rules:
 - Restore mistakes: use local latest backup
 - Remote history mistakes: select an older WebDAV version and restore again
 - Browser write mistakes: not covered by `Ctrl+Z`; recover through explicit restore flows
+- Browser overwrite and recovery actions target best-effort rollback rather than absolute transactional guarantees
+
+## External Action Concurrency Policy
+
+- browser-to-draft overwrite, draft-to-browser sync, WebDAV upload, WebDAV restore, and undo-overwrite recovery run serially
+- v1 does not allow concurrent external side-effect flows against browser, WebDAV, or persisted recovery targets
 
 ## Undo Storage Policy
 

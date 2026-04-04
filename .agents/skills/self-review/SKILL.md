@@ -38,12 +38,12 @@ description: 代码写完了？自审一下 — 对照 spec 逐项核对，输�
 ```bash
 python3 .trellis/scripts/workflow/self-review-check.py \
   <task_dir> \
-  --test-cmd "<user-confirmed test command>" \
-  --lint-cmd "<user-confirmed lint command>" \
-  --typecheck-cmd "<user-confirmed type-check command>"
+  --test-cmd "pnpm test" \
+  --lint-cmd "pnpm lint" \
+  --typecheck-cmd "pnpm typecheck"
 ```
 
-这里的命令必须来自技术架构确认后由用户明确的项目化输入；若当前项目没有某一项检查，则省略对应参数，不在本阶段猜默认值。
+当前项目冻结的自动化命令口径是 `pnpm lint`、`pnpm typecheck`、`pnpm test`；若真实工程 scaffold 尚未落地，则在结果里如实标记 `not run` 或 `deferred`，而不是改回占位命令。
 
 ### Step 2: 自审清单
 

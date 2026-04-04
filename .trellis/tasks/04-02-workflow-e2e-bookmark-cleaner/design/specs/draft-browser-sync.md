@@ -17,7 +17,7 @@ The flow belongs to Step 2 functional specification and is independent from WebD
 
 ## Outputs
 
-- browser bookmark mutation plan derived from the current draft graph
+- controlled full-reconstruction browser write plan derived from the current draft graph
 - new browser-type local restore backup created from the pre-sync browser state
 - sync result status
 
@@ -53,7 +53,8 @@ Before execution, the UI must show an explicit confirmation that states:
 - sync is an overwrite flow, not a merge flow
 - sync scope is limited to the managed browser bookmark root set already represented by the current draft
 - browser areas outside the managed draft root set must not be modified by this flow
-- the implementation may use a mutation plan instead of full delete-and-rebuild, but the final managed browser structure must match the current draft graph
+- browser write-back in v1 uses controlled full reconstruction inside the managed browser scope rather than best-effort incremental diff application
+- successful sync means the managed browser bookmark scope matches the current draft graph
 - sync must be blocked before browser writes begin if:
   - browser-type local backup generation fails
   - graph-to-browser conversion fails

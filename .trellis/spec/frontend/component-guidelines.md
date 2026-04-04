@@ -6,54 +6,75 @@
 
 ## Overview
 
-<!--
-Document your project's component conventions here.
+Components render the extension workspace, collect user intent, and display derived state.
 
-Questions to answer:
-- What component patterns do you use?
-- How are props defined?
-- How do you handle composition?
-- What accessibility standards apply?
--->
+Components are not the system boundary for business rules, persistence, or external side effects.
 
-(To be filled by the team)
+---
+
+## Component Responsibilities
+
+Allowed responsibilities:
+
+- render draft-derived view data
+- display explicit action entry points
+- host local interaction state such as temporary input focus or modal visibility
+- forward user intent to application actions
+- show Chinese-first copy from centralized copy resources
+
+Forbidden responsibilities:
+
+- calling `chrome.bookmarks` directly
+- issuing raw WebDAV `fetch` requests
+- writing persistence data directly
+- deciding overwrite safety, recovery eligibility, or cloud availability rules
 
 ---
 
 ## Component Structure
 
-<!-- Standard structure of a component file -->
+Prefer this order inside a component file:
 
-(To be filled by the team)
+1. imports
+2. props and local helper types
+3. component function
+4. small render-only helpers when needed
+
+Keep large domain logic, layout mapping, or side-effect coordination outside the component file.
 
 ---
 
 ## Props Conventions
 
-<!-- How props should be defined and typed -->
-
-(To be filled by the team)
+- use explicit props interfaces
+- prefer passing derived view models, ids, flags, and callbacks
+- do not pass raw Chrome bookmark payloads or raw WebDAV response objects into presentation components
+- keep optional props explicit; avoid overloaded empty-string conventions
+- if a component supports both folder and bookmark nodes, use discriminated props or a discriminated view model
 
 ---
 
 ## Styling Patterns
 
-<!-- How styles are applied (CSS modules, styled-components, Tailwind, etc.) -->
-
-(To be filled by the team)
+- preserve the approved editorial workspace direction from the design package
+- keep layout and styling decisions aligned with the single-workspace shell
+- store reusable copy, spacing intent, and shared visual helpers centrally rather than scattering one-off magic values
+- do not copy implementation code from `tmp/ui/`; only align with its design intent
 
 ---
 
 ## Accessibility
 
-<!-- A11y requirements and patterns -->
-
-(To be filled by the team)
+- every visible action button needs clear Chinese text
+- modal and drawer flows must preserve focus order and keyboard escape behavior
+- destructive or overwrite-risk actions must not rely on hover-only explanation
+- keyboard-driven actions such as `Enter`, `Delete / Backspace`, and `Ctrl+Z` must remain consistent with the operation hint panel
 
 ---
 
 ## Common Mistakes
 
-<!-- Component-related mistakes your team has made -->
-
-(To be filled by the team)
+- embedding overwrite confirmation logic directly inside a button component
+- mixing draft-only edits with browser-write side effects in a modal component
+- scattering inline Chinese strings through many components
+- treating graph-library node objects as the primary business data model

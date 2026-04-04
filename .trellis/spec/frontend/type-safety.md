@@ -6,36 +6,50 @@
 
 ## Overview
 
-This project uses TypeScript strict mode. Data contracts between browser adapters, local persistence, WebDAV payloads, and the draft graph must be explicit.
+This project uses TypeScript strict mode.
+
+Type safety must protect the boundaries between:
+
+- browser-agnostic bookmark contracts
+- normalized draft graph models
+- local persistence assets
+- WebDAV snapshot envelopes
+- domain error results
 
 ---
 
-## Type Organization
+## Contract Organization
 
-- Shared domain types belong close to the domain module they model
-- Adapter input/output types should live with the adapter unless reused broadly
-- UI-only prop types stay beside the component
-
----
-
-## Validation
-
-- Browser API results should be normalized before entering the draft graph
-- Restored WebDAV payloads should not be treated as trusted internal state without validation
-- If runtime validation is introduced later, keep it at adapter boundaries rather than deep inside UI components
+- domain types live with the domain module they describe
+- adapter input and output contracts live with the adapter unless reused across modules
+- component prop types stay beside the component
+- versioned snapshot envelopes should be shared contracts, not ad hoc inline shapes
 
 ---
 
-## Common Patterns
+## Required Type Patterns
 
-- Prefer discriminated unions for node kinds such as `folder` vs `bookmark`
-- Use explicit nullable fields instead of overloaded empty strings
-- Use narrow helper functions for adapter-to-domain mapping
+- use discriminated unions for node kinds and result states
+- include explicit `schemaVersion` on persisted and exchanged snapshot assets
+- model external action results as structured success or failure objects
+- use explicit nullable fields instead of magic empty strings
+- keep browser-facing contracts separate from Chrome-native raw response shapes
+
+---
+
+## Boundary Validation
+
+- normalize and validate browser API data before it enters the draft graph
+- validate restored WebDAV snapshots and local backup assets before treating them as trusted internal state
+- map raw adapter failures into a unified domain error model before they reach UI code
+- keep runtime validation at adapter boundaries or import boundaries, not deep inside presentational components
 
 ---
 
 ## Forbidden Patterns
 
 - `any`
-- Blind `as` assertions on external payloads
-- Reusing browser-native shapes directly as UI state without normalization
+- blind `as` assertions on external payloads
+- using raw `BookmarkTreeNode`-shaped objects as application state
+- passing raw HTTP response bodies upward and letting UI code decode transport details
+- storing unversioned backup or snapshot payloads when the asset is intended to survive app restarts

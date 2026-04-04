@@ -45,10 +45,13 @@ description: 任务拆好了？先写测试 — 实现前生成测试套件作�
 ### Step 2: 测试用例生成
 
 - 按项目已确认的语言、框架、目录和命名约定生成测试文件
-  - 例如：`tests/<module>.test.ts`、`tests/test_<module>.py`、`<pkg>/<module>_test.go`
+  - 当前项目冻结约定：
+    - 单元 / 应用逻辑测试：`src/**/*.test.ts`
+    - React 组件测试：`src/**/*.test.tsx`
+    - 共享 fixture / mock / runtime helper：`test/`
 - 验收标准模板 → 功能/边界/异常
 - 若项目确实需要评估集 / fixture / contract test，再按已确认格式生成
-  - 不默认要求 `tests/evals/EVAL-<id>.yaml`
+  - 当前项目不默认要求 `tests/evals/EVAL-<id>.yaml`
   - 不默认要求统一 YAML 格式、固定条数或固定对抗样本比例
 
 ### Step 3: 人工审核
@@ -60,7 +63,7 @@ description: 任务拆好了？先写测试 — 实现前生成测试套件作�
 ### Step 4: 进入门禁
 
 ```bash
-<user-confirmed test/verification command>
+pnpm test
 ```
 
 测试不通过 → 不允许提交代码

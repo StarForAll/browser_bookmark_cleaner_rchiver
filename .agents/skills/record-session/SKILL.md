@@ -29,13 +29,13 @@ python3 ./.trellis/scripts/task.py archive <task-name>
 ### Step 2: One-Click Add Session
 
 ```bash
-# Method 1: Simple parameters
-python3 ./.trellis/scripts/add_session.py \
+# Preferred method: final close-out helper
+python3 ./.trellis/scripts/workflow/record-session-helper.py \
   --title "Session Title" \
   --commit "hash1,hash2" \
   --summary "Brief summary of what was done"
 
-# Method 2: Pass detailed content via stdin
+# Fallback: direct add_session.py only if you are not doing final close-out
 cat << 'EOF' | python3 ./.trellis/scripts/add_session.py --stdin --title "Title" --commit "hash"
 | Feature | Description |
 |---------|-------------|
@@ -48,12 +48,11 @@ cat << 'EOF' | python3 ./.trellis/scripts/add_session.py --stdin --title "Title"
 EOF
 ```
 
-**Auto-completes**:
-- [OK] Appends session to journal-N.md
-- [OK] Auto-detects line count, creates new file if >2000 lines
-- [OK] Auto-detects Branch context (`--branch` override; otherwise Branch = task.json -> current git branch; missing values are omitted gracefully)
-- [OK] Updates index.md (Total Sessions +1, Last Active, line stats, history)
-- [OK] Auto-commits .trellis/workspace and .trellis/tasks changes
+The workflow helper:
+- [OK] Runs metadata closure pre-checks
+- [OK] Calls `add_session.py` internally
+- [OK] Runs metadata closure post-checks
+- [OK] Blocks final close-out if `.trellis/tasks` metadata is still dirty
 
 ---
 
@@ -62,6 +61,7 @@ EOF
 | Command | Purpose |
 |---------|---------|
 | `python3 ./.trellis/scripts/get_context.py --mode record` | Get context for record-session |
-| `python3 ./.trellis/scripts/add_session.py --title "..." --commit "..."` | **One-click add session (recommended, branch auto-complete)** |
+| `python3 ./.trellis/scripts/workflow/record-session-helper.py --title "..." --commit "..."` | **Final session close-out with metadata closure checks (recommended)** |
+| `python3 ./.trellis/scripts/add_session.py --title "..." --commit "..."` | Direct session append when helper-level closure is not needed |
 | `python3 ./.trellis/scripts/task.py archive <name>` | Archive completed task (auto-commits) |
 | `python3 ./.trellis/scripts/task.py list` | List active tasks |

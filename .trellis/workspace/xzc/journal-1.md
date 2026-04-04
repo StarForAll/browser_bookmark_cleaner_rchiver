@@ -216,3 +216,47 @@ Completed the interactive brainstorm and design preparation for the browser book
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: 技术架构冻结与Plan门禁明确
+
+**Date**: 2026-04-04
+**Task**: 技术架构冻结与Plan门禁明确
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| 项目 | 内容 |
+|------|------|
+| 技术架构 | 冻结 Chrome 扩展、独立扩展页面、React + TypeScript、Vite、`@xyflow/react`、轻量集中式状态管理、原生 `fetch` WebDAV、仅扩展页面运行拓扑。 |
+| 撤销模型 | 冻结为“当前草稿完整快照 + `Ctrl+Z` patch 历史 + 周期性 checkpoint 快照”。 |
+| 设计文档 | 已同步回写 `design/TAD.md`、`DDD.md`、`IDD.md`、`ODD.md`、`design/specs/history-and-recovery.md`、`design/index.md`、任务 `prd.md`、`task_plan.md`、`docs/PRD.md`。 |
+| Workflow 门禁 | 已明确：架构冻结后，必须先完成 spec 对齐、自动化检查矩阵、`test-first` 输入、`finish-work` / `record-session` 项目化适配，并在全部完成后经人工确认，才允许进入 `plan`。 |
+
+**当前判断**:
+- 当前任务仍保持 `in_progress`，本次不归档。
+- 当前提交对应的是设计/架构冻结，不代表主功能已实现完成。
+- 后续应先完成 `plan` 前联动事项，再由人工确认是否进入 `plan`。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e93e492` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

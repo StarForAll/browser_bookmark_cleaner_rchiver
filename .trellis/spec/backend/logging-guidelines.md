@@ -1,51 +1,46 @@
 # Logging Guidelines
 
-> How logging is done in this project.
+> How backend-style logging is handled in this project.
 
 ---
 
 ## Overview
 
-<!--
-Document your project's logging conventions here.
+There is no standalone backend logging pipeline in v1.
 
-Questions to answer:
-- What logging library do you use?
-- What are the log levels and when to use each?
-- What should be logged?
-- What should NOT be logged (PII, secrets)?
--->
+Current operational visibility comes from:
 
-(To be filled by the team)
+- user-visible status history inside the extension workspace
+- development-time console and test output
+- helper-script command output when workflow tooling runs
 
 ---
 
-## Log Levels
+## Current Rules
 
-<!-- When to use each level: debug, info, warn, error -->
-
-(To be filled by the team)
-
----
-
-## Structured Logging
-
-<!-- Log format, required fields -->
-
-(To be filled by the team)
+- do not assume a persistent server log sink exists
+- do not treat user-visible status history as an internal debug log stream
+- never log WebDAV passwords, authorization headers, or equivalent secret values
+- if endpoint URLs or usernames appear in debugging output, keep them intentionally limited and avoid leaking full sensitive context
 
 ---
 
-## What to Log
+## If Backend Logging Appears Later
 
-<!-- Important events to log -->
+When a real backend runtime is introduced later, this file must define:
 
-(To be filled by the team)
+- log levels
+- structured log fields
+- secret redaction rules
+- correlation or request identifiers
+- operational retention assumptions
+
+Until then, keep logging expectations minimal and local.
 
 ---
 
-## What NOT to Log
+## Common Mistakes
 
-<!-- Sensitive data, PII, secrets -->
-
-(To be filled by the team)
+- assuming browser console output is equivalent to backend observability
+- sending secret-bearing configuration values into debug output
+- duplicating user-facing result messages as if they were a structured server log pipeline

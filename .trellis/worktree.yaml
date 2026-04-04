@@ -42,6 +42,11 @@ post_create:
 # Commands to verify code quality before allowing check agent to finish
 # If configured, Ralph Loop will run these commands - all must pass to allow completion
 # If not configured or empty, trusts agent's completion markers
+# Current project target matrix is frozen at design level but should only be uncommented
+# after PLAN-01 creates the real engineering scaffold and command scripts.
 verify:
   # - pnpm lint
   # - pnpm typecheck
+  # - pnpm test
+  # - pnpm build
+  # - sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.

@@ -20,7 +20,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--typecheck-cmd",
         dest="typecheck_cmd",
-        help="User-confirmed type-check command for the current project",
+        help="User-confirmed typecheck command for the current project",
     )
     return parser.parse_args(argv)
 
@@ -59,7 +59,7 @@ def main() -> int:
 
     print("=== 自审检查 ===")
 
-    print("说明：测试 / lint / type-check 命令必须来自技术架构确认后由用户明确的项目化输入。")
+    print("说明：测试 / lint / typecheck 命令必须来自技术架构确认后由用户明确的项目化输入。")
 
     # 1. 测试
     run_optional_check(args.test_cmd, "测试状态")

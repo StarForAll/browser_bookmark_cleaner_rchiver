@@ -53,6 +53,14 @@ The implementation effect of real product pages should visibly reference the app
 - selected, hovered, and actively dragged nodes must remain visually distinguishable without relying on neon or overly saturated accents
 - duplicate-path information remains secondary to the node title and graph structure, even when duplicate-only mode is active
 
+## Layout Boundary
+
+- `v1` auto-layout uses a controlled tree layout aligned with bookmark-tree semantics
+- re-layout restores a recommended layout without changing graph content or graph meaning
+- the layout engine must sit behind a replaceable product-owned interface
+- `@xyflow/react` consumes layout results for rendering, but it does not own layout truth
+- arbitrary graph-layout engine behavior must not redefine bookmark-tree structure semantics in v1
+
 ## Feedback Severity Layers
 
 - routine success feedback:

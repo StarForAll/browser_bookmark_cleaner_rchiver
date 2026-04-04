@@ -7,10 +7,10 @@ The first release is designed as a Chrome extension with a dedicated extension p
 ### Frozen Product Constraints
 
 - Product shell: Chrome extension
-- Main workspace surface: dedicated extension page / new-tab-like extension page
+- Main workspace surface: dedicated extension page
 - Storage:
-  - `chrome.bookmarks` for browser bookmark source-of-truth
-  - `chrome.storage.local` for local settings, view state, draft state, and undo history
+  - `chrome.bookmarks` for on-demand browser bookmark snapshot input and confirmed browser write-back target
+  - `chrome.storage.local` for v1 local settings, view state, draft state, undo history, backup metadata, and other persisted assets
   - WebDAV over HTTPS for cloud version storage
 
 ### Engineering Baseline Status
@@ -18,19 +18,30 @@ The first release is designed as a Chrome extension with a dedicated extension p
 - The repo currently has no trustworthy implementation scaffold
 - Previously created placeholder files such as `package.json`, `vite.config.ts`, `manifest.json`, and `src/` were removed and must not be treated as architecture evidence
 - The real engineering scaffold will be created after the now-frozen Step 5 stack decisions
+- The target package manager is `pnpm`
+- The target verification matrix is frozen as a design-stage command set, but remains pending on `PLAN-01` scaffold creation before it can be treated as executable project evidence:
+  - `pnpm lint`
+  - `pnpm typecheck`
+  - `pnpm test`
+  - `pnpm build`
+  - `sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.`
+- The Sonar token must be provided through the `SONAR_TOKEN` environment variable at execution time and must not be frozen as a real secret in repository docs
 
 ### Frozen Technical Selections
 
 - UI runtime: React + TypeScript
 - Build tool: Vite
+- Package manager target: `pnpm`
 - Graph rendering strategy: node-editor library, not custom SVG/canvas implementation
 - Graph library: `@xyflow/react`
 - Node movement strategy: library-level drag interaction with domain-level folder-drop validation
 - State management direction: lightweight centralized store
-- Local persistence direction: `chrome.storage.local` first
+- Local persistence direction: logical storage domains are frozen now, while v1 physically uses `chrome.storage.local`; large-object persisted assets may move to `IndexedDB` later if storage pressure or performance evidence appears
 - WebDAV integration direction: native `fetch` with a minimal WebDAV action surface
 - Runtime topology: dedicated extension page as the only required v1 runtime surface
 - Permission direction: `bookmarks` + `storage` as required capabilities, WebDAV host access requested at runtime
+- Browser write-back strategy: full reconstruction write-back inside the managed scope
+- Layout strategy: controlled tree layout behind a replaceable layout interface
 
 ### Evidence
 
@@ -168,6 +179,7 @@ Reason:
 
 - Draft graph, search/filter state, selected node, status history, and restore flow state should be coordinated through a lightweight centralized store
 - The store choice should stay light enough to avoid framework-level ceremony
+- The workspace uses one centralized state layer for the current session rather than multiple competing stores
 
 Reason:
 - The workspace has shared state across many interaction surfaces
@@ -201,6 +213,16 @@ Reason:
 - Patch-based undo avoids multiplying full-tree storage cost on every small edit
 - Periodic checkpoints give a practical recovery anchor without forcing every undo step to store a complete graph snapshot
 - This hybrid model fits the product's single-node edit, move, rename, and delete patterns better than pure snapshot history
+
+### Decision 12: Browser-independent contracts with Chrome-first implementation
+
+- Application and domain layers consume browser-independent bookmark and permission contracts
+- Chrome is the first implementation of those contracts in v1
+- Future browser support should be added at the adapter boundary rather than by rewriting domain and UI contracts
+
+Reason:
+- Preserves future Firefox expansion space without adding a second runtime surface in v1
+- Keeps Chrome-specific raw API shapes out of the application core
 
 ### Manifest-Level Contract
 

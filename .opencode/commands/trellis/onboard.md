@@ -309,7 +309,9 @@ Explain to the developer:
 
 "Great! Your team has already customized the development guidelines. You can start using `/before-*-dev` commands right away.
 
-I recommend reading through `.trellis/spec/` to familiarize yourself with the team's coding standards."
+I recommend reading through `.trellis/spec/` to familiarize yourself with the team's coding standards.
+
+Also note one project-specific workflow rule: if you later edit Trellis-related specs, commands, skills, or workflow docs, do not update `.trellis/` alone. Review and sync the linked hidden-directory entry points together: `.trellis/`, `.claude/`, `.opencode/`, `.agents/skills/`, and `.codex/`."
 
 ## Step 3: Help Fill Guidelines (If Empty)
 

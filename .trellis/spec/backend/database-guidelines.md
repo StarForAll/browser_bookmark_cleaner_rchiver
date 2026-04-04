@@ -6,46 +6,42 @@
 
 ## Overview
 
-<!--
-Document your project's database conventions here.
+There is no project-owned database in v1.
 
-Questions to answer:
-- What ORM/query library do you use?
-- How are migrations managed?
-- What are the naming conventions for tables/columns?
-- How do you handle transactions?
--->
+Current product storage surfaces are:
 
-(To be filled by the team)
+- browser bookmark tree through Chrome extension capabilities
+- local extension persistence through frontend-controlled storage contracts
+- WebDAV file storage for versioned snapshots
+
+None of these should be documented or treated as a relational database layer.
 
 ---
 
-## Query Patterns
+## Current Rules
 
-<!-- How should queries be written? Batch operations? -->
-
-(To be filled by the team)
-
----
-
-## Migrations
-
-<!-- How to create and run migrations -->
-
-(To be filled by the team)
+- do not introduce ORM assumptions into this project baseline
+- do not describe WebDAV snapshot storage as a database
+- do not create migration terminology for local extension snapshot evolution; use versioned snapshot contracts instead
+- use explicit `schemaVersion` evolution rules for persisted assets rather than DB-style migrations
 
 ---
 
-## Naming Conventions
+## If a Real Database Is Added Later
 
-<!-- Table names, column names, index names -->
+Before introducing a database, first freeze:
 
-(To be filled by the team)
+- ownership of the new remote system
+- what data moves out of extension-local storage
+- migration and rollback strategy
+- verification and operational commands
+
+Only after that should this file be expanded into real query and migration guidance.
 
 ---
 
 ## Common Mistakes
 
-<!-- Database-related mistakes your team has made -->
-
-(To be filled by the team)
+- calling WebDAV version files “database records”
+- treating local snapshot upgrades as SQL migration work
+- adding persistence complexity that the current extension-only architecture does not need

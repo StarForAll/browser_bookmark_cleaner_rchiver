@@ -57,13 +57,13 @@ This helper runs the metadata closure checks before and after `add_session.py`.
 ### Step 2: One-Click Add Session
 
 ```bash
-# Method 1: Simple parameters
-python3 ./.trellis/scripts/add_session.py \
+# Preferred method: final close-out helper
+python3 ./.trellis/scripts/workflow/record-session-helper.py \
   --title "Session Title" \
   --commit "hash1,hash2" \
   --summary "Brief summary of what was done"
 
-# Method 2: Pass detailed content via stdin
+# Fallback: direct add_session.py only if you are not doing final close-out
 cat << 'EOF' | python3 ./.trellis/scripts/add_session.py --stdin --title "Title" --commit "hash"
 | Feature | Description |
 |---------|-------------|
@@ -90,6 +90,7 @@ EOF
 | Command | Purpose |
 |---------|---------|
 | `python3 ./.trellis/scripts/get_context.py --mode record` | Get context for record-session |
-| `python3 ./.trellis/scripts/add_session.py --title "..." --commit "..."` | **One-click add session (recommended, branch auto-complete)** |
+| `python3 ./.trellis/scripts/workflow/record-session-helper.py --title "..." --commit "..."` | **Final session close-out with metadata closure checks (recommended)** |
+| `python3 ./.trellis/scripts/add_session.py --title "..." --commit "..."` | Direct session append when helper-level closure is not needed |
 | `python3 ./.trellis/scripts/task.py archive <name>` | Archive completed task (auto-commits) |
 | `python3 ./.trellis/scripts/task.py list` | List active tasks |

@@ -14,6 +14,7 @@ Contract:
 - Read returns the full bookmark tree and node metadata available through Chrome
 - Write operations are triggered only after explicit user confirmation
 - Draft-only mutations never call Chrome APIs directly
+- Application code consumes structured bookmark-domain results rather than raw Chrome bookmark API shapes
 
 Failure Handling:
 
@@ -36,8 +37,9 @@ Data categories:
 
 Implementation direction:
 
-- Local persistence is intentionally `chrome.storage.local` first in v1
-- No separate IndexedDB layer is planned unless implementation later proves storage pressure or performance problems
+- Local persistence is split logically into ordinary workspace state, sensitive configuration, and persisted asset categories
+- v1 stores those categories in `chrome.storage.local`
+- If persisted asset size or replay pressure later makes `chrome.storage.local` insufficient, large-object assets such as snapshot payloads, checkpoint payloads, or backup payloads may move to `IndexedDB` without changing the logical persistence contracts
 
 ### UI Copy Resources
 
@@ -66,13 +68,20 @@ Required actions:
 - Download selected version
 - Prune old versions to newest five
 
+Adapter contract:
+
+- The adapter returns structured domain results for connectivity checks, version listing, uploads, downloads, and pruning
+- The adapter does not expose raw `fetch` response objects or transport-specific shapes to the application layer
+
 File grouping:
 
 ```text
 /bookmarks/
+  index.json
   latest.json
   versions/<timestamp>.json
 /drafts/
+  index.json
   latest.json
   versions/<timestamp>.json
 ```
@@ -80,7 +89,9 @@ File grouping:
 Rules:
 
 - Bookmark and draft artifacts are separated
-- Latest pointer and historical versions must stay consistent
+- Each category keeps an explicit version index manifest that drives restore lists, ordering, and metadata display
+- `latest.json` stores the newest full snapshot copy, but it is not the authoritative history index
+- Version files, `latest.json`, and the explicit version index manifest must stay consistent
 - Cloud functions are disabled unless the WebDAV profile is configured, host access is granted, and availability checks pass
 - The adapter should prefer native `fetch` over a third-party WebDAV SDK in v1
 
@@ -90,6 +101,11 @@ Permission contract:
 - `storage` permission is required for local state, draft state, and settings persistence
 - WebDAV network access uses host permissions tied to the configured endpoint origin
 - If host access is denied, the app must remain fully usable for local draft editing
+
+Error contract:
+
+- Adapter failures must be normalized into readable domain errors plus expandable technical detail
+- Secret-bearing configuration values must not appear in readable errors or technical-detail payloads
 
 ## Integration Validation
 

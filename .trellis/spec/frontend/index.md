@@ -1,12 +1,43 @@
 # Frontend Development Guidelines
 
-> Best practices for frontend development in this project.
+> Project-specific frontend implementation rules for the browser bookmark cleaner extension.
 
 ---
 
 ## Overview
 
-This directory contains guidelines for frontend development. Fill in each file with your project's specific conventions.
+This project ships a Chrome extension with one dedicated workspace page as the formal v1 runtime surface.
+
+The frontend layer must preserve the frozen architecture:
+
+- one extension page shell, not a multi-route app
+- one application orchestration layer for explicit user actions
+- one centralized state layer for the current session
+- adapter boundaries for browser APIs, WebDAV, and local persistence
+- one normalized draft graph as the only editable source of truth
+- Chinese-first UI copy with future locale expansion kept possible
+
+---
+
+## Pre-Development Checklist
+
+Read these files before changing frontend code or frontend-facing specs:
+
+1. [Directory Structure](./directory-structure.md)
+2. [State Management](./state-management.md)
+3. [Component Guidelines](./component-guidelines.md)
+4. [Hook Guidelines](./hook-guidelines.md)
+5. [Type Safety](./type-safety.md)
+6. [Quality Guidelines](./quality-guidelines.md)
+7. [Guides Index](../guides/index.md)
+
+Use the task `design/` package as the contract source for feature behavior, especially:
+
+- `TAD.md` for runtime and layering boundaries
+- `DDD.md` for domain objects and snapshot assets
+- `IDD.md` for adapter contracts
+- `AID.md` for workspace interaction rules
+- `ODD.md` for execution and recovery flows
 
 ---
 
@@ -14,26 +45,22 @@ This directory contains guidelines for frontend development. Fill in each file w
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |
-| [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | To fill |
-| [State Management](./state-management.md) | Local state, global state, server state | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Type Safety](./type-safety.md) | Type patterns, validation | To fill |
+| [Directory Structure](./directory-structure.md) | Capability-first module layout and shared boundaries | Project-specific |
+| [Component Guidelines](./component-guidelines.md) | UI component responsibilities and forbidden coupling | Project-specific |
+| [Hook Guidelines](./hook-guidelines.md) | Hook scope, side-effect boundaries, and composition rules | Project-specific |
+| [State Management](./state-management.md) | Centralized state model, persistence timing, and external-action rules | Project-specific |
+| [Quality Guidelines](./quality-guidelines.md) | Verification baseline, required patterns, and review checklist | Project-specific |
+| [Type Safety](./type-safety.md) | Domain contracts, adapter validation, and versioned payload rules | Project-specific |
 
 ---
 
-## How to Fill These Guidelines
+## Current Frontend Boundaries
 
-For each guideline file:
-
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
+- Do not treat browser bookmarks as live editable state after initial load.
+- Do not let React presentation code call `chrome.*`, raw `fetch`, or persistence APIs directly.
+- Do not spread user-visible Chinese copy across feature logic.
+- Do not mix draft mutations with browser-write or WebDAV side effects in one unstructured function.
 
 ---
 
-**Language**: All documentation should be written in **English**.
+**Language**: All spec text in this directory should remain in English.

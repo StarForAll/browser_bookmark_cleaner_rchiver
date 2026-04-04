@@ -1,0 +1,6 @@
+projectKey=bbcr
+serverUrl=https://sonarqube.xzc.com:13785
+serverVersion=26.3.0.120487
+dashboardUrl=https://sonarqube.xzc.com:13785/dashboard?id=bbcr
+ceTaskId=79388879-a3c2-4ede-9c0b-4ce63fe434f2
+ceTaskUrl=https://sonarqube.xzc.com:13785/api/ce/task?id=79388879-a3c2-4ede-9c0b-4ce63fe434f2

@@ -6,54 +6,81 @@
 
 ## Overview
 
-The project starts with React local state plus domain-level pure functions. Do not introduce a heavy global state library until real cross-feature pressure appears.
+The frontend uses one centralized state layer for the current extension-page session.
+
+The current draft graph is the only editable source of truth. Browser bookmarks are a snapshot input source, not a live synchronized state surface.
 
 ---
 
 ## State Categories
 
-- View state:
-  - selected node
-  - hover state
-  - modal open state
-- Draft content state:
-  - normalized bookmark graph
-  - undo history
-  - search query
-  - duplicate-only flag
-- Persisted local state:
-  - expanded/collapsed map
-  - node positions
-  - WebDAV profile
-  - latest local restore backup metadata
-- External state:
-  - browser bookmarks
-  - WebDAV versions
+### Draft content state
+
+- normalized `nodesById`
+- root ids
+- selected node id
+- draft snapshot version
+- undo patch history
+- checkpoint metadata
+
+### Workspace UI state
+
+- search query
+- duplicate-only mode
+- active dialog or drawer
+- hover target
+- latest action result
+- newest-three status history
+- current external-action running state
+
+### Persisted local state
+
+- current draft snapshot
+- expanded/collapsed map
+- node positions
+- WebDAV profile and test metadata
+- WebDAV permission-grant metadata
+- latest local backup metadata
+
+### External snapshot inputs
+
+- current browser bookmark tree when explicitly loaded
+- WebDAV version snapshots when explicitly listed or restored
+
+These external inputs do not replace the draft as the editable truth after they enter the app.
 
 ---
 
-## When to Use Global State
+## Core Rules
 
-Promote state only when it is shared by multiple distant feature modules and lifting it into the app shell would make code harder to follow.
-
-Until that happens:
-
-- keep page-shell state in `src/app/`
-- keep feature-specific state in the feature module
-- keep mutation logic in `src/domain/`
+- keep one centralized session store, not multiple competing global stores
+- keep derived values as selectors or mappers instead of duplicating them in state
+- keep view-only state separate from draft content state
+- keep browser and WebDAV side effects outside raw state mutation code
+- allow only one external side-effect action at a time
 
 ---
 
-## Server State
+## Persistence Timing
 
-There is no traditional server state in v1. WebDAV is treated as an external persistence adapter, not as a reactive cache layer.
+- persist local state after a domain action is committed successfully
+- do not rely on broad “any state changed, write everything” listeners as the primary persistence strategy
+- startup restores the local session first
+- browser reads, browser writes, WebDAV uploads, and WebDAV restores stay explicit actions after startup
 
-Fetch or restore results should be normalized at the adapter boundary before entering the draft model.
+---
+
+## Undo Boundary
+
+- `Ctrl+Z` applies only to draft content mutations
+- search, duplicate filter, expand/collapse, viewport, and layout-only changes are not undo history entries
+- browser sync, WebDAV upload, WebDAV restore, and backup generation are not undo history entries
 
 ---
 
 ## Common Mistakes
 
-- Letting UI components own irreversible side effects
-- Storing duplicated derived values instead of recalculating them from source state
-- Mixing layout state with content state when only the content should sync
+- treating browser bookmarks as a second live source of truth during draft editing
+- storing both normalized graph truth and graph-library render truth as primary state
+- mixing layout preferences with syncable content state
+- letting components mutate durable state without going through explicit domain actions

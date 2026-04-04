@@ -13,15 +13,19 @@ It also does not define the separate local draft-to-browser write-back flow. Tha
 ## Cloud Paths
 
 ```text
+/bookmarks/index.json
 /bookmarks/latest.json
 /bookmarks/versions/<timestamp>.json
+/drafts/index.json
 /drafts/latest.json
 /drafts/versions/<timestamp>.json
 ```
 
+Each category keeps an explicit version index manifest in `index.json`.
+
 ## Snapshot File Structure
 
-Each WebDAV file, including `latest.json` and `versions/<timestamp>.json`, stores a full structured snapshot:
+Each WebDAV snapshot file, including `latest.json` and `versions/<timestamp>.json`, stores a full structured snapshot:
 
 ```ts
 type WebDavSnapshot<T> = {
@@ -42,6 +46,7 @@ Rules:
 - every version file stores full snapshot content, not a delta
 - `latest.json` also stores a full snapshot copy, not only a pointer reference
 - bookmark snapshots and draft snapshots use the same envelope shape with different `artifactType` and payload content
+- `index.json` is the authoritative version-list contract for restore lists, ordering, and metadata display
 
 ## Rules
 
@@ -50,7 +55,7 @@ Rules:
 - cloud actions are disabled until WebDAV config exists and passes test
 - upload-browser and upload-draft are separate actions
 - restore-browser and restore-draft are separate actions
-- each category keeps its own `latest.json` and history list
+- each category keeps its own `index.json`, `latest.json`, and history files
 
 ## Upload Contract
 
@@ -64,15 +69,17 @@ Rules:
 For one successful upload:
 
 1. write a new full history version file to `versions/<timestamp>.json`
-2. update the matching `latest.json` with the same full snapshot content
-3. prune versions older than the newest five for that same category
+2. update the matching `index.json` with the new version metadata
+3. update the matching `latest.json` with the same full snapshot content
+4. prune versions older than the newest five for that same category and remove their stale index entries
 
 ### Failure Handling During Upload
 
-If history-version write succeeds but `latest.json` update fails:
+If history-version write succeeds but `index.json` or `latest.json` update fails:
 
 - the overall upload is treated as failed
 - the just-written history version must be deleted
+- any partial index update for that version must be rolled back
 - no partial retained history is allowed for this failure case
 
 If both history-version write and `latest.json` update succeed, but prune fails:
@@ -167,7 +174,8 @@ Definitions:
 - bookmark upload writes only bookmark snapshots
 - draft upload writes only draft snapshots
 - `latest.json` stores a full snapshot payload, not only a reference
-- if history write succeeds but `latest.json` update fails, the just-written history version is removed
+- restore list ordering comes from `index.json`, not from raw directory listing
+- if history write succeeds but `index.json` or `latest.json` update fails, the just-written history version is removed
 - if prune fails after a successful upload, the upload result becomes `partial-success`
 - bookmark cloud versions cannot restore to draft
 - draft cloud versions cannot restore to browser bookmarks

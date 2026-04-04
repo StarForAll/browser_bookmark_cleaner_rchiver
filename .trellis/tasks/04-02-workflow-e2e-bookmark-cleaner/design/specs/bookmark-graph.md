@@ -18,6 +18,8 @@ It does not define WebDAV persistence, undo storage format, or browser write-bac
 - Local expanded-state map
 - Local node-position map
 
+Chrome bookmark import includes fixed structural root containers. Those containers anchor the managed bookmark scope, but they are not treated as normal editable business nodes.
+
 ## Outputs
 
 - `nodesById`
@@ -38,6 +40,11 @@ It does not define WebDAV persistence, undo storage format, or browser write-bac
   - render-facing graph structure derived from normalized content plus local expanded-state and node-position data
   - includes only the view information needed by the graph canvas, without changing graph content truth
 
+Rules:
+
+- `nodesById` plus `rootIds` are the only content truth for the draft graph
+- `graphRenderModel` is a derived render projection, not a second persisted source of truth
+
 ## Invariants
 
 - hidden internal IDs remain stable within the local draft lifecycle, including page refresh recovery
@@ -46,6 +53,7 @@ It does not define WebDAV persistence, undo storage format, or browser write-bac
 - bookmark nodes always require URL values
 - expanded/collapsed state and node positions are view state only
 - expanded/collapsed state and node positions do not participate in duplicate detection, content comparison, or browser write-back payload generation
+- system root containers stay fixed and do not enter normal rename, move, delete, or create-child semantics
 
 ## Test Points
 

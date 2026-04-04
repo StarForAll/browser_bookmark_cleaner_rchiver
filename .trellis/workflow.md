@@ -118,7 +118,7 @@ cat .trellis/spec/<package>/<layer>/conventions.md
 |   |-- get_developer.py     # Get current developer name
 |   |-- task.py              # Manage tasks
 |   |-- get_context.py       # Get session context
-|   +-- add_session.py       # One-click session recording
+|   +-- add_session.py       # Session append script used by the workflow helper
 |-- workspace/           # Developer workspaces
 |   |-- index.md         # Workspace index + Session template
 |   +-- {developer}/     # Per-developer directories
@@ -201,7 +201,7 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
    --> For cross-layer: read .trellis/spec/guides/
 
 3. Self-test
-   --> Run project's lint/test commands (see spec docs)
+   --> Run project's frozen verification commands when scaffold exists (see spec docs)
    --> Manual feature testing
 
 4. Commit code
@@ -209,8 +209,9 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
    --> git commit -m "type(scope): description"
        Format: feat/fix/docs/refactor/test/chore
 
-5. Record session (one command)
-   --> python3 ./.trellis/scripts/add_session.py --title "Title" --commit "hash"
+5. Archive task metadata + record session
+   --> python3 ./.trellis/scripts/task.py archive <task-name>
+   --> python3 ./.trellis/scripts/workflow/record-session-helper.py --title "Title" --commit "hash"
 ```
 
 ### Code Quality Checklist
@@ -222,6 +223,13 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
 
 **Project-specific checks**:
 - See `.trellis/spec/<package>/<layer>/quality-guidelines.md` for package-specific checks
+- If a change is Trellis-related, sync all linked current-entry hidden directories instead of updating `.trellis/` alone:
+  - `.trellis/`
+  - `.claude/`
+  - `.opencode/`
+  - `.agents/skills/`
+  - `.codex/`
+- Keep each directory in its own format and command style.
 
 ---
 
@@ -229,29 +237,39 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
 
 ### One-Click Session Recording
 
-After code is committed, use:
+After the human has tested and committed the code, archive the completed task and then use:
 
 ```bash
-python3 ./.trellis/scripts/add_session.py \
+python3 ./.trellis/scripts/task.py archive <task-name>
+git status --short .trellis/tasks .trellis/.current-task
+```
+
+Expected metadata status output: empty.
+
+Then run the workflow helper:
+
+```bash
+python3 ./.trellis/scripts/workflow/record-session-helper.py \
   --title "Session Title" \
   --commit "abc1234" \
   --summary "Brief summary"
 ```
 
-This automatically:
-1. Detects current journal file
-2. Creates new file if 2000-line limit exceeded
-3. Appends session content
-4. Updates index.md (sessions count, history table)
+This helper:
+1. Runs metadata closure pre-checks
+2. Calls `add_session.py`
+3. Runs metadata closure post-checks
+4. Blocks final close-out if `.trellis/tasks` is still dirty
 
 ### Pre-end Checklist
 
 Use `/trellis:finish-work` command to run through:
-1. [OK] All code committed, commit message follows convention
-2. [OK] Session recorded via `add_session.py`
-3. [OK] No lint/test errors
-4. [OK] Working directory clean (or WIP noted)
-5. [OK] Spec docs updated if needed
+1. [OK] Frozen verification matrix executed or truthfully marked `deferred` / `not run`
+2. [OK] Manual browser verification completed where required
+3. [OK] Human commit already exists
+4. [OK] Current completed task archived and `.trellis/tasks` metadata clean
+5. [OK] Session recorded via `record-session-helper.py`
+6. [OK] Spec docs updated if needed
 
 ---
 
@@ -340,7 +358,7 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
    - Use `/trellis:finish-work` for completion checklist
    - After fix bug, use `/trellis:break-loop` for deep analysis
    - Human commits after testing passes
-   - Use `add_session.py` to record progress
+   - Use `record-session-helper.py` for final session close-out
 
 ### [X] DON'T - Should Not Do
 
@@ -377,11 +395,12 @@ git commit -m "type(scope): description"
 ```bash
 # Session management
 python3 ./.trellis/scripts/get_context.py    # Get full context
-python3 ./.trellis/scripts/add_session.py    # Record session
+python3 ./.trellis/scripts/workflow/record-session-helper.py    # Final session close-out
 
 # Task management
 python3 ./.trellis/scripts/task.py list      # List tasks
 python3 ./.trellis/scripts/task.py create "<title>" # Create task
+python3 ./.trellis/scripts/task.py archive <name>   # Archive completed task
 
 # Slash commands
 /trellis:finish-work          # Pre-commit checklist

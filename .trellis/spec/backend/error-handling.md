@@ -1,51 +1,46 @@
 # Error Handling
 
-> How errors are handled in this project.
+> How backend-style errors are handled in this project.
 
 ---
 
 ## Overview
 
-<!--
-Document your project's error handling conventions here.
+The current project has no standalone backend service, so there is no server-response error contract in v1.
 
-Questions to answer:
-- What error types do you define?
-- How are errors propagated?
-- How are errors logged?
-- How are errors returned to clients?
--->
+The live product error model is frontend-owned and should remain aligned with:
 
-(To be filled by the team)
+- adapter-level failure normalization
+- readable Chinese user feedback
+- expandable technical details
+- secret-safe logging and status reporting
 
 ---
 
-## Error Types
+## Current Rules
 
-<!-- Custom error classes/types -->
-
-(To be filled by the team)
-
----
-
-## Error Handling Patterns
-
-<!-- Try-catch patterns, error propagation -->
-
-(To be filled by the team)
+- do not invent HTTP API error envelopes for flows that currently run entirely inside the extension
+- do not reclassify browser or WebDAV adapter errors as “server errors” unless a real remote service exists
+- if helper scripts or backend-style utilities are added later, they must still map errors into explicit typed results rather than ad hoc string throwing
 
 ---
 
-## API Error Responses
+## Future Backend Rule
 
-<!-- Standard error response format -->
+If a real backend service is introduced later, this file must be extended to define:
 
-(To be filled by the team)
+- error classes or typed error categories
+- transport-safe response envelopes
+- validation failure behavior
+- retryable versus non-retryable errors
+- secret redaction requirements
+
+Until then, frontend error contracts remain the source of truth.
 
 ---
 
 ## Common Mistakes
 
-<!-- Error handling mistakes your team has made -->
-
-(To be filled by the team)
+- writing backend-style error docs before a backend exists
+- exposing credentials or endpoint secrets in debugging output
+- assuming WebDAV transport failures should be modeled like first-party API failures
