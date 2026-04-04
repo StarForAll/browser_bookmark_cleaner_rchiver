@@ -1,0 +1,670 @@
+# 任务拆分策略设计
+
+## 目标
+
+把当前“单一总 task + 大型 `task_plan.md`”的规划方式，重构为“一个总览 task + 多个真实 Trellis task”的任务图设计方案。
+
+本文件只定义拆分策略，不创建 task，不修改执行状态，不进入实现。
+
+## 当前问题
+
+当前总 task 已经承载了过多性质差异明显的工作：
+
+- 工程基线
+- UI 参考资产回写
+- 扩展运行壳
+- 书签读取与规范化
+- 图谱交互
+- 搜索/重复聚焦/状态反馈
+- 浏览器覆盖/恢复
+- WebDAV 配置/上传/恢复
+- 验收与收尾
+
+这些工作在以下维度上差异过大：
+
+- 修改面不同
+- 风险类型不同
+- 验收方式不同
+- 依赖链不同
+- 所需上下文不同
+
+因此不适合长期留在一个 task 的 `task_plan.md` 中作为主要执行单位。
+
+## 拆分原则
+
+### 原则 1：真正执行的工作单元必须优先落到 Trellis task
+
+- `task_plan.md` 只保留总览、依赖关系、里程碑、迁移规则
+- 真正要执行的工作，原则上都应该对应一个 task 目录
+
+### 原则 2：边界差异优先于文件数量
+
+即使两个工作改动文件不多，只要它们的目标、风险、验收不同，也应拆成不同 task。
+
+### 原则 3：单 task 必须能在单一上下文内完成
+
+如果一个 task 很难在单一上下文里完成“理解 -> 实现 -> 验证”，它就太大了，必须继续拆分。
+
+### 原则 4：验收口径必须单一
+
+如果一个 task 同时需要“工程脚手架验收 + 浏览器交互验收 + 云端恢复验收”，说明它混了多个阶段，应拆分。
+
+### 原则 5：串行拆分优先于超大 task
+
+当一项工作过大时，优先拆成多个串行 task，不要为了减少 task 数量而保留一个超大 task。
+
+## 总体结构
+
+建议保留当前 task 作为“总览 / 任务图 / 规划协调 task”，不再把它当作主要实现 task。
+
+角色调整如下：
+
+- 当前 task：
+  - 保留为总 task
+  - 负责保存 PRD、设计资料、拆分策略、总览计划
+  - 不再直接承载主要实现
+
+- 新建 child task：
+  - 每个真正执行的工作单元独立成 task
+  - 用 `--parent` 归属于当前总 task
+
+## 建议任务图
+
+### T01 工程基线
+
+- 建议标题：`Create Extension Engineering Baseline`
+- 建议 slug：`extension-engineering-baseline`
+- 父 task：当前总 task
+- 来源：原 `PLAN-01`
+- 性质：工程基础设施
+
+范围：
+
+- 包管理器、构建配置、测试配置、lint/typecheck/test/build 脚本
+- workflow 文档与验证矩阵对齐
+
+不包含：
+
+- 真实业务功能
+
+### T02 UI 参考约束回写
+
+- 建议标题：`Freeze UI Reference Constraints`
+- 建议 slug：`ui-reference-constraints`
+- 父 task：当前总 task
+- 来源：原 `PLAN-01A`
+- 性质：设计约束沉淀
+
+范围：
+
+- `tmp/ui` 的视觉/布局/语气规则提炼
+- 禁止复用边界沉淀
+
+不包含：
+
+- React 组件实现
+- CSS 落地
+
+### T03 扩展运行壳与页面入口
+
+- 建议标题：`Create Extension Shell And Page Entry`
+- 建议 slug：`extension-shell-page-entry`
+- 父 task：当前总 task
+- 来源：原 `PLAN-02`
+
+范围：
+
+- MV3 manifest
+- 独立扩展页面入口
+- 应用装配根
+- 共享目录壳
+
+不包含：
+
+- 浏览器书签读取
+- 图谱编辑逻辑
+
+### T04 领域契约与本地持久化
+
+- 建议标题：`Define Draft Graph Contracts And Local Persistence`
+- 建议 slug：`draft-graph-contracts-persistence`
+- 父 task：当前总 task
+- 来源：原 `PLAN-03` 的上半段
+
+范围：
+
+- 规范化图谱领域模型
+- schema version
+- 本地持久化 contract
+- 草稿/布局/展开态/撤销历史存储边界
+
+不包含：
+
+- 浏览器书签读取落地
+- 图谱交互 UI
+
+拆分原因：
+
+- 这是领域和持久化边界问题，和浏览器读取适配是不同复杂度和验证口径
+
+### T05 浏览器读取与草稿引导
+
+- 建议标题：`Implement Browser Bookmark Import To Draft`
+- 建议 slug：`browser-import-to-draft`
+- 父 task：当前总 task
+- 来源：原 `PLAN-03` 的下半段
+
+范围：
+
+- Chrome bookmarks adapter
+- 浏览器树读取
+- 映射到规范化草稿
+- 启动恢复与首次导入策略
+
+不包含：
+
+- 编辑交互
+- 浏览器写回
+
+### T06 图谱基础编辑交互
+
+- 建议标题：`Implement Graph Basic Editing`
+- 建议 slug：`graph-basic-editing`
+- 父 task：当前总 task
+- 来源：原 `PLAN-04` 的基础部分
+
+范围：
+
+- 选中
+- 双击编辑
+- 新增子节点
+- 删除节点/子树
+
+不包含：
+
+- 拖拽移动
+- 撤销系统
+
+拆分原因：
+
+- 节点编辑基础链与拖拽/撤销共享状态复杂度不同，不建议放在一个 task 里
+
+### T07A 拖拽移动与目录投放校验
+
+- 建议标题：`Implement Graph Drag Move Validation`
+- 建议 slug：`graph-drag-move-validation`
+- 父 task：当前总 task
+- 来源：原 `PLAN-04` 的高级部分之一
+
+范围：
+
+- 拖拽移动
+- 目录投放校验
+
+不包含：
+
+- `Ctrl+Z`
+- 撤销历史模型
+
+拆分原因：
+
+- 拖拽投放校验偏交互与结构约束；撤销系统偏历史模型与恢复语义，不宜混在一个 task 中
+
+### T07B 撤销历史与 `Ctrl+Z`
+
+- 建议标题：`Implement Undo History And Ctrl Z`
+- 建议 slug：`undo-history-ctrl-z`
+- 父 task：当前总 task
+- 来源：原 `PLAN-04` 的高级部分之一
+
+范围：
+
+- 草稿撤销历史
+- `Ctrl+Z`
+- 与操作提示区的撤销语义对齐
+
+不包含：
+
+- 拖拽目录投放校验
+
+### T08A 搜索与重复 URL 聚焦
+
+- 建议标题：`Implement Search And Duplicate Focus`
+- 建议 slug：`search-duplicate-focus`
+- 父 task：当前总 task
+- 来源：原 `PLAN-05` 的前半段
+
+范围：
+
+- 标题/URL 搜索
+- duplicate-only
+- 悬浮重复信息
+
+不包含：
+
+- 状态反馈历史
+- 云端禁用原因展示
+
+### T08B 状态反馈、历史记录与云端禁用态
+
+- 建议标题：`Implement Status Feedback And Disabled States`
+- 建议 slug：`status-feedback-disabled-states`
+- 父 task：当前总 task
+- 来源：原 `PLAN-05` 的后半段
+
+范围：
+
+- 右下角状态区
+- 最新结果入口
+- 最新 3 条历史记录
+- 失败原因摘要
+- 云端禁用原因提示
+
+### T09A 浏览器覆盖与同步确认流
+
+- 建议标题：`Implement Browser Overwrite And Sync Confirmation`
+- 建议 slug：`browser-overwrite-sync-confirmation`
+- 父 task：当前总 task
+- 来源：原 `PLAN-06` 的前半段
+
+范围：
+
+- 从浏览器覆盖当前草稿
+- 同步草稿到浏览器书签
+- 覆盖/同步确认流
+
+不包含：
+
+- 本地最新备份
+- 撤销覆盖入口
+- 恢复边界
+
+### T09B 本地备份、撤销覆盖与恢复边界
+
+- 建议标题：`Implement Local Backup And Undo Overwrite`
+- 建议 slug：`local-backup-undo-overwrite`
+- 父 task：当前总 task
+- 来源：原 `PLAN-06` 的后半段
+
+范围：
+
+- 覆盖前本地备份
+- 撤销覆盖统一入口
+- 本地恢复边界
+- 浏览器写回失败与 best-effort rollback 反馈
+
+### T10 WebDAV 配置与权限
+
+- 建议标题：`Implement WebDAV Configuration And Permissions`
+- 建议 slug：`webdav-config-permissions`
+- 父 task：当前总 task
+- 来源：原 `PLAN-07` 的前半段
+
+范围：
+
+- WebDAV 配置
+- host permission
+- 连通性测试
+- 云端能力可用性 gating
+
+### T11 WebDAV 上传与版本管理
+
+- 建议标题：`Implement WebDAV Upload And Version Retention`
+- 建议 slug：`webdav-upload-versioning`
+- 父 task：当前总 task
+- 来源：原 `PLAN-07` 的中段
+
+范围：
+
+- 草稿上传
+- 浏览器书签上传
+- index manifest
+- 保留最近 5 个版本
+
+### T12A WebDAV 恢复到当前草稿
+
+- 建议标题：`Implement WebDAV Draft Restore`
+- 建议 slug：`webdav-draft-restore`
+- 父 task：当前总 task
+- 来源：原 `PLAN-07` 的后半段之一
+
+范围：
+
+- 恢复到草稿
+- 草稿恢复前本地备份
+- 草稿恢复确认流
+
+不包含：
+
+- 恢复到浏览器书签
+
+### T12B WebDAV 恢复到浏览器书签
+
+- 建议标题：`Implement WebDAV Browser Restore`
+- 建议 slug：`webdav-browser-restore`
+- 父 task：当前总 task
+- 来源：原 `PLAN-07` 的后半段之一
+
+范围：
+
+- 恢复到浏览器书签
+- 浏览器恢复前本地备份
+- 浏览器恢复确认流
+
+### T13 验收与收尾准备
+
+- 建议标题：`Run Verification And Prepare Closeout`
+- 建议 slug：`verification-closeout`
+- 父 task：当前总 task
+- 来源：原 `PLAN-08`
+
+范围：
+
+- 自动化验证矩阵
+- Chrome 扩展人工验收
+- 文档回写
+- `finish-work` / `record-session` 准备
+
+## 推荐串行主链
+
+建议主链如下：
+
+1. `T01` 工程基线
+2. `T03` 扩展运行壳与页面入口
+3. `T04` 领域契约与本地持久化
+4. `T05` 浏览器读取与草稿引导
+5. `T06` 图谱基础编辑交互
+6. `T07A` 拖拽移动与目录投放校验
+7. `T07B` 撤销历史与 `Ctrl+Z`
+8. `T08A` 搜索与重复 URL 聚焦
+9. `T08B` 状态反馈、历史记录与云端禁用态
+10. `T09A` 浏览器覆盖与同步确认流
+11. `T09B` 本地备份、撤销覆盖与恢复边界
+12. `T10` WebDAV 配置与权限
+13. `T11` WebDAV 上传与版本管理
+14. `T12A` WebDAV 恢复到当前草稿
+15. `T12B` WebDAV 恢复到浏览器书签
+16. `T13` 验收与收尾准备
+
+## 可并行候选
+
+仅从策略上看，可并行候选如下：
+
+- `T02` 可与 `T01` 并行
+原因：
+  UI 规则沉淀不会阻塞工程配置落库
+
+- `T08A` 可在 `T07A`/`T07B` 稳定后与 `T09A` 的部分准备并行评估
+原因：
+  但只有在共享状态模块边界已经稳定后才成立
+
+默认规则：
+
+- 若不确定冲突边界，全部按串行处理
+
+## 任务粒度检查表
+
+一个 task 只有在同时满足以下条件时，才可以保留为单 task：
+
+- 目标单一
+- 修改面集中
+- 验收口径单一
+- 单上下文可理解并完成
+- 不需要再分两段以上串行执行
+
+如果任一项不满足，应继续拆分。
+
+## 当前总 task 的后续角色
+
+当前总 task 后续应只承担：
+
+- 保存 PRD
+- 保存设计文档
+- 保存任务拆分策略
+- 保存 task 图摘要
+- 维护整体依赖与阶段状态
+
+不再承担：
+
+- 主要实现
+- 大量执行记录
+- 多阶段混合进度
+
+## task_plan.md 的后续定位
+
+后续建议把 `task_plan.md` 收缩为：
+
+- 任务图摘要
+- 父子 task 关系
+- 串并行关系
+- 全局里程碑
+- 当前可开始 task 列表
+
+不再把每一个具体任务的完整 DoR/DoD、子任务列表、实现细项都长期堆在里面。
+
+## refined task graph
+
+按当前任务生成原则校正后，推荐执行单元如下：
+
+- `T01` 工程基线
+- `T02` UI 参考约束回写
+- `T03` 扩展运行壳与页面入口
+- `T04` 领域契约与本地持久化
+- `T05` 浏览器读取与草稿引导
+- `T06` 图谱基础编辑交互
+- `T07A` 拖拽移动与目录投放校验
+- `T07B` 撤销历史与 `Ctrl+Z`
+- `T08A` 搜索与重复 URL 聚焦
+- `T08B` 状态反馈、历史记录与云端禁用态
+- `T09A` 浏览器覆盖与同步确认流
+- `T09B` 本地备份、撤销覆盖与恢复边界
+- `T10` WebDAV 配置与权限
+- `T11` WebDAV 上传与版本管理
+- `T12A` WebDAV 恢复到当前草稿
+- `T12B` WebDAV 恢复到浏览器书签
+- `T13` 验收与收尾准备
+
+## 拟父子关系表
+
+当前总 task 保持为唯一父 task：
+
+- 父 task 目录：`04-02-workflow-e2e-bookmark-cleaner`
+- 父 task 角色：总览、规划协调、依赖汇总、阶段门禁
+- 子 task 创建原则：当前阶段先只定义，不创建
+
+| 任务ID | 建议标题 | 建议 slug | 拟 parent | 关系说明 |
+|-------|---------|-----------|----------|---------|
+| `T01` | `Create Extension Engineering Baseline` | `extension-engineering-baseline` | `04-02-workflow-e2e-bookmark-cleaner` | 主链起点 |
+| `T02` | `Freeze UI Reference Constraints` | `ui-reference-constraints` | `04-02-workflow-e2e-bookmark-cleaner` | 与 `T01` 并行候选 |
+| `T03` | `Create Extension Shell And Page Entry` | `extension-shell-page-entry` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T01` |
+| `T04` | `Define Draft Graph Contracts And Local Persistence` | `draft-graph-contracts-persistence` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T03` |
+| `T05` | `Implement Browser Bookmark Import To Draft` | `browser-import-to-draft` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T04` |
+| `T06` | `Implement Graph Basic Editing` | `graph-basic-editing` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T05` |
+| `T07A` | `Implement Graph Drag Move Validation` | `graph-drag-move-validation` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T06` |
+| `T07B` | `Implement Undo History And Ctrl Z` | `undo-history-ctrl-z` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T06`，建议晚于 `T07A` 启动 |
+| `T08A` | `Implement Search And Duplicate Focus` | `search-duplicate-focus` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T07A` / `T07B` 稳定 |
+| `T08B` | `Implement Status Feedback And Disabled States` | `status-feedback-disabled-states` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T08A` 的共享状态边界 |
+| `T09A` | `Implement Browser Overwrite And Sync Confirmation` | `browser-overwrite-sync-confirmation` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T08B` |
+| `T09B` | `Implement Local Backup And Undo Overwrite` | `local-backup-undo-overwrite` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T09A` |
+| `T10` | `Implement WebDAV Configuration And Permissions` | `webdav-config-permissions` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T08B`，但与 `T09A` 后半可复核并行 |
+| `T11` | `Implement WebDAV Upload And Version Retention` | `webdav-upload-versioning` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T10` 与稳定草稿模型 |
+| `T12A` | `Implement WebDAV Draft Restore` | `webdav-draft-restore` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T11` |
+| `T12B` | `Implement WebDAV Browser Restore` | `webdav-browser-restore` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T11` 与 `T09B` |
+| `T13` | `Run Verification And Prepare Closeout` | `verification-closeout` | `04-02-workflow-e2e-bookmark-cleaner` | 收口 task，依赖全部主链完成 |
+
+说明：
+
+- 这批 task 当前全部只是“拟创建 child task”
+- 所有子 task 暂不再继续下钻为孙 task；若创建时发现单 task 仍过大，再单独二次拆分
+- 创建 child task 不等于开始执行 child task
+
+## 拟创建顺序与批次
+
+真正开始创建 task 时，建议按批次进行，而不是一次性全部创建。
+
+### Batch 0：保留父 task
+
+- 不修改当前总 task 的 parent / children 关系
+- 当前总 task 继续作为唯一总览 task
+- 在创建第一个 child task 前，不把任何执行状态迁移到 child task
+
+### Batch 1：最早启动批次
+
+- `T01`
+- `T02`
+- `T03`
+
+创建目的：
+
+- 建立最早会被启动的执行单元
+- 让工程基线、UI 约束、运行壳三类工作各自拥有独立 task 边界
+
+停止条件：
+
+- 三个 child task 的标题、slug、描述、父子关系都核对无误
+- 当前总 task 的 `children` 列表更新正确
+- 不继续创建后续 task，先检查命名和粒度是否需要回调
+
+### Batch 2：数据模型批次
+
+- `T04`
+- `T05`
+
+创建前提：
+
+- `T01` 至 `T03` 的 task 边界已经确认稳定
+
+停止条件：
+
+- 已确认“领域契约 / 本地持久化”与“浏览器导入草稿”确实仍应分离
+- 若 `T04` 仍显著过大，应在这里先二次拆分，再继续后续批次
+
+### Batch 3：核心交互批次
+
+- `T06`
+- `T07A`
+- `T07B`
+- `T08A`
+- `T08B`
+
+创建前提：
+
+- `T04` / `T05` 的边界已经确认稳定
+
+停止条件：
+
+- 已确认图谱交互、撤销、搜索、状态反馈没有再次出现“单 task 过大”问题
+- 若 `T06` 或 `T08B` 仍混入太多异质目标，应先再拆分
+
+### Batch 4：同步与收尾批次
+
+- `T09A`
+- `T09B`
+- `T10`
+- `T11`
+- `T12A`
+- `T12B`
+- `T13`
+
+创建前提：
+
+- 前三批 child task 的边界已稳定，没有回退到“大 task 混阶段”问题
+
+停止条件：
+
+- 最终 task 图已足以支持后续执行阶段
+- `task_plan.md` 只保留摘要，不再承担细粒度实现拆解
+
+## 拟创建顺序矩阵
+
+| 创建顺序 | 批次 | 任务ID | 拟依赖 | 创建后是否允许立即启动 |
+|---------|------|-------|-------|------------------------|
+| 1 | Batch 1 | `T01` | 无 | 允许，待人工明确进入执行 |
+| 2 | Batch 1 | `T02` | 无 | 允许，待人工明确进入执行 |
+| 3 | Batch 1 | `T03` | `T01` | 不允许，创建不代表启动 |
+| 4 | Batch 2 | `T04` | `T03` | 不允许 |
+| 5 | Batch 2 | `T05` | `T04` | 不允许 |
+| 6 | Batch 3 | `T06` | `T05` | 不允许 |
+| 7 | Batch 3 | `T07A` | `T06` | 不允许 |
+| 8 | Batch 3 | `T07B` | `T06` | 不允许 |
+| 9 | Batch 3 | `T08A` | `T07A`,`T07B` | 不允许 |
+| 10 | Batch 3 | `T08B` | `T08A` | 不允许 |
+| 11 | Batch 4 | `T09A` | `T08B` | 不允许 |
+| 12 | Batch 4 | `T09B` | `T09A` | 不允许 |
+| 13 | Batch 4 | `T10` | `T08B` | 不允许 |
+| 14 | Batch 4 | `T11` | `T10`,`T05` | 不允许 |
+| 15 | Batch 4 | `T12A` | `T11` | 不允许 |
+| 16 | Batch 4 | `T12B` | `T11`,`T09B` | 不允许 |
+| 17 | Batch 4 | `T13` | `T03` 至 `T12B` | 不允许 |
+
+说明：
+
+- “允许立即启动”只描述理论门禁，不是当前阶段授权
+- 当前仍处于 `plan`，因此上表所有 task 都只停留在“拟创建 / 拟启动条件”层面
+- 后续真正创建时，也应遵守“先创建，再人工确认是否进入执行”的两段式流程
+
+## 拟创建命令模板
+
+以下命令只是后续执行模板，当前阶段不运行：
+
+```bash
+python3 ./.trellis/scripts/task.py create "<title>" --slug <name> --parent 04-02-workflow-e2e-bookmark-cleaner
+```
+
+建议在真正创建时逐条执行，并在每一批结束后检查：
+
+- 新 task 目录命名是否符合预期
+- 子 task 的 `parent` 字段是否正确
+- 父 task 的 `children` 列表是否正确
+- 是否存在需要立刻再次拆分的超大 task
+
+## 后续迁移步骤建议
+
+真正开始迁移时，建议按这个顺序：
+
+1. 保留当前总 task 不动
+2. 创建第一批 child task：
+   - `T01`
+   - `T02`
+   - `T03`
+3. 再创建第二批 child task：
+   - `T04`
+   - `T05`
+4. 再创建第三批 child task：
+   - `T06`
+   - `T07A`
+   - `T07B`
+   - `T08A`
+   - `T08B`
+5. 最后创建：
+   - `T09A`
+   - `T09B`
+   - `T10`
+   - `T11`
+   - `T12A`
+   - `T12B`
+   - `T13`
+
+这样做的好处：
+
+- 不会一口气创建过多 task
+- 可以先把最早会启动的 task 建出来
+- 后续 task 的描述可以根据前置 task 产物再精炼
+
+## 风险
+
+- 如果拆得太粗，又会回到“大 task 混阶段”的问题
+- 如果拆得太碎，会增加 task 管理成本
+
+当前建议粒度是：
+
+- 以“单 task 可单上下文完成并验证”为上限
+- 以“边界明显不同必须拆开”为下限
+
+## 本阶段输出边界
+
+本文件只做拆分策略设计，不创建 task，不修改 task 关系，不更新执行状态。
+
+配套创建模板见：
+
+- `TASK-CREATION-TEMPLATE.md`

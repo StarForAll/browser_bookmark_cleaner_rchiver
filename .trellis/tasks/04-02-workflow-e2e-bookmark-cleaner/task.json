@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 2,
   "next_action": [
     {
       "phase": 1,
@@ -23,31 +23,53 @@
     },
     {
       "phase": 2,
-      "action": "implement"
+      "action": "test-first"
     },
     {
       "phase": 3,
-      "action": "check"
+      "action": "implement"
     },
     {
       "phase": 4,
-      "action": "finish"
+      "action": "check"
     },
     {
       "phase": 5,
+      "action": "finish"
+    },
+    {
+      "phase": 6,
       "action": "create-pr"
     }
   ],
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [],
+  "children": [
+    "04-04-extension-engineering-baseline",
+    "04-04-ui-reference-constraints",
+    "04-04-extension-shell-page-entry",
+    "04-04-draft-graph-contracts-persistence",
+    "04-04-browser-import-to-draft",
+    "04-04-graph-basic-editing",
+    "04-04-graph-drag-move-validation",
+    "04-04-undo-history-ctrl-z",
+    "04-04-search-duplicate-focus",
+    "04-04-status-feedback-disabled-states",
+    "04-04-browser-overwrite-sync-confirmation",
+    "04-04-local-backup-undo-overwrite",
+    "04-04-webdav-config-permissions",
+    "04-04-webdav-upload-versioning",
+    "04-04-webdav-draft-restore",
+    "04-04-webdav-browser-restore",
+    "04-04-verification-closeout"
+  ],
   "parent": null,
   "relatedFiles": [
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
     "tmp/workflow-e2e-issues.md"
   ],
-  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement, and the task remains in design until the human-reviewed design workflow is fully closed. Design Step 2 (functional specifications) is now complete, including browser-to-draft overwrite, draft-to-browser sync, and duplicate-hover display rules. Design Step 3 is now complete as a discussion-based prototype validation against tmp/ui, with the explicit rule that tmp/ui code is reference-only and must not be reused directly. The project-level finish-work command matrix is temporarily deferred until the technical architecture and verification commands are frozen; only document-level validation has been executed so far.",
+  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. Plan-stage restructuring is now complete: the parent task has been reduced to summary/coordination only, 17 execution child tasks have been created, and no runtime implementation has started. The human has explicitly confirmed that the next stage is test-first.",
   "meta": {
     "task_type": "interactive-product-implementation",
     "product_name": "browser-bookmark-cleaner-archiver",

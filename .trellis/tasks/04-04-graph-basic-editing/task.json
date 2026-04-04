@@ -1,0 +1,53 @@
+{
+  "id": "graph-basic-editing",
+  "name": "graph-basic-editing",
+  "title": "Implement Graph Basic Editing",
+  "description": "Implement basic graph editing on draft-only state without drag-move or undo history features.",
+  "status": "planning",
+  "dev_type": "frontend",
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "xzc",
+  "assignee": "xzc",
+  "createdAt": "2026-04-04",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "test-first"
+    },
+    {
+      "phase": 2,
+      "action": "implement"
+    },
+    {
+      "phase": 3,
+      "action": "check"
+    },
+    {
+      "phase": 4,
+      "action": "finish"
+    },
+    {
+      "phase": 5,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": "04-02-workflow-e2e-bookmark-cleaner",
+  "relatedFiles": [
+    ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md",
+    ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/node-editor.md",
+    ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md"
+  ],
+  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "meta": {}
+}
