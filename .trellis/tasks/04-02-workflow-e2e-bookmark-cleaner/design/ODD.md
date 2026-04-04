@@ -24,8 +24,10 @@
 
 1. User edits, creates, drags, or deletes a node
 2. Draft graph updates locally
-3. Undo history entry is persisted
-4. Browser bookmark tree remains unchanged
+3. The latest full draft snapshot is refreshed in local storage
+4. A patch-based undo history entry is persisted
+5. When the implementation-defined checkpoint condition is met, a periodic checkpoint snapshot may also be persisted
+6. Browser bookmark tree remains unchanged
 
 ### Flow 4: Apply draft to browser bookmarks
 
@@ -110,3 +112,10 @@ Rules:
 - Restore mistakes: use local latest backup
 - Remote history mistakes: select an older WebDAV version and restore again
 - Browser write mistakes: not covered by `Ctrl+Z`; recover through explicit restore flows
+
+## Undo Storage Policy
+
+- Current draft persistence uses a full snapshot
+- Draft undo history uses patch entries
+- Periodic checkpoints are allowed to reduce replay depth
+- If local storage pressure is detected, the system should prefer trimming older undo patches before dropping the current draft snapshot

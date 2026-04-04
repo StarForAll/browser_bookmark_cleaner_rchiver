@@ -169,3 +169,50 @@ Completed the interactive brainstorm and design preparation for the browser book
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Design Step 4 收口与原型交互定稿
+
+**Date**: 2026-04-03
+**Task**: Design Step 4 收口与原型交互定稿
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| 项目 | 内容 |
+|------|------|
+| 设计阶段 | 完成 Step 4 页面交互说明重写与最后一轮人工审看收口 |
+| 原型边界 | 明确 `tmp/ui` 仅为视觉/交互参考资产，禁止复用原型代码 |
+| 工作区交互 | 主工作区固定表达草稿；右上角冻结 7 个显式动作；左下角固定低干扰“操作提示说明区” |
+| 恢复语义 | 冻结 WebDAV 双独立恢复入口；冻结统一“撤销覆盖操作”入口 + 二次选择恢复对象 |
+| 状态反馈 | 右下角状态弹窗保留最近 3 条完成态记录，成功/失败都保留，失败附简要原因 |
+| 文档同步 | 已同步 design 页面、AID/BRD/ODD、history-and-recovery spec、任务 PRD 与 `docs/PRD.md` |
+| 验证 | `design-export.py --validate .trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design` 结果为 `pass`；工程级验证矩阵仍未冻结，记录为 `deferred` |
+
+**关键结论**:
+- Step 3 已完成讨论式原型验证。
+- Step 4 已完成页面交互说明重写与人工收口。
+- 当前任务仍停留在 design 完成、待进入 `plan` 的状态，不归档。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cc4c98e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

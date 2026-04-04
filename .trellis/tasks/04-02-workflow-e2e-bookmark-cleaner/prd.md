@@ -244,7 +244,8 @@
 * Current repo findings:
   * `AGENTS.md` 只有 Trellis 托管说明，没有产品约束。
   * `.trellis/` 已存在默认 spec、task、workflow 脚手架。
-  * 当前没有 `package.json`、`src/`、前端应用代码或可复用组件。
+  * 当前仓库是空白实现仓库，没有可作为产品实现基线的工程代码。
+  * 先前出现过的占位工程文件已经删除，不能作为技术选型或实现参考。
 * Imported workflow state:
   * 安装命令：`/ops/softwares/python/bin/python3 '/ops/projects/personal/ai-coding-toolkit/docs/workflows/新项目开发工作流/commands/install-workflow.py' --project-root /ops/projects/personal/browser_bookmark_cleaner_rchiver`
   * 已安装阶段：`feasibility`、`brainstorm`、`design`、`plan`、`test-first`、`self-review`、`check`、`delivery`
@@ -252,7 +253,7 @@
   * 主链映射：`feasibility -> brainstorm -> design -> plan -> test-first -> start -> self-review -> check -> finish-work -> delivery -> record-session`
   * 当前安装后的 Codex 入口为自然语言 + skills，不提供项目级 `/trellis:*`
 * Brainstorm focus now:
-  * 已完成新增语言约束补充，并回到 design 继续冻结实现边界
+  * 已完成新增语言约束补充，并回到 design 继续冻结技术选型边界
   * 形态基本收敛为 Chrome 扩展
   * 已确定首版目标浏览器为 Chrome，后续保留 Firefox 扩展空间
   * 已确定首版前端所有用户可见内容必须为中文展示
@@ -282,8 +283,6 @@
   * 已确定右上角使用统一的“撤销覆盖操作”入口，并在进入后再选择撤销目标
   * 已确定需要基础搜索与重复 URL 过滤/聚焦能力
   * 已确定首版不需要多选或批量操作能力
-  * design 已恢复，可进入后续 plan / test-first / implement 准备
-* Initial implementation candidates:
-  * Vite + Vanilla TypeScript
-  * Vite + React + TypeScript
-  * Plain HTML + module script
+  * design 已恢复，当前已冻结 React + TypeScript、Vite、节点图库方案、`@xyflow/react`、轻量集中式状态管理、原生 `fetch` WebDAV 与仅扩展页面运行拓扑
+  * 已冻结草稿存储策略：当前草稿完整快照 + `Ctrl+Z` patch 历史 + 周期性 checkpoint 快照
+  * 已钉死 workflow 门禁：架构冻结后必须先完成 spec 对齐、检查矩阵、`test-first` 输入、`finish-work` / `record-session` 适配，并在全部完成后经人工确认，才允许进入 `plan`

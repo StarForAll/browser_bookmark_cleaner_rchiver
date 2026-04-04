@@ -34,6 +34,11 @@ Data categories:
 - Last local restore backup metadata
 - WebDAV host-access grant state
 
+Implementation direction:
+
+- Local persistence is intentionally `chrome.storage.local` first in v1
+- No separate IndexedDB layer is planned unless implementation later proves storage pressure or performance problems
+
 ### UI Copy Resources
 
 Purpose:
@@ -77,6 +82,7 @@ Rules:
 - Bookmark and draft artifacts are separated
 - Latest pointer and historical versions must stay consistent
 - Cloud functions are disabled unless the WebDAV profile is configured, host access is granted, and availability checks pass
+- The adapter should prefer native `fetch` over a third-party WebDAV SDK in v1
 
 Permission contract:
 

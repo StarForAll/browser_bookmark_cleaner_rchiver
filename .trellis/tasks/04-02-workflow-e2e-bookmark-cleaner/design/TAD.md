@@ -2,23 +2,43 @@
 
 ## Architecture Overview
 
-The first release uses a Chrome Manifest V3 extension with a dedicated extension page as the main workspace.
+The first release is designed as a Chrome extension with a dedicated extension page as the main workspace.
 
-### Chosen Stack
+### Frozen Product Constraints
 
-- UI runtime: React + TypeScript
-- Build tool: Vite
-- Extension target: Chrome MV3
+- Product shell: Chrome extension
+- Main workspace surface: dedicated extension page / new-tab-like extension page
 - Storage:
   - `chrome.bookmarks` for browser bookmark source-of-truth
   - `chrome.storage.local` for local settings, view state, draft state, and undo history
   - WebDAV over HTTPS for cloud version storage
 
+### Engineering Baseline Status
+
+- The repo currently has no trustworthy implementation scaffold
+- Previously created placeholder files such as `package.json`, `vite.config.ts`, `manifest.json`, and `src/` were removed and must not be treated as architecture evidence
+- The real engineering scaffold will be created after the now-frozen Step 5 stack decisions
+
+### Frozen Technical Selections
+
+- UI runtime: React + TypeScript
+- Build tool: Vite
+- Graph rendering strategy: node-editor library, not custom SVG/canvas implementation
+- Graph library: `@xyflow/react`
+- Node movement strategy: library-level drag interaction with domain-level folder-drop validation
+- State management direction: lightweight centralized store
+- Local persistence direction: `chrome.storage.local` first
+- WebDAV integration direction: native `fetch` with a minimal WebDAV action surface
+- Runtime topology: dedicated extension page as the only required v1 runtime surface
+- Permission direction: `bookmarks` + `storage` as required capabilities, WebDAV host access requested at runtime
+
 ### Evidence
 
+- Chrome officially exposes bookmark management through the `chrome.bookmarks` extension API and supports dedicated extension pages and side panels; the chosen surface here is a dedicated page.
+- Chrome officially supports runtime-requested optional permissions and optional host permissions, which matches the user-configured WebDAV endpoint requirement.
 - Vite officially supports multi-page builds through multiple HTML entry points in build input configuration.
 - React officially fits interactive local-state-heavy UIs through declarative state-driven rendering.
-- Chrome officially exposes bookmark management through the `chrome.bookmarks` extension API and supports dedicated extension pages and side panels; the chosen surface here is a dedicated page.
+- React Flow provides custom nodes, controlled graph state, drag behavior, and viewport helpers suitable for editable node-based UIs.
 
 Evidence sources:
 
@@ -27,17 +47,17 @@ Evidence sources:
 - https://developer.chrome.com/docs/extensions/reference/permissions
 - https://vite.dev/guide/build.html
 - https://react.dev/learn/managing-state
+- https://reactflow.dev/
 
 Implementation note:
 
 - Current Vite docs describe multi-entry builds with `build.rolldownOptions.input`.
-- If the repo pins an older Vite major during implementation, the equivalent configuration may be `build.rollupOptions.input`.
-- This design decision is about multi-page capability, not a forced pin to one Vite major today.
+- If an older Vite major is selected during implementation, the equivalent configuration may be `build.rollupOptions.input`.
 
 ### Runtime Boundaries
 
 1. Extension Page
-   - Hosts the React application
+   - Hosts the React + TypeScript application
    - Owns visual state, keyboard interactions, drag/drop, and draft editing
    - Calls application services and adapter layer
 
@@ -54,8 +74,9 @@ Implementation note:
    - WebDAV adapter
 
 4. Optional Background Worker
-   - Not required for first-release business logic
-   - Reserved for future alarms, background sync, or extension lifecycle hooks
+   - Not required for v1 core flows
+   - Deliberately excluded from the required runtime topology unless a later implementation constraint proves it necessary
+   - Reserved for future alarms, background sync, or extension lifecycle hooks if later needed
 
 ## Key Technical Decisions
 
@@ -121,48 +142,98 @@ Reason:
 - Preserves room for future multilingual support without changing domain logic, page structure, or adapter contracts
 - Reduces the risk of English placeholder text leaking into production UI
 
+### Decision 7: React + Vite frontend baseline
+
+- The implementation will use React + TypeScript as the UI runtime
+- The build path will use Vite
+- The extension page is treated as a frontend application entry rather than as a popup-sized utility shell
+
+Reason:
+- Matches the interaction density of the product
+- Keeps the implementation surface mainstream and well-documented
+- Works well with the selected graph-library direction
+
+### Decision 8: Graph editor based on `@xyflow/react`
+
+- The graph canvas will be built on `@xyflow/react`
+- Custom bookmark/folder node rendering stays inside product-owned React components
+- Library drag behavior is allowed, but final folder-drop acceptance is enforced by domain rules rather than raw canvas behavior
+
+Reason:
+- Reuses mature node-editor primitives
+- Avoids expensive custom canvas/SVG infrastructure work in v1
+- Preserves product-specific control over bookmark-tree semantics
+
+### Decision 9: Lightweight centralized state management
+
+- Draft graph, search/filter state, selected node, status history, and restore flow state should be coordinated through a lightweight centralized store
+- The store choice should stay light enough to avoid framework-level ceremony
+
+Reason:
+- The workspace has shared state across many interaction surfaces
+- Pure component-local state would fragment the editing model
+- A heavier state framework is not justified yet
+
+### Decision 10: Native `fetch` WebDAV adapter
+
+- WebDAV integration should be implemented with native `fetch`
+- Only the minimal action surface needed by v1 should be supported:
+  - connectivity test
+  - list versions
+  - upload snapshot
+  - download snapshot
+  - prune historical versions
+
+Reason:
+- Keeps the cloud boundary narrow
+- Avoids bringing in a large SDK before proving the real interoperability needs
+- Matches the current product direction of local-first extension + user-provided WebDAV
+
+### Decision 11: Snapshot draft state + patch undo history + periodic checkpoints
+
+- The current draft state is persisted as one complete snapshot
+- `Ctrl+Z` history is stored as patch-based draft-only undo entries
+- The system may create periodic checkpoint snapshots to cap replay depth and reduce recovery risk
+- Undo storage strategy is optimized for `chrome.storage.local` limits rather than for perfect historical duplication of full draft payloads
+
+Reason:
+- A full snapshot is the simplest and most reliable representation of the current draft state
+- Patch-based undo avoids multiplying full-tree storage cost on every small edit
+- Periodic checkpoints give a practical recovery anchor without forcing every undo step to store a complete graph snapshot
+- This hybrid model fits the product's single-node edit, move, rename, and delete patterns better than pure snapshot history
+
 ### Manifest-Level Contract
 
-- Required permissions:
+- Required capability contract:
   - `bookmarks`
   - `storage`
-- Expected optional host permission strategy:
+- Expected host-access strategy:
   - `optional_host_permissions` for user-entered WebDAV origins
-- No background worker is required for v1 core flows
+- v1 does not require a background worker for the main product loop
 - A background script may still be added later for alarms or background sync without changing the domain model
 
-## Proposed Directory Shape
+## Planned Directory Shape
 
 ```text
-extension/
-  index.html                # extension page entry
-src/
-  app/
-    App.tsx
-    routes/
-    layout/
-  features/
-    bookmark-graph/
-    search-filter/
-    sync-status/
-    webdav-settings/
-  domain/
-    bookmark/
-    draft/
-    sync/
-    history/
-  adapters/
-    chrome-bookmarks/
-    local-storage/
-    webdav/
-  shared/
-    ui/
-    copy/
-    utils/
-    types/
-manifest.json
-vite.config.ts
+<project-root>/
+  package.json
+  vite.config.ts
+  index.html
+  public/
+    manifest.json
+  src/
+    app/
+    features/
+    domain/
+    adapters/
+    shared/
+  tests-or-src-test/
 ```
+
+Rules:
+
+- This is the planned shape implied by the frozen React + Vite direction
+- Exact subdirectory names remain implementation-detail scope for PLAN-01
 
 ## Validation Matrix
 

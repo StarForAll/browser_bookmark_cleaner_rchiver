@@ -16,6 +16,9 @@ This spec covers:
 - scope: draft only
 - trigger: every content mutation in the graph
 - action: `Ctrl+Z` reverts one mutation step
+- current draft persistence: one full draft snapshot
+- undo persistence: patch-based entries
+- checkpoint policy: periodic full draft snapshot checkpoints are allowed
 
 ### Undo Triggers
 
@@ -43,6 +46,16 @@ Undo history is not created for view-only changes:
   - WebDAV upload
   - WebDAV restore
   - local backup generation
+
+### Undo Storage Model
+
+- the current draft is always persisted as a complete draft snapshot
+- each undoable mutation writes one patch-oriented undo entry rather than a full-tree duplicate snapshot
+- periodic checkpoint snapshots may be written after an implementation-defined number of undoable mutations
+- checkpoint snapshots are part of draft durability and replay control, not part of the user-visible local restore-backup feature
+- if local storage pressure requires trimming, the system should trim oldest undo patches first while preserving:
+  - the latest current-draft snapshot
+  - the latest valid checkpoint snapshot when one exists
 
 ## Restore Backup
 
@@ -198,6 +211,9 @@ Browser recovery rules:
 - restoring a WebDAV version first creates a local backup
 - backup restore can recover the pre-overwrite state
 - draft-content undo is not created for search, filter, layout, or expand/collapse changes
+- current draft persistence uses a full snapshot, not patch-only state
+- undo entries use patch storage rather than duplicating the full draft graph per step
+- periodic checkpoint snapshots do not change user-visible overwrite-recovery semantics
 - syncing draft to browser bookmarks first creates a browser-type local restore backup
 - overwriting current draft from browser bookmarks first creates a draft-type local restore backup
 - a failed backup generation blocks the overwrite action and preserves the previous local backup

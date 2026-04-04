@@ -2,16 +2,37 @@
 
 ## Scope
 
-This design package translates [docs/PRD.md](/ops/projects/personal/browser_bookmark_cleaner_rchiver/docs/PRD.md) into implementation-ready technical decisions for the first Chrome-extension release.
+This design package translates [docs/PRD.md](/ops/projects/personal/browser_bookmark_cleaner_rchiver/docs/PRD.md) into implementation-facing technical constraints, frozen stack decisions, and runtime contracts for the first Chrome-extension release.
 
 ## Phase Status
 
 - Status: active design package
 - Entry date: 2026-04-02
-- Goal: freeze architecture, module boundaries, runtime contracts, and validation scenarios before `plan`
+- Goal: freeze product-shape constraints, technical-selection decisions, runtime contracts, and validation scenarios before `plan`
 - 2026-04-03 refresh: Chinese-first visible UI copy is now a hard v1 constraint, and the design package must keep future multilingual expansion possible without restructuring core UI flows
 - Current checkpoint: Design Step 2 (functional specifications) is complete after human review; Design Step 3 (discussion-based executable prototype validation against `tmp/ui/`) is complete; Design Step 4 page interaction specs have been re-authored from trusted PRD + Step 2 + Step 3 inputs instead of inheriting prior page-doc content
+- 2026-04-04 correction: previously created placeholder engineering files were removed from the repo and are no longer treated as trustworthy baseline evidence; Design Step 5 is therefore focused on stack selection and boundary freezing rather than inheriting any deleted local implementation scaffold
+- 2026-04-04 selection update: the user accepted the default recommendations for UI runtime, build tool, graph strategy, graph library, state-management direction, WebDAV integration approach, permission strategy, runtime topology, and the hybrid undo-storage model
+- 2026-04-04 workflow gate: after architecture freeze, the project must complete spec-alignment and workflow-adaptation follow-up work; `plan` is blocked until those follow-up items are all completed and the human explicitly confirms entry into `plan`
 - Finish-work status for this checkpoint: project-level verification matrix is deferred until architecture and verification commands are frozen; only design-package validation is currently required and has passed
+
+## Plan Entry Gate
+
+`plan` must not start immediately after stack selection freeze.
+
+Before `plan`, the following follow-up work must be completed:
+
+1. align project `.trellis/spec/` with the frozen architecture
+2. remove or rewrite placeholder spec content that conflicts with the current project
+3. define the real automation-check matrix
+4. define project-specific `test-first` inputs
+5. adapt project-specific `finish-work`
+6. adapt project-specific `record-session`
+
+Rule:
+
+- Even if all six items appear completed, entry into `plan` still requires explicit human confirmation
+- No AI agent may treat architecture freeze alone as permission to advance into `plan`
 
 ## Mandatory UI Prototyping Reminder
 
@@ -32,15 +53,22 @@ Recommended wording:
 
 ## Evidence Base
 
+Confirmed platform evidence:
+
 - Chrome extension permissions and host access:
   - https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions?hl=en
   - https://developer.chrome.com/docs/extensions/reference/permissions
 - Chrome extension APIs:
   - https://developer.chrome.com/docs/extensions/reference/api
+
+Selected implementation evidence:
+
 - Vite multi-page build:
   - https://vite.dev/guide/build.html
 - React interactive state patterns:
   - https://react.dev/learn/managing-state
+- React Flow node-editor capabilities:
+  - https://reactflow.dev/
 
 ## Documents
 

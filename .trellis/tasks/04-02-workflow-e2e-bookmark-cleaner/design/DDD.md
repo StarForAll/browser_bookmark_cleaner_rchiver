@@ -33,19 +33,35 @@ Rules:
 - `searchQuery`
 - `duplicateFilterEnabled`
 - `lastAutoLayoutAt`
+- `snapshotVersion`
 
 ### UndoEntry
 
 - `timestamp`
 - `mutationType`
 - `affectedNodeIds`
-- `beforeStatePatch`
-- `afterStatePatch`
+- `beforeStatePayload`
+- `afterStatePayload`
+- `storageMode`: `patch`
 
 Rules:
 
 - Each draft content change creates one undo entry
 - Undo entries only apply to the draft layer
+- Undo entries use patch storage mode in v1
+
+### DraftCheckpoint
+
+- `createdAt`
+- `snapshotVersion`
+- `storageKey`
+- `sizeBytes`
+
+Rules:
+
+- Checkpoints store complete draft snapshots
+- Checkpoints exist to shorten undo replay distance and reduce local recovery risk
+- Checkpoint cadence is an implementation detail, but the product model allows periodic checkpoint creation
 
 ### WebDAVProfile
 

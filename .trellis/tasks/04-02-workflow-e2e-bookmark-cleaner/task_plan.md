@@ -27,13 +27,32 @@
 
 [Evidence Gap]
 
-- 当前仓库还没有真实前端工程代码，`package.json`、测试栈、lint/typecheck/build 命令尚未冻结
+- 当前仓库是空白实现仓库；此前出现过的占位工程文件已经删除，不能再作为基线
+- React + TypeScript、Vite、`@xyflow/react`、轻量集中式状态管理、原生 `fetch` WebDAV、仅扩展页面运行拓扑 已在 Step 5 冻结
+- 草稿撤销模型也已冻结为“当前草稿完整快照 + patch 撤销历史 + 周期性 checkpoint 快照”
 - 当前 `.trellis/spec/` 中大部分仍是通用占位内容，尚未完成本项目的自动化检查矩阵与 `finish-work` / `record-session` 项目化适配
 
 处理策略：
 
 - 在正式进入产品功能实现前，优先完成工程底座和项目化验证基线
 - `test-first` 阶段以前，需要先冻结实际命令和测试目录约定
+
+## Plan Gate
+
+当前任务在进入 `plan` 前，必须先完成以下架构冻结后的联动操作：
+
+- `.trellis/spec/` 导入与对齐
+- 当前项目 `.trellis/spec/` 清洗与补齐
+- 自动化检查矩阵明确化
+- `test-first` 项目化输入明确
+- `finish-work` 项目化适配
+- `record-session` 项目化适配
+
+门禁规则：
+
+- 上述事项未全部完成前，不允许进入 `plan`
+- 即使上述事项全部完成，也必须先由人工明确确认，才允许进入 `plan`
+- 当前 `task_plan.md` 只记录主功能实现链路，不应被误读为已获准直接进入 `plan`
 
 ## 任务拆解 Checklist
 
@@ -48,27 +67,20 @@
 
 ## 文件修改清单
 
-优先会修改或新增的文件：
+技术选型冻结后，预计会新增或修改的资产类别：
 
-- `package.json`
-- `tsconfig.json`
-- `vite.config.ts`
-- `manifest.json`
-- `index.html`
-- `src/main.tsx`
-- `src/app/App.tsx`
-- `src/features/bookmark-graph/*`
-- `src/features/search-filter/*`
-- `src/features/sync-status/*`
-- `src/features/webdav-settings/*`
-- `src/domain/bookmark/*`
-- `src/domain/draft/*`
-- `src/domain/history/*`
-- `src/domain/sync/*`
-- `src/adapters/chrome-bookmarks/*`
-- `src/adapters/local-storage/*`
-- `src/adapters/webdav/*`
+- 扩展入口与 manifest 相关文件
+- 前端应用入口与页面壳文件
+- 图谱工作区与节点交互模块
+- 搜索、重复聚焦与状态反馈模块
+- 浏览器书签、本地存储、WebDAV 适配层
+- 构建配置、类型配置、测试配置文件
 - `.trellis/spec/*` 中与验证矩阵、finish-work、record-session 相关的项目化说明
+
+说明：
+
+- 当前已冻结 React + Vite 技术方向，但仍不把具体文件内容当作已存在事实
+- 具体文件名与目录结构应作为 `PLAN-01` 的输出之一确定
 
 仅作设计风格参考，不作为实现输入代码：
 
@@ -167,12 +179,14 @@
 范围：
 
 - 冻结包管理器、依赖管理方式、扩展工程目录、lint/typecheck/test/build 命令
+- 先完成 Step 5 技术选型闭合，再建立真实工程基座
 - 明确 `test-first` 阶段将使用的真实命令与测试文件目录
 - 首次项目化适配 `.trellis/spec/`、`finish-work`、`record-session`
 
 DoR：
 
 - 设计文档已确认
+- Step 5 技术选型已全部冻结到足以开始搭建真实工程
 - 用户接受先做工程底座和验证门禁
 
 DoD：
@@ -202,8 +216,8 @@ DoD：
 
 范围：
 
-- 建立 MV3 manifest
-- 建立独立扩展页面入口与基础 App 壳
+- 建立已选定技术栈下的扩展入口与运行壳
+- 建立独立扩展页面入口与基础应用壳
 - 建立基础共享目录和功能模块骨架
 
 DoR：
