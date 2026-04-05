@@ -1,0 +1,3 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "T05 spans adapter -> normalization -> startup policy boundaries and needs explicit contract mapping."}

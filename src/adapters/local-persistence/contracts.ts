@@ -74,7 +74,7 @@ type NodePosition = {
   y: number;
 };
 
-type PersistedDraftSession = {
+export type PersistedDraftSession = {
   schemaVersion: typeof LOCAL_PERSISTENCE_SCHEMA_VERSION;
   draftSnapshot: DraftGraphSnapshot;
   expandedStateById: Record<string, boolean>;
@@ -83,7 +83,7 @@ type PersistedDraftSession = {
   checkpoints: DraftCheckpoint[];
 };
 
-type LocalBackupMetadata = {
+export type LocalBackupMetadata = {
   artifactId: string;
   artifactType: 'browser-restore-backup' | 'draft-restore-backup';
   schemaVersion: typeof LOCAL_PERSISTENCE_SCHEMA_VERSION;

@@ -10,6 +10,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <App enableStartupBootstrap />
   </StrictMode>,
 );

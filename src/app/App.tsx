@@ -1,10 +1,72 @@
-import { useState } from 'react';
-import { appShellCopy } from '@/shared/copy/appShell';
+import { useEffect, useState } from 'react';
+import {
+  appShellCopy,
+  getStartupStatusCopy,
+} from '@/shared/copy/appShell';
+import {
+  bootstrapWorkspace as defaultBootstrapWorkspace,
+  type WorkspaceBootstrapResult,
+} from '@/features/browser-sync/application/bootstrapWorkspace';
 import './app.css';
 
-export function App() {
+type AppProps = {
+  enableStartupBootstrap?: boolean;
+  bootstrapWorkspace?: () => Promise<WorkspaceBootstrapResult>;
+};
+
+export function App({
+  enableStartupBootstrap = false,
+  bootstrapWorkspace = defaultBootstrapWorkspace,
+}: AppProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
+  const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
   const undoActionLabel = appShellCopy.actionLabels[appShellCopy.actionLabels.length - 1];
+  const startupStatusCopy = getStartupStatusCopy(
+    startupResult
+      ? {
+          statusKey: startupResult.statusKey,
+          nodeCount: Object.keys(startupResult.draftSnapshot?.nodesById ?? {}).length,
+          errorDetail: startupResult.errorDetail,
+        }
+      : undefined,
+  );
+  const startupRootNodes =
+    startupResult?.draftSnapshot
+      ? startupResult.draftSnapshot.rootIds
+          .map((rootId) => startupResult.draftSnapshot?.nodesById[rootId])
+          .filter((node) => node !== undefined)
+      : [];
+  const startupNodeStats = startupResult?.draftSnapshot
+    ? Object.values(startupResult.draftSnapshot.nodesById).reduce(
+        (stats, node) => {
+          if (node.nodeType === 'folder') {
+            stats.folderCount += 1;
+          } else {
+            stats.bookmarkCount += 1;
+          }
+          return stats;
+        },
+        { folderCount: 0, bookmarkCount: 0 },
+      )
+    : null;
+
+  useEffect(() => {
+    if (!enableStartupBootstrap) {
+      return;
+    }
+
+    let isMounted = true;
+
+    void bootstrapWorkspace().then((result) => {
+      if (isMounted) {
+        setStartupResult(result);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [bootstrapWorkspace, enableStartupBootstrap]);
 
   return (
     <div className="workspace-shell">
@@ -80,7 +142,27 @@ export function App() {
               <div className="canvas-draft-card">
                 <span className="canvas-badge">{appShellCopy.canvasDraftTitle}</span>
                 <strong>{appShellCopy.title}</strong>
-                <p>{appShellCopy.canvasDraftSummary}</p>
+                <p>{startupStatusCopy.canvasSummary}</p>
+                {startupRootNodes.length > 0 && startupNodeStats ? (
+                  <div className="startup-preview" role="status">
+                    <h4>导入摘要</h4>
+                    <p className="startup-preview-summary">
+                      {`根节点 ${startupRootNodes.length} 个 · 目录 ${startupNodeStats.folderCount} 个 · 书签 ${startupNodeStats.bookmarkCount} 个`}
+                    </p>
+                    <ul>
+                      {startupRootNodes.map((node) => (
+                        <li key={node.internalId}>
+                          <span>{node.nodeType === 'folder' ? '目录' : '书签'}</span>
+                          <span>{node.title || '（无标题）'}</span>
+                          <span>{node.nodeType === 'folder' ? `${node.childIds.length} 个直接子节点` : '根层书签'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="startup-preview-note">
+                      当前只展示导入摘要；完整思维导图渲染与节点交互会在后续图谱任务接入。
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -114,29 +196,27 @@ export function App() {
                     </button>
                   </div>
                   <div className="status-entry">
-                    <strong>{appShellCopy.statusLatestEntry.action}</strong>
+                    <strong>{startupStatusCopy.action}</strong>
                     <dl className="status-meta">
                       <div>
                         <dt>操作时间</dt>
-                        <dd>{appShellCopy.statusLatestEntry.time}</dd>
+                        <dd>{startupStatusCopy.time}</dd>
                       </div>
                       <div>
                         <dt>操作结果</dt>
-                        <dd>{appShellCopy.statusLatestEntry.result}</dd>
+                        <dd>{startupStatusCopy.result}</dd>
                       </div>
                     </dl>
-                    <p>{appShellCopy.statusLatestEntry.detail}</p>
+                    <p>{startupStatusCopy.detail}</p>
                   </div>
                   <div className="status-retained">
                     <strong>{appShellCopy.statusRetainedTitle}</strong>
                     <ul className="status-history-list">
-                      {appShellCopy.statusRetainedEntries.map((entry) => (
-                        <li key={`${entry.action}-${entry.time}`}>
-                          <span>{entry.action}</span>
-                          <span>{entry.time}</span>
-                          <span>{entry.result}</span>
-                        </li>
-                      ))}
+                      <li key={`${startupStatusCopy.action}-${startupStatusCopy.time}`}>
+                        <span>{startupStatusCopy.action}</span>
+                        <span>{startupStatusCopy.time}</span>
+                        <span>{startupStatusCopy.result}</span>
+                      </li>
                     </ul>
                   </div>
                 </aside>
@@ -150,7 +230,7 @@ export function App() {
                   type="button"
                 >
                   <strong>{appShellCopy.statusAnchorLabel}</strong>
-                  <span>{appShellCopy.statusAnchorHint}</span>
+                  <span>{`${startupStatusCopy.action} · ${startupStatusCopy.result}`}</span>
                 </button>
               ) : null}
             </div>

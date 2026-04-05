@@ -70,15 +70,17 @@ describe('T03 extension shell and page entry', () => {
 
     const statusPopover = screen.getByRole('complementary', { name: '状态结果区' });
     expect(statusPopover).toBeInTheDocument();
-    expect(within(statusPopover).getByText('浏览器书签读取', { selector: '.status-entry strong' })).toBeInTheDocument();
+    expect(within(statusPopover).getByText('启动初始化', { selector: '.status-entry strong' })).toBeInTheDocument();
     expect(within(statusPopover).getByText('—', { selector: '.status-entry dd' })).toBeInTheDocument();
-    expect(within(statusPopover).getByText('当前浏览器书签数据为空', { selector: '.status-entry dd' })).toBeInTheDocument();
+    expect(
+      within(statusPopover).getByText('正在确认本地草稿与浏览器书签状态', { selector: '.status-entry dd' }),
+    ).toBeInTheDocument();
     expect(statusPopover.querySelector('.status-history-list li')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '关闭状态弹窗' }));
     expect(screen.queryByRole('complementary', { name: '状态结果区' })).not.toBeInTheDocument();
 
     const anchor = screen.getByRole('button', { name: '重新打开最新结果弹窗' });
-    expect(anchor).toHaveTextContent('浏览器书签读取 · 当前浏览器书签数据为空');
+    expect(anchor).toHaveTextContent('启动初始化 · 正在确认本地草稿与浏览器书签状态');
 
     fireEvent.click(anchor);
     expect(screen.getByRole('complementary', { name: '状态结果区' })).toBeInTheDocument();

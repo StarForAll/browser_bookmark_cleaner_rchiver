@@ -1,0 +1,5 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md", "reason": "Check T05 against the frozen browser-to-draft normalization invariants."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check must verify T05 test gate covers adapter normalization and reports pass/fail/not run truthfully."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/IDD.md", "reason": "Check T05 adapter boundaries so raw Chrome shapes do not leak into application/UI code."}

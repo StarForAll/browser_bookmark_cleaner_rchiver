@@ -3,7 +3,7 @@
   "name": "browser-import-to-draft",
   "title": "Implement Browser Bookmark Import To Draft",
   "description": "Import browser bookmarks into the normalized draft graph without enabling direct browser writeback.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 4,
   "next_action": [
     {
       "phase": 1,
@@ -48,6 +48,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/draft-browser-sync.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "T05 implementation, multi-round check, and finish-work verification are complete in the current workspace. Remaining closeout work is commit/session archival rather than feature implementation.",
   "meta": {}
 }
