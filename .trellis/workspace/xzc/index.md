@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 11
+- **Total Sessions**: 12
 - **Last Active**: 2026-04-05
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~524 | Active |
+| `journal-1.md` | ~558 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 12 | 2026-04-05 | T04 Contracts And Persistence Session | `8a9ab25`, `58bfb80` | `master` |
 | 11 | 2026-04-05 | Session收尾补录 | `0da5e9a`, `7ca1131` | `master` |
 | 10 | 2026-04-05 | Sonar脚本与文档同步 | `0da5e9a` | `master` |
 | 9 | 2026-04-05 | T03 扩展壳层与页面入口完成 | `9c99be8` | `master` |

@@ -522,3 +522,37 @@ Completed the plan-stage restructuring for the browser bookmark cleaner workflow
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: T04 Contracts And Persistence Session
+
+**Date**: 2026-04-05
+**Task**: T04 Contracts And Persistence Session
+**Branch**: `master`
+
+### Summary
+
+Completed T04 draft graph and local persistence contracts, finished multi-round review fixes, archived the task, and closed out the session metadata after the human commit.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8a9ab25` | (see git log) |
+| `58bfb80` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
