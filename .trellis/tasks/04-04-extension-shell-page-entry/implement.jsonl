@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "T03 stays within app shell boundaries and shared copy ownership."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "T03 adjusts shell composition and keeps Chinese-first copy centralized."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "T03 needs truthful command evidence and component-level regression checks."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "T03 changes layout values and should avoid scattering repeated shell constants."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md", "reason": "T03 must match the frozen five-region workspace structure and action inventory."}

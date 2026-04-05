@@ -326,3 +326,60 @@ Completed the plan-stage restructuring for the browser bookmark cleaner workflow
 ### Next Steps
 
 - None - task complete
+
+
+## Session 8: T01 T02收口并记录T03校验失败
+
+**Date**: 2026-04-05
+**Task**: T01 T02收口并记录T03校验失败
+**Branch**: `master`
+
+### Summary
+
+归档已完成的 T01/T02，并记录 T03 自动化通过但人工布局校验失败，后续继续在 T03 上修正布局偏差。
+
+### Main Changes
+
+| Feature | Description |
+|---------|-------------|
+| T01 | 工程基线已完成并归档，`pnpm lint/typecheck/test/build` 门禁已建立 |
+| T02 | UI 参考约束文档与门禁测试已完成并归档 |
+| T03 | 自动化测试与构建通过，但人工验证发现实际布局与既定页面结构要求不一致，暂不归档 |
+
+**Updated Files**:
+- `.trellis/tasks/archive/2026-04/04-04-extension-engineering-baseline/`
+- `.trellis/tasks/archive/2026-04/04-04-ui-reference-constraints/`
+- `.trellis/tasks/04-04-extension-shell-page-entry/task.json`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/visual-system.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/visual-direction.md`
+- `src/uiReferenceConstraints.test.ts`
+- `src/extensionShellPageEntry.test.tsx`
+
+**Verification Snapshot**:
+- `T01`: local verification passed before archive
+- `T02`: local verification passed before archive
+- `T03`: `pnpm exec vitest run src/extensionShellPageEntry.test.tsx` passed; manual Chrome layout validation failed
+
+**Next Focus**:
+- Keep `T03` as current active task
+- Tighten T03 acceptance checks around actual layout placement and shell composition
+- Rework the extension page shell to match the approved five-region structure exactly
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a2ed095` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

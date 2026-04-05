@@ -105,6 +105,8 @@ tmp/multi-cli-review/<task-id>/review-round-<N>/
 $TASK_DIR/check/reviewer-commands-round-<N>.md
 ```
 
+并且**必须在当前回复里直接输出同一条可复制执行的完整 `multi-cli-review` 命令**，不能只给文件路径或只说“见 reviewer-commands 文件”。
+
 内容至少包括：
 
 - 任务摘要
@@ -123,6 +125,12 @@ $TASK_DIR/check/reviewer-commands-round-<N>.md
 - reviewer 不得直接修改代码
 - reviewer 不得创建目录；目录只能由当前 CLI/协调者创建
 - 不转交当前完整对话上下文，只给标准化命令包
+- 当前 CLI 给用户的最终输出必须包含：
+  - 判定结果 `required / recommended / skip`
+  - reviewer-commands 文件路径
+  - 可直接复制到其他 CLI 执行的完整命令正文
+
+这条规则是工作流要求，不因对话轮次变化而省略。
 
 ### Step 4: 其他 CLI 执行独立审查
 

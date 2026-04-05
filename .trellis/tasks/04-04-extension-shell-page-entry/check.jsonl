@@ -1,0 +1,5 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Review T03 against automated gates and truthful verification reporting."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md", "reason": "Review exact five-region placement and bottom-left/bottom-right expectations."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Review shell structure, role usage, and centralized copy boundaries."}

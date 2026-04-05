@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { cleanup, render, screen } from '@testing-library/react';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, test } from 'vitest';
 import { App } from './app/App';
 
-const repoRoot = process.cwd();
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 afterEach(() => {
   cleanup();
@@ -29,16 +30,24 @@ describe('T03 extension shell and page entry', () => {
   });
 
   test('renders the fixed workspace shell with five regions', () => {
-    render(<App />);
+    const { container } = render(<App />);
 
-    expect(
-      screen.getByRole('heading', { name: '书签清理与归档工作区' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '顶部动作区' })).toBeInTheDocument();
-    expect(screen.getByRole('search', { name: '搜索与聚焦区' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: '图谱画布区' })).toBeInTheDocument();
-    expect(screen.getByRole('complementary', { name: '操作提示区' })).toBeInTheDocument();
-    expect(screen.getByRole('complementary', { name: '状态结果区' })).toBeInTheDocument();
+    const topShell = screen.getByRole('region', { name: '顶部动作区' });
+    const searchRegion = screen.getByRole('search', { name: '搜索与聚焦区' });
+    const canvasRegion = screen.getByRole('region', { name: '图谱画布区' });
+    const hintRegion = screen.getByRole('complementary', { name: '操作提示区' });
+    const statusRegion = screen.getByRole('complementary', { name: '状态结果区' });
+
+    expect(within(topShell).getByRole('heading', { level: 1, name: '书签清理与归档工作区' })).toBeInTheDocument();
+    expect(within(topShell).getByRole('heading', { level: 2, name: '顶部动作区' })).toBeInTheDocument();
+    expect(searchRegion).toBeInTheDocument();
+    expect(canvasRegion).toBeInTheDocument();
+    expect(hintRegion).toBeInTheDocument();
+    expect(statusRegion).toBeInTheDocument();
+    expect(screen.queryByText('Chrome MV3 Extension Workspace')).not.toBeInTheDocument();
+    expect(canvasRegion.contains(hintRegion)).toBe(true);
+    expect(container.querySelector('.status-popover')).not.toBeNull();
+    expect(container.querySelector('.status-anchor')).toBeNull();
   });
 
   test('exposes the seven explicit top action buttons with Chinese-first copy', () => {
@@ -51,5 +60,27 @@ describe('T03 extension shell and page entry', () => {
     expect(screen.getByRole('button', { name: '恢复 WebDAV 草稿到当前草稿' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '恢复 WebDAV 书签到浏览器书签' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '撤销覆盖操作' })).toBeDisabled();
+    expect(
+      screen.getByText('当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。'),
+    ).toBeInTheDocument();
+  });
+
+  test('keeps the status area as a closable popup with a reopen anchor', () => {
+    render(<App />);
+
+    const statusPopover = screen.getByRole('complementary', { name: '状态结果区' });
+    expect(statusPopover).toBeInTheDocument();
+    expect(within(statusPopover).getByText('浏览器书签读取', { selector: '.status-entry strong' })).toBeInTheDocument();
+    expect(within(statusPopover).getByText('—', { selector: '.status-entry dd' })).toBeInTheDocument();
+    expect(within(statusPopover).getByText('当前浏览器书签数据为空', { selector: '.status-entry dd' })).toBeInTheDocument();
+    expect(statusPopover.querySelector('.status-history-list li')).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '关闭状态弹窗' }));
+    expect(screen.queryByRole('complementary', { name: '状态结果区' })).not.toBeInTheDocument();
+
+    const anchor = screen.getByRole('button', { name: '重新打开最新结果弹窗' });
+    expect(anchor).toHaveTextContent('浏览器书签读取 · 当前浏览器书签数据为空');
+
+    fireEvent.click(anchor);
+    expect(screen.getByRole('complementary', { name: '状态结果区' })).toBeInTheDocument();
   });
 });
