@@ -46,7 +46,6 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "04-04-draft-graph-contracts-persistence",
     "04-04-browser-import-to-draft",
     "04-04-graph-basic-editing",
     "04-04-graph-drag-move-validation",
