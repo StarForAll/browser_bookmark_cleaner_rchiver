@@ -46,6 +46,7 @@
 
 - 目标单一
 - 依赖正确
+- 串行前序任务明确
 - 非目标明确
 - 验收标准单一
 - 验证方案存在
@@ -180,7 +181,8 @@ Created from parent task split strategy during pure plan stage. Task exists for 
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`Txx`
-- 依赖任务：`...`
+- 功能依赖任务：`...`
+- 串行前序任务：`...`
 - 主要设计输入：`...`
 
 ## In Scope
@@ -193,9 +195,15 @@ Created from parent task split strategy during pure plan stage. Task exists for 
 
 ## Start Conditions
 - ...
+- 串行前序 task 已完成 `test-first -> implement -> check` 收口
+- 当前 task 已被明确指定为下一步唯一执行单元
+- 用户已在当前回合显式批准启动本 task
 
 ## Waiting Conditions
 - ...
+- 若串行前序 task 未收口，则当前 task 不得启动
+- 不与其他 sibling child task 并行执行
+- 若用户尚未显式点名或批准本 task，则当前 task 不得因前序 task 收口而自动启动
 
 ## Requirements
 - ...
@@ -218,6 +226,10 @@ Created from parent task split strategy during pure plan stage. Task exists for 
 ## 当前项目的 child task 模板约束
 
 ### 所有 child task 必写
+
+- 在 `Inputs` 中同时写清“功能依赖任务”和“串行前序任务”
+- 在 `Start Conditions` / `Waiting Conditions` 中写清当前 task 不并行执行的门禁
+- 在 `Start Conditions` / `Waiting Conditions` 中写清“未获用户显式授权时不得自动启动下一个 task”
 
 - 单一目标
 - 明确依赖

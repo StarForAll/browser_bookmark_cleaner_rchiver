@@ -24,7 +24,7 @@
 父 task 只负责：
 
 - 保存 PRD、设计包和 planning 文档
-- 维护整体任务图、父子关系和批次顺序
+- 维护整体任务图、父子关系和串行执行顺序
 - 记录当前阶段门禁
 - 为后续 child task 执行提供统一入口
 
@@ -37,14 +37,18 @@
 ## 当前门禁
 
 - 当前父 task 已进入 `test-first`
+- 当前 `test-first` 采用双层规则：
+  - 全局只冻结一次项目级测试基线
+  - 执行时按 child task 逐个编写测试门禁
 - 在进入具体 child task 的 `test-first` 前，仍需明确指定目标 task
 - child task 已创建，不等于 child task 已启动
 - 在未指定 child task 前，不开始测试编写，也不开始实现
+- 不在父协调 task 中一次性为整个 plan 预写完整测试套件
 
 ## Canonical Docs
 
 - 设计总入口：`design/index.md`
-- 任务图与批次：`TASK-SPLIT-STRATEGY.md`
+- 任务图与串行顺序：`TASK-SPLIT-STRATEGY.md`
 - child task 字段模板：`TASK-CREATION-TEMPLATE.md`
 - child task 实际草稿：`CHILD-TASK-DRAFTS.md`
 - 旧式过渡方案文档：`PLAN-01.md`, `PLAN-01A.md`
@@ -80,18 +84,36 @@
 | `T12B` | `04-04-webdav-browser-restore` | WebDAV 恢复到浏览器书签 | `T11`, `T09B` |
 | `T13` | `04-04-verification-closeout` | 验收、文档回写与收尾 | `T03` 至 `T12B` |
 
-## 批次摘要
+## 串行执行顺序
 
-- Batch 1：`T01`, `T02`, `T03`
-- Batch 2：`T04`, `T05`
-- Batch 3：`T06`, `T07A`, `T07B`, `T08A`, `T08B`
-- Batch 4：`T09A`, `T09B`, `T10`, `T11`, `T12A`, `T12B`, `T13`
+1. `T01`
+2. `T02`
+3. `T03`
+4. `T04`
+5. `T05`
+6. `T06`
+7. `T07A`
+8. `T07B`
+9. `T08A`
+10. `T08B`
+11. `T09A`
+12. `T09B`
+13. `T10`
+14. `T11`
+15. `T12A`
+16. `T12B`
+17. `T13`
 
 默认规则：
 
 - 创建完成不等于开始执行
 - 若未来发现单 task 仍过大，应在进入实现前继续拆分
-- 若冲突边界不清，默认按串行执行
+- 所有 child task 必须严格串行执行，不允许并行启动或交叉推进
+- 任何具体 child task 在进入实现前，必须先完成该 task 自己的 `test-first` 门禁
+- `test-first` 不按“整份 plan 一次性写完测试”执行，而按上述顺序逐个 child task 推进
+- 不允许先执行具体 task、再回补该 task 的测试门禁
+- 前一个 child task 收口，不等于自动授权下一个 child task 开始执行
+- 若用户未在当前回合显式点名或批准下一项任务，必须停在当前 task 收口结果并等待进一步指令
 
 ## 当前执行状态摘要
 
@@ -108,4 +130,6 @@
 
 - 明确指定一个 child task
 - 先进入该 child task 的 `test-first`
-- `test-first` 完成后，再进入 `start` / 实现阶段
+- 该 child task 的 `test-first` 完成后，再进入 `start` / 实现阶段
+- 当前 child task 收口后，才允许切换到下一个 child task
+- 切换到下一个 child task 前，必须再次得到用户明确授权；不能按串行顺序自动续跑

@@ -6,7 +6,8 @@ Implement draft-only undo history and keyboard undo semantics for local editing 
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T07B`
-- 依赖任务：`T06`
+- 功能依赖任务：`T06`
+- 串行前序任务：`T07A`
 - 主要设计输入：`design/ODD.md`, `design/specs/history-and-recovery.md`
 
 ## In Scope
@@ -21,9 +22,12 @@ Implement draft-only undo history and keyboard undo semantics for local editing 
 
 ## Start Conditions
 - `T06` editing actions are stable enough to define history events
+- `T07A` has completed `test-first -> implement -> check` closeout
+- `T07B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for basic editing action model to stabilize
+- Wait until `T07A` is closed out in the frozen serial chain
 
 ## Requirements
 - Undo must affect draft state only

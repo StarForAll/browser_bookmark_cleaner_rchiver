@@ -6,7 +6,8 @@ Implement local backup generation and the undo-overwrite boundary for browser-ri
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T09B`
-- 依赖任务：`T09A`
+- 功能依赖任务：`T09A`
+- 串行前序任务：`T09A`
 - 主要设计输入：`design/ODD.md`, `design/specs/history-and-recovery.md`, `design/pages/local-backup-recovery.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Implement local backup generation and the undo-overwrite boundary for browser-ri
 
 ## Start Conditions
 - `T09A` overwrite and sync actions exist
+- `T09A` has completed `test-first -> implement -> check` closeout
+- `T09B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for real overwrite actions to define backup timing and object boundaries
+- Wait until `T09A` is closed out in the frozen serial chain
 
 ## Requirements
 - Backup must happen before overwrite-risk actions

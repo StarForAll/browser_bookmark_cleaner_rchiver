@@ -18,6 +18,23 @@ The implementation effect of real product pages should visibly reference the app
   - control prominence ordering
 - actual shipped page effect should stay recognizably aligned with the visual result demonstrated by `tmp/ui/`
 
+### Explicit No-Reuse Boundary
+
+The following prototype assets are explicitly forbidden as implementation inputs:
+
+- `tmp/ui/src/**`
+- `tmp/ui/package.json`
+- `tmp/ui/vite.config.ts`
+- `tmp/ui/tsconfig.json`
+- `tmp/ui/src/lib/utils.ts`
+
+The following implementation shortcuts are also forbidden:
+
+- copying prototype class names into production UI code
+- preserving prototype component boundaries as if they were production architecture
+- carrying forward prototype-local state patterns or helper utilities
+- treating `tmp/ui` dependency choices as the real app baseline
+
 ## Visual Direction
 
 - editorial workspace

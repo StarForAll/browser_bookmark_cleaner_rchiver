@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/directory-structure.md", "reason": "T01 needs the frozen runtime layout and top-level scaffold boundaries."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "T01 touches shared config values and should keep them single-source."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "T01 defines the command matrix and test-first baseline for later tasks."}

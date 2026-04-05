@@ -6,7 +6,8 @@ Implement explicit confirmation-driven browser overwrite and sync flows across d
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T09A`
-- 依赖任务：`T08B`
+- 功能依赖任务：`T08B`
+- 串行前序任务：`T08B`
 - 主要设计输入：`design/specs/draft-browser-sync.md`, `design/specs/browser-draft-overwrite.md`, `design/pages/overwrite-confirmation.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Implement explicit confirmation-driven browser overwrite and sync flows across d
 
 ## Start Conditions
 - `T08B` feedback and disabled-state infrastructure is stable
+- `T08B` has completed `test-first -> implement -> check` closeout
+- `T09A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for system action feedback semantics to exist
+- Wait until `T08B` is closed out in the frozen serial chain
 
 ## Requirements
 - All overwrite-risk actions must pass through one shared confirmation pattern

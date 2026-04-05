@@ -370,37 +370,31 @@
 建议主链如下：
 
 1. `T01` 工程基线
-2. `T03` 扩展运行壳与页面入口
-3. `T04` 领域契约与本地持久化
-4. `T05` 浏览器读取与草稿引导
-5. `T06` 图谱基础编辑交互
-6. `T07A` 拖拽移动与目录投放校验
-7. `T07B` 撤销历史与 `Ctrl+Z`
-8. `T08A` 搜索与重复 URL 聚焦
-9. `T08B` 状态反馈、历史记录与云端禁用态
-10. `T09A` 浏览器覆盖与同步确认流
-11. `T09B` 本地备份、撤销覆盖与恢复边界
-12. `T10` WebDAV 配置与权限
-13. `T11` WebDAV 上传与版本管理
-14. `T12A` WebDAV 恢复到当前草稿
-15. `T12B` WebDAV 恢复到浏览器书签
-16. `T13` 验收与收尾准备
+2. `T02` UI 参考约束回写
+3. `T03` 扩展运行壳与页面入口
+4. `T04` 领域契约与本地持久化
+5. `T05` 浏览器读取与草稿引导
+6. `T06` 图谱基础编辑交互
+7. `T07A` 拖拽移动与目录投放校验
+8. `T07B` 撤销历史与 `Ctrl+Z`
+9. `T08A` 搜索与重复 URL 聚焦
+10. `T08B` 状态反馈、历史记录与云端禁用态
+11. `T09A` 浏览器覆盖与同步确认流
+12. `T09B` 本地备份、撤销覆盖与恢复边界
+13. `T10` WebDAV 配置与权限
+14. `T11` WebDAV 上传与版本管理
+15. `T12A` WebDAV 恢复到当前草稿
+16. `T12B` WebDAV 恢复到浏览器书签
+17. `T13` 验收与收尾准备
 
-## 可并行候选
+## 串行执行硬规则
 
-仅从策略上看，可并行候选如下：
-
-- `T02` 可与 `T01` 并行
-原因：
-  UI 规则沉淀不会阻塞工程配置落库
-
-- `T08A` 可在 `T07A`/`T07B` 稳定后与 `T09A` 的部分准备并行评估
-原因：
-  但只有在共享状态模块边界已经稳定后才成立
-
-默认规则：
-
-- 若不确定冲突边界，全部按串行处理
+- 所有 child task 必须按主链顺序串行推进
+- 不以“理论上可独立”作为并行启动依据
+- 前一个 task 未完成 `test-first -> implement -> check` 收口前，不切换到下一个 task
+- 前一个 task 即使已经收口，也不自动开始下一个 task
+- 每次进入新的 child task 前，都必须得到用户对该具体 task 的显式启动授权
+- 若发现依赖或边界需要调整，先回到拆分或设计修正，不用并行执行规避问题
 
 ## 任务粒度检查表
 
@@ -436,7 +430,7 @@
 
 - 任务图摘要
 - 父子 task 关系
-- 串并行关系
+- 串行执行顺序
 - 全局里程碑
 - 当前可开始 task 列表
 
@@ -475,7 +469,7 @@
 | 任务ID | 建议标题 | 建议 slug | 拟 parent | 关系说明 |
 |-------|---------|-----------|----------|---------|
 | `T01` | `Create Extension Engineering Baseline` | `extension-engineering-baseline` | `04-02-workflow-e2e-bookmark-cleaner` | 主链起点 |
-| `T02` | `Freeze UI Reference Constraints` | `ui-reference-constraints` | `04-02-workflow-e2e-bookmark-cleaner` | 与 `T01` 并行候选 |
+| `T02` | `Freeze UI Reference Constraints` | `ui-reference-constraints` | `04-02-workflow-e2e-bookmark-cleaner` | 串行位于 `T01` 之后、`T03` 之前 |
 | `T03` | `Create Extension Shell And Page Entry` | `extension-shell-page-entry` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T01` |
 | `T04` | `Define Draft Graph Contracts And Local Persistence` | `draft-graph-contracts-persistence` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T03` |
 | `T05` | `Implement Browser Bookmark Import To Draft` | `browser-import-to-draft` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T04` |
@@ -486,7 +480,7 @@
 | `T08B` | `Implement Status Feedback And Disabled States` | `status-feedback-disabled-states` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T08A` 的共享状态边界 |
 | `T09A` | `Implement Browser Overwrite And Sync Confirmation` | `browser-overwrite-sync-confirmation` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T08B` |
 | `T09B` | `Implement Local Backup And Undo Overwrite` | `local-backup-undo-overwrite` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T09A` |
-| `T10` | `Implement WebDAV Configuration And Permissions` | `webdav-config-permissions` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T08B`，但与 `T09A` 后半可复核并行 |
+| `T10` | `Implement WebDAV Configuration And Permissions` | `webdav-config-permissions` | `04-02-workflow-e2e-bookmark-cleaner` | 串行位于 `T09B` 之后 |
 | `T11` | `Implement WebDAV Upload And Version Retention` | `webdav-upload-versioning` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T10` 与稳定草稿模型 |
 | `T12A` | `Implement WebDAV Draft Restore` | `webdav-draft-restore` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T11` |
 | `T12B` | `Implement WebDAV Browser Restore` | `webdav-browser-restore` | `04-02-workflow-e2e-bookmark-cleaner` | 依赖 `T11` 与 `T09B` |
@@ -498,110 +492,45 @@
 - 所有子 task 暂不再继续下钻为孙 task；若创建时发现单 task 仍过大，再单独二次拆分
 - 创建 child task 不等于开始执行 child task
 
-## 拟创建顺序与批次
+## 拟创建顺序（串行）
 
-真正开始创建 task 时，建议按批次进行，而不是一次性全部创建。
+真正开始创建 task 时，也按最终执行顺序逐个创建并逐个确认，不再按批次组织。
 
-### Batch 0：保留父 task
+### 创建总规则
 
 - 不修改当前总 task 的 parent / children 关系
 - 当前总 task 继续作为唯一总览 task
-- 在创建第一个 child task 前，不把任何执行状态迁移到 child task
-
-### Batch 1：最早启动批次
-
-- `T01`
-- `T02`
-- `T03`
-
-创建目的：
-
-- 建立最早会被启动的执行单元
-- 让工程基线、UI 约束、运行壳三类工作各自拥有独立 task 边界
-
-停止条件：
-
-- 三个 child task 的标题、slug、描述、父子关系都核对无误
-- 当前总 task 的 `children` 列表更新正确
-- 不继续创建后续 task，先检查命名和粒度是否需要回调
-
-### Batch 2：数据模型批次
-
-- `T04`
-- `T05`
-
-创建前提：
-
-- `T01` 至 `T03` 的 task 边界已经确认稳定
-
-停止条件：
-
-- 已确认“领域契约 / 本地持久化”与“浏览器导入草稿”确实仍应分离
-- 若 `T04` 仍显著过大，应在这里先二次拆分，再继续后续批次
-
-### Batch 3：核心交互批次
-
-- `T06`
-- `T07A`
-- `T07B`
-- `T08A`
-- `T08B`
-
-创建前提：
-
-- `T04` / `T05` 的边界已经确认稳定
-
-停止条件：
-
-- 已确认图谱交互、撤销、搜索、状态反馈没有再次出现“单 task 过大”问题
-- 若 `T06` 或 `T08B` 仍混入太多异质目标，应先再拆分
-
-### Batch 4：同步与收尾批次
-
-- `T09A`
-- `T09B`
-- `T10`
-- `T11`
-- `T12A`
-- `T12B`
-- `T13`
-
-创建前提：
-
-- 前三批 child task 的边界已稳定，没有回退到“大 task 混阶段”问题
-
-停止条件：
-
-- 最终 task 图已足以支持后续执行阶段
-- `task_plan.md` 只保留摘要，不再承担细粒度实现拆解
+- 每次只处理一个 child task 的创建与确认
+- 当前 child task 未确认前，不继续创建下一个 child task
 
 ## 拟创建顺序矩阵
 
-| 创建顺序 | 批次 | 任务ID | 拟依赖 | 创建后是否允许立即启动 |
-|---------|------|-------|-------|------------------------|
-| 1 | Batch 1 | `T01` | 无 | 允许，待人工明确进入执行 |
-| 2 | Batch 1 | `T02` | 无 | 允许，待人工明确进入执行 |
-| 3 | Batch 1 | `T03` | `T01` | 不允许，创建不代表启动 |
-| 4 | Batch 2 | `T04` | `T03` | 不允许 |
-| 5 | Batch 2 | `T05` | `T04` | 不允许 |
-| 6 | Batch 3 | `T06` | `T05` | 不允许 |
-| 7 | Batch 3 | `T07A` | `T06` | 不允许 |
-| 8 | Batch 3 | `T07B` | `T06` | 不允许 |
-| 9 | Batch 3 | `T08A` | `T07A`,`T07B` | 不允许 |
-| 10 | Batch 3 | `T08B` | `T08A` | 不允许 |
-| 11 | Batch 4 | `T09A` | `T08B` | 不允许 |
-| 12 | Batch 4 | `T09B` | `T09A` | 不允许 |
-| 13 | Batch 4 | `T10` | `T08B` | 不允许 |
-| 14 | Batch 4 | `T11` | `T10`,`T05` | 不允许 |
-| 15 | Batch 4 | `T12A` | `T11` | 不允许 |
-| 16 | Batch 4 | `T12B` | `T11`,`T09B` | 不允许 |
-| 17 | Batch 4 | `T13` | `T03` 至 `T12B` | 不允许 |
+| 创建顺序 | 任务ID | 拟依赖 | 创建后是否允许立即启动 |
+|---------|-------|-------|------------------------|
+| 1 | `T01` | 无 | 允许，待人工明确进入执行 |
+| 2 | `T02` | `T01` | 不允许，前序未收口前不切换 |
+| 3 | `T03` | `T02` | 不允许 |
+| 4 | `T04` | `T03` | 不允许 |
+| 5 | `T05` | `T04` | 不允许 |
+| 6 | `T06` | `T05` | 不允许 |
+| 7 | `T07A` | `T06` | 不允许 |
+| 8 | `T07B` | `T07A` | 不允许 |
+| 9 | `T08A` | `T07B` | 不允许 |
+| 10 | `T08B` | `T08A` | 不允许 |
+| 11 | `T09A` | `T08B` | 不允许 |
+| 12 | `T09B` | `T09A` | 不允许 |
+| 13 | `T10` | `T09B` | 不允许 |
+| 14 | `T11` | `T10` | 不允许 |
+| 15 | `T12A` | `T11` | 不允许 |
+| 16 | `T12B` | `T12A` | 不允许 |
+| 17 | `T13` | `T12B` | 不允许 |
 
 说明：
 
 - “允许立即启动”只描述理论门禁，不是当前阶段授权
 - 当前仍处于 `plan`，因此上表所有 task 都只停留在“拟创建 / 拟启动条件”层面
 - 后续真正创建时，也应遵守“先创建，再人工确认是否进入执行”的两段式流程
+- 上表用于冻结串行执行顺序；即使原始设计依赖允许，也不再并行推进 sibling task
 
 ## 拟创建命令模板
 
@@ -611,7 +540,7 @@
 python3 ./.trellis/scripts/task.py create "<title>" --slug <name> --parent 04-02-workflow-e2e-bookmark-cleaner
 ```
 
-建议在真正创建时逐条执行，并在每一批结束后检查：
+建议在真正创建时逐条执行，并在每个 task 创建后检查：
 
 - 新 task 目录命名是否符合预期
 - 子 task 的 `parent` 字段是否正确
@@ -623,27 +552,23 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <name> --parent 04-02
 真正开始迁移时，建议按这个顺序：
 
 1. 保留当前总 task 不动
-2. 创建第一批 child task：
-   - `T01`
-   - `T02`
-   - `T03`
-3. 再创建第二批 child task：
-   - `T04`
-   - `T05`
-4. 再创建第三批 child task：
-   - `T06`
-   - `T07A`
-   - `T07B`
-   - `T08A`
-   - `T08B`
-5. 最后创建：
-   - `T09A`
-   - `T09B`
-   - `T10`
-   - `T11`
-   - `T12A`
-   - `T12B`
-   - `T13`
+2. 依次创建并确认 `T01`
+3. 依次创建并确认 `T02`
+4. 依次创建并确认 `T03`
+5. 依次创建并确认 `T04`
+6. 依次创建并确认 `T05`
+7. 依次创建并确认 `T06`
+8. 依次创建并确认 `T07A`
+9. 依次创建并确认 `T07B`
+10. 依次创建并确认 `T08A`
+11. 依次创建并确认 `T08B`
+12. 依次创建并确认 `T09A`
+13. 依次创建并确认 `T09B`
+14. 依次创建并确认 `T10`
+15. 依次创建并确认 `T11`
+16. 依次创建并确认 `T12A`
+17. 依次创建并确认 `T12B`
+18. 最后创建并确认 `T13`
 
 这样做的好处：
 

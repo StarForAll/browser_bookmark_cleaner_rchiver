@@ -6,7 +6,8 @@ Add drag-move interaction and folder drop validation for the draft graph.
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T07A`
-- 依赖任务：`T06`
+- 功能依赖任务：`T06`
+- 串行前序任务：`T06`
 - 主要设计输入：`design/AID.md`, `design/specs/bookmark-graph.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Add drag-move interaction and folder drop validation for the draft graph.
 
 ## Start Conditions
 - `T06` basic editing is stable
+- `T06` has completed `test-first -> implement -> check` closeout
+- `T07A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for base graph interaction and selection model to settle
+- Wait until `T06` is closed out in the frozen serial chain
 
 ## Requirements
 - Move validation must preserve graph invariants

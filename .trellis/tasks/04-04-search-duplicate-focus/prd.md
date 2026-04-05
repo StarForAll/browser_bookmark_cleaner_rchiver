@@ -6,7 +6,8 @@ Enable search and duplicate URL focus flows over the current draft graph.
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T08A`
-- 依赖任务：`T07A`, `T07B`
+- 功能依赖任务：`T07A`, `T07B`
+- 串行前序任务：`T07B`
 - 主要设计输入：`design/specs/search-and-focus.md`, `design/pages/workspace.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Enable search and duplicate URL focus flows over the current draft graph.
 
 ## Start Conditions
 - `T07A` and `T07B` are stable enough that search does not fight shared state boundaries
+- `T07B` has completed `test-first -> implement -> check` closeout
+- `T08A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for core graph mutation and history semantics to settle
+- Wait until `T07B` is closed out in the frozen serial chain
 
 ## Requirements
 - Duplicate detection must use exact URL equality

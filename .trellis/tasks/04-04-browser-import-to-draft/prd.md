@@ -6,7 +6,8 @@ Read the browser bookmark tree and map it into the normalized local draft graph.
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T05`
-- 依赖任务：`T04`
+- 功能依赖任务：`T04`
+- 串行前序任务：`T04`
 - 主要设计输入：`design/IDD.md`, `design/specs/bookmark-graph.md`, `design/specs/draft-browser-sync.md`
 
 ## In Scope
@@ -21,9 +22,12 @@ Read the browser bookmark tree and map it into the normalized local draft graph.
 
 ## Start Conditions
 - `T04` contracts and persistence boundaries are stable
+- `T04` has completed `test-first -> implement -> check` closeout
+- `T05` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for the normalized graph truth to exist
+- Wait until `T04` is closed out in the frozen serial chain
 
 ## Requirements
 - Import must preserve bookmark tree semantics while normalizing into draft truth

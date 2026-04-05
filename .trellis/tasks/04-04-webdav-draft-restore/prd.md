@@ -6,7 +6,8 @@ Restore a selected WebDAV version into the current draft while preserving local 
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T12A`
-- 依赖任务：`T11`
+- 功能依赖任务：`T11`
+- 串行前序任务：`T11`
 - 主要设计输入：`design/ODD.md`, `design/specs/webdav-sync.md`, `design/specs/history-and-recovery.md`, `design/pages/restore-version.md`
 
 ## In Scope
@@ -19,9 +20,12 @@ Restore a selected WebDAV version into the current draft while preserving local 
 
 ## Start Conditions
 - `T11` upload and version list semantics are stable
+- `T11` has completed `test-first -> implement -> check` closeout
+- `T12A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for cloud version objects and retention semantics to exist
+- Wait until `T11` is closed out in the frozen serial chain
 
 ## Requirements
 - Restore must target draft only

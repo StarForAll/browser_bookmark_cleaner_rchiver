@@ -15,11 +15,11 @@ The first release is designed as a Chrome extension with a dedicated extension p
 
 ### Engineering Baseline Status
 
-- The repo currently has no trustworthy implementation scaffold
-- Previously created placeholder files such as `package.json`, `vite.config.ts`, `manifest.json`, and `src/` were removed and must not be treated as architecture evidence
-- The real engineering scaffold will be created after the now-frozen Step 5 stack decisions
+- The repo now has a real implementation scaffold created by `T01`
+- The MV3 manifest, dedicated extension page entry, and React shell now exist as the real runtime host boundary created by `T03`
+- Later tasks must build on this scaffold instead of re-deciding the runtime shell
 - The target package manager is `pnpm`
-- The target verification matrix is frozen as a design-stage command set, but remains pending on `PLAN-01` scaffold creation before it can be treated as executable project evidence:
+- The target verification matrix is frozen as a design-stage command set and now exists as an executable local baseline:
   - `pnpm lint`
   - `pnpm typecheck`
   - `pnpm test`

@@ -6,7 +6,8 @@ Implement the status area, short action history, and disabled-state explanations
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T08B`
-- 依赖任务：`T08A`
+- 功能依赖任务：`T08A`
+- 串行前序任务：`T08A`
 - 主要设计输入：`design/AID.md`, `design/ODD.md`, `design/pages/status-history.md`
 
 ## In Scope
@@ -21,9 +22,12 @@ Implement the status area, short action history, and disabled-state explanations
 
 ## Start Conditions
 - `T08A` discovery state and workspace focus semantics are stable
+- `T08A` has completed `test-first -> implement -> check` closeout
+- `T08B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for search and shared workspace state to be stable enough for feedback layering
+- Wait until `T08A` is closed out in the frozen serial chain
 
 ## Requirements
 - Only explicit system actions should enter history

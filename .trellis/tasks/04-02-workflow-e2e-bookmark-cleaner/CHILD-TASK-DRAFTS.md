@@ -18,6 +18,14 @@
 3. 按本文件中的对应章节生成 `prd.md`
 4. 人工确认后，才允许进入执行阶段
 
+全局执行规则：
+
+- 所有 child task 只按冻结串行顺序推进
+- 当前 child task 未完成 `test-first -> implement -> check` 收口前，不切换到下一个 child task
+- child task 之间不并行执行
+- 前一个 child task 收口后，不自动进入下一个 child task
+- 每次切换到新的 child task 前，必须由用户在当前回合显式点名或批准该任务
+
 ## 通用 notes
 
 所有 child task 在创建后统一追加：
@@ -69,7 +77,8 @@ Freeze the real extension engineering baseline, command matrix, and verification
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T01`
-- 依赖任务：无
+- 功能依赖任务：无
+- 串行前序任务：无（主链起点）
 - 主要设计输入：`design/TAD.md`, `PLAN-01.md`
 
 ## In Scope
@@ -85,9 +94,11 @@ Freeze the real extension engineering baseline, command matrix, and verification
 ## Start Conditions
 - Parent task remains in pure plan or later receives explicit execution approval for `T01`
 - Stack selection is already frozen in design documents
+- `T01` is explicitly selected as the current and only execution task
 
 ## Waiting Conditions
 - Cannot execute while current stage is still pure plan without explicit authorization
+- No later child task may start before `T01` is closed out
 
 ## Requirements
 - Engineering baseline must be single-source and auditable
@@ -132,7 +143,8 @@ Convert approved `tmp/ui` reference assets into explicit implementation constrai
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T02`
-- 依赖任务：无
+- 功能依赖任务：无
+- 串行前序任务：`T01`
 - 主要设计输入：`design/specs/visual-system.md`, `tmp/ui/`, `PLAN-01A.md`
 
 ## In Scope
@@ -146,9 +158,12 @@ Convert approved `tmp/ui` reference assets into explicit implementation constrai
 
 ## Start Conditions
 - `tmp/ui` reference assets are present and approved as reference-only evidence
+- `T01` has completed `test-first -> implement -> check` closeout
+- `T02` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
-- None at planning level
+- Wait until `T01` is closed out in the frozen serial chain
+- Do not execute in parallel with `T03` or any later child task
 
 ## Requirements
 - Constraints must be implementation-facing, not mood-board-only
@@ -190,7 +205,8 @@ Create the manifest, page entry, and app assembly shell needed to host later boo
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T03`
-- 依赖任务：`T01`
+- 功能依赖任务：`T01`
+- 串行前序任务：`T02`
 - 主要设计输入：`design/TAD.md`, `design/pages/workspace.md`
 
 ## In Scope
@@ -204,9 +220,12 @@ Create the manifest, page entry, and app assembly shell needed to host later boo
 
 ## Start Conditions
 - `T01` baseline is completed
+- `T02` has completed `test-first -> implement -> check` closeout
+- `T03` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for engineering baseline to exist as the real project foundation
+- Wait until `T02` is closed out in the frozen serial chain
 
 ## Requirements
 - Shell must match selected runtime topology
@@ -249,7 +268,8 @@ Define the single source-of-truth draft graph model and its local persistence bo
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T04`
-- 依赖任务：`T03`
+- 功能依赖任务：`T03`
+- 串行前序任务：`T03`
 - 主要设计输入：`design/DDD.md`, `design/specs/bookmark-graph.md`, `design/specs/history-and-recovery.md`
 
 ## In Scope
@@ -263,9 +283,12 @@ Define the single source-of-truth draft graph model and its local persistence bo
 
 ## Start Conditions
 - `T03` shell boundaries are stable
+- `T03` has completed `test-first -> implement -> check` closeout
+- `T04` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Cannot finalize contracts before extension runtime shell exists
+- Wait until `T03` is closed out in the frozen serial chain
 
 ## Requirements
 - Draft graph must be the only editable truth
@@ -307,7 +330,8 @@ Read the browser bookmark tree and map it into the normalized local draft graph.
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T05`
-- 依赖任务：`T04`
+- 功能依赖任务：`T04`
+- 串行前序任务：`T04`
 - 主要设计输入：`design/IDD.md`, `design/specs/bookmark-graph.md`, `design/specs/draft-browser-sync.md`
 
 ## In Scope
@@ -322,9 +346,12 @@ Read the browser bookmark tree and map it into the normalized local draft graph.
 
 ## Start Conditions
 - `T04` contracts and persistence boundaries are stable
+- `T04` has completed `test-first -> implement -> check` closeout
+- `T05` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for the normalized graph truth to exist
+- Wait until `T04` is closed out in the frozen serial chain
 
 ## Requirements
 - Import must preserve bookmark tree semantics while normalizing into draft truth
@@ -367,7 +394,8 @@ Enable baseline draft editing interactions including selection, editing, child c
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T06`
-- 依赖任务：`T05`
+- 功能依赖任务：`T05`
+- 串行前序任务：`T05`
 - 主要设计输入：`design/AID.md`, `design/pages/node-editor.md`, `design/specs/bookmark-graph.md`
 
 ## In Scope
@@ -383,9 +411,12 @@ Enable baseline draft editing interactions including selection, editing, child c
 
 ## Start Conditions
 - `T05` import-to-draft flow is stable
+- `T05` has completed `test-first -> implement -> check` closeout
+- `T06` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for an editable draft graph to exist
+- Wait until `T05` is closed out in the frozen serial chain
 
 ## Requirements
 - All edits must target draft state only
@@ -426,7 +457,8 @@ Add drag-move interaction and folder drop validation for the draft graph.
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T07A`
-- 依赖任务：`T06`
+- 功能依赖任务：`T06`
+- 串行前序任务：`T06`
 - 主要设计输入：`design/AID.md`, `design/specs/bookmark-graph.md`
 
 ## In Scope
@@ -440,9 +472,12 @@ Add drag-move interaction and folder drop validation for the draft graph.
 
 ## Start Conditions
 - `T06` basic editing is stable
+- `T06` has completed `test-first -> implement -> check` closeout
+- `T07A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for base graph interaction and selection model to settle
+- Wait until `T06` is closed out in the frozen serial chain
 
 ## Requirements
 - Move validation must preserve graph invariants
@@ -482,7 +517,8 @@ Implement draft-only undo history and keyboard undo semantics for local editing 
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T07B`
-- 依赖任务：`T06`
+- 功能依赖任务：`T06`
+- 串行前序任务：`T07A`
 - 主要设计输入：`design/ODD.md`, `design/specs/history-and-recovery.md`
 
 ## In Scope
@@ -497,9 +533,12 @@ Implement draft-only undo history and keyboard undo semantics for local editing 
 
 ## Start Conditions
 - `T06` editing actions are stable enough to define history events
+- `T07A` has completed `test-first -> implement -> check` closeout
+- `T07B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for basic editing action model to stabilize
+- Wait until `T07A` is closed out in the frozen serial chain
 
 ## Requirements
 - Undo must affect draft state only
@@ -539,7 +578,8 @@ Enable search and duplicate URL focus flows over the current draft graph.
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T08A`
-- 依赖任务：`T07A`, `T07B`
+- 功能依赖任务：`T07A`, `T07B`
+- 串行前序任务：`T07B`
 - 主要设计输入：`design/specs/search-and-focus.md`, `design/pages/workspace.md`
 
 ## In Scope
@@ -553,9 +593,12 @@ Enable search and duplicate URL focus flows over the current draft graph.
 
 ## Start Conditions
 - `T07A` and `T07B` are stable enough that search does not fight shared state boundaries
+- `T07B` has completed `test-first -> implement -> check` closeout
+- `T08A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for core graph mutation and history semantics to settle
+- Wait until `T07B` is closed out in the frozen serial chain
 
 ## Requirements
 - Duplicate detection must use exact URL equality
@@ -597,7 +640,8 @@ Implement the status area, short action history, and disabled-state explanations
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T08B`
-- 依赖任务：`T08A`
+- 功能依赖任务：`T08A`
+- 串行前序任务：`T08A`
 - 主要设计输入：`design/AID.md`, `design/ODD.md`, `design/pages/status-history.md`
 
 ## In Scope
@@ -612,9 +656,12 @@ Implement the status area, short action history, and disabled-state explanations
 
 ## Start Conditions
 - `T08A` discovery state and workspace focus semantics are stable
+- `T08A` has completed `test-first -> implement -> check` closeout
+- `T08B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for search and shared workspace state to be stable enough for feedback layering
+- Wait until `T08A` is closed out in the frozen serial chain
 
 ## Requirements
 - Only explicit system actions should enter history
@@ -655,7 +702,8 @@ Implement explicit confirmation-driven browser overwrite and sync flows across d
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T09A`
-- 依赖任务：`T08B`
+- 功能依赖任务：`T08B`
+- 串行前序任务：`T08B`
 - 主要设计输入：`design/specs/draft-browser-sync.md`, `design/specs/browser-draft-overwrite.md`, `design/pages/overwrite-confirmation.md`
 
 ## In Scope
@@ -669,9 +717,12 @@ Implement explicit confirmation-driven browser overwrite and sync flows across d
 
 ## Start Conditions
 - `T08B` feedback and disabled-state infrastructure is stable
+- `T08B` has completed `test-first -> implement -> check` closeout
+- `T09A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for system action feedback semantics to exist
+- Wait until `T08B` is closed out in the frozen serial chain
 
 ## Requirements
 - All overwrite-risk actions must pass through one shared confirmation pattern
@@ -712,7 +763,8 @@ Implement local backup generation and the undo-overwrite boundary for browser-ri
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T09B`
-- 依赖任务：`T09A`
+- 功能依赖任务：`T09A`
+- 串行前序任务：`T09A`
 - 主要设计输入：`design/ODD.md`, `design/specs/history-and-recovery.md`, `design/pages/local-backup-recovery.md`
 
 ## In Scope
@@ -726,9 +778,12 @@ Implement local backup generation and the undo-overwrite boundary for browser-ri
 
 ## Start Conditions
 - `T09A` overwrite and sync actions exist
+- `T09A` has completed `test-first -> implement -> check` closeout
+- `T09B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for real overwrite actions to define backup timing and object boundaries
+- Wait until `T09A` is closed out in the frozen serial chain
 
 ## Requirements
 - Backup must happen before overwrite-risk actions
@@ -769,7 +824,8 @@ Implement WebDAV settings, host permission handling, and capability gating for c
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T10`
-- 依赖任务：`T08B`
+- 功能依赖任务：`T08B`
+- 串行前序任务：`T09B`
 - 主要设计输入：`design/IDD.md`, `design/specs/webdav-sync.md`, `design/pages/webdav-settings.md`
 
 ## In Scope
@@ -783,9 +839,12 @@ Implement WebDAV settings, host permission handling, and capability gating for c
 
 ## Start Conditions
 - `T08B` disabled-state explanation infrastructure exists
+- `T09B` has completed `test-first -> implement -> check` closeout
+- `T10` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for global disabled-state explanation channel to exist
+- Wait until `T09B` is closed out in the frozen serial chain
 
 ## Requirements
 - Host permission should be requested on demand
@@ -825,7 +884,8 @@ Implement cloud upload flows and version-retention management for draft and brow
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T11`
-- 依赖任务：`T10`, `T05`
+- 功能依赖任务：`T10`, `T05`
+- 串行前序任务：`T10`
 - 主要设计输入：`design/ODD.md`, `design/specs/webdav-sync.md`
 
 ## In Scope
@@ -840,9 +900,12 @@ Implement cloud upload flows and version-retention management for draft and brow
 ## Start Conditions
 - `T10` availability gating is complete
 - `T05` stable draft and browser snapshot objects exist
+- `T10` has completed `test-first -> implement -> check` closeout
+- `T11` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for both cloud capability gating and stable snapshot object model
+- Wait until `T10` is closed out in the frozen serial chain
 
 ## Requirements
 - Draft and browser snapshots must remain separated by storage contract
@@ -884,7 +947,8 @@ Restore a selected WebDAV version into the current draft while preserving local 
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T12A`
-- 依赖任务：`T11`
+- 功能依赖任务：`T11`
+- 串行前序任务：`T11`
 - 主要设计输入：`design/ODD.md`, `design/specs/webdav-sync.md`, `design/specs/history-and-recovery.md`, `design/pages/restore-version.md`
 
 ## In Scope
@@ -897,9 +961,12 @@ Restore a selected WebDAV version into the current draft while preserving local 
 
 ## Start Conditions
 - `T11` upload and version list semantics are stable
+- `T11` has completed `test-first -> implement -> check` closeout
+- `T12A` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for cloud version objects and retention semantics to exist
+- Wait until `T11` is closed out in the frozen serial chain
 
 ## Requirements
 - Restore must target draft only
@@ -941,7 +1008,8 @@ Restore a selected WebDAV browser snapshot back into browser bookmarks with expl
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T12B`
-- 依赖任务：`T11`, `T09B`
+- 功能依赖任务：`T11`, `T09B`
+- 串行前序任务：`T12A`
 - 主要设计输入：`design/ODD.md`, `design/specs/webdav-sync.md`, `design/specs/history-and-recovery.md`, `design/pages/restore-version.md`
 
 ## In Scope
@@ -955,9 +1023,12 @@ Restore a selected WebDAV browser snapshot back into browser bookmarks with expl
 ## Start Conditions
 - `T11` cloud snapshot semantics exist
 - `T09B` local backup and undo-overwrite boundary exists
+- `T12A` has completed `test-first -> implement -> check` closeout
+- `T12B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for both cloud versioning and browser-risk local backup boundary
+- Wait until `T12A` is closed out in the frozen serial chain
 
 ## Requirements
 - Browser restore must be treated as a high-risk overwrite action
@@ -998,7 +1069,8 @@ Run the final verification matrix, perform human acceptance, and prepare the tas
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T13`
-- 依赖任务：`T03` 至 `T12B`
+- 功能依赖任务：`T03` 至 `T12B`
+- 串行前序任务：`T12B`
 - 主要设计输入：全部主设计文档、后续实现结果、验证结果
 
 ## In Scope
@@ -1013,9 +1085,12 @@ Run the final verification matrix, perform human acceptance, and prepare the tas
 
 ## Start Conditions
 - All execution tasks are complete
+- `T12B` has completed `test-first -> implement -> check` closeout
+- `T13` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for the full product chain to exist
+- Wait until `T12B` is closed out in the frozen serial chain
 
 ## Requirements
 - All verification results must be recorded truthfully as pass, fail, or not run

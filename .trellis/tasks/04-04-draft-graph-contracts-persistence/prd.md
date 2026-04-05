@@ -6,7 +6,8 @@ Define the single source-of-truth draft graph model and its local persistence bo
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T04`
-- 依赖任务：`T03`
+- 功能依赖任务：`T03`
+- 串行前序任务：`T03`
 - 主要设计输入：`design/DDD.md`, `design/specs/bookmark-graph.md`, `design/specs/history-and-recovery.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Define the single source-of-truth draft graph model and its local persistence bo
 
 ## Start Conditions
 - `T03` shell boundaries are stable
+- `T03` has completed `test-first -> implement -> check` closeout
+- `T04` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Cannot finalize contracts before extension runtime shell exists
+- Wait until `T03` is closed out in the frozen serial chain
 
 ## Requirements
 - Draft graph must be the only editable truth

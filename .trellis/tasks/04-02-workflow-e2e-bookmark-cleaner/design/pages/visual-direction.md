@@ -32,7 +32,11 @@ Freeze the visual and interaction tone that Step 4 page specs must follow.
    - always visible
    - clear but not louder than the graph
 
-4. Bottom-right status popup/history
+4. Bottom-left operation hint area
+   - always visible but low-emphasis
+   - readable guidance without competing with the graph
+
+5. Bottom-right status popup/history
    - noticeable enough for results
    - visually secondary to active graph editing
 

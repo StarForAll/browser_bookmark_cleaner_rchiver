@@ -6,7 +6,8 @@ Create the manifest, page entry, and app assembly shell needed to host later boo
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T03`
-- 依赖任务：`T01`
+- 功能依赖任务：`T01`
+- 串行前序任务：`T02`
 - 主要设计输入：`design/TAD.md`, `design/pages/workspace.md`
 
 ## In Scope
@@ -20,9 +21,14 @@ Create the manifest, page entry, and app assembly shell needed to host later boo
 
 ## Start Conditions
 - `T01` baseline is completed
+- `T02` has completed `test-first -> implement -> check` closeout
+- `T03` is explicitly selected as the next and only execution task
+- The human has explicitly approved starting `T03` in the current round
 
 ## Waiting Conditions
 - Wait for engineering baseline to exist as the real project foundation
+- Wait until `T02` is closed out in the frozen serial chain
+- Even if `T02` is closed out, `T03` must remain waiting until the human explicitly authorizes it in the current round
 
 ## Requirements
 - Shell must match selected runtime topology

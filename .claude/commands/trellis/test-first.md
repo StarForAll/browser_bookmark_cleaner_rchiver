@@ -31,6 +31,17 @@ description: 任务拆好了？先写测试 — 实现前生成测试套件作�
 
 若以上内容仍未明确，先回到 `design` 阶段补齐，不在本阶段猜默认值。
 
+### 阶段执行规则
+
+- 项目级 `test-first` 输入只冻结一次，作用是定义全项目统一测试基线，不等于已经为整个 plan 建好了测试门禁
+- 若当前任务已经拆成 parent task + child task，进入 `/trellis:test-first` 时必须先明确当前要执行的目标 child task
+- 任何具体 child task 在进入 `/trellis:start` / 实现前，必须先补齐并验证该 task 自己的测试门禁
+- `test-first` 只为当前选中的执行单元生成门禁，不在父协调 task 中一次性为整个 plan 预写完整测试套件
+- 当前 child task 的测试门禁完成后，先进入该 child task 的 `/trellis:start` / 实现阶段；后续 child task 再按依赖顺序重复同一流程
+- sibling child task 不并行推进；当前 child task 未收口前，不切到下一个 child task
+- 当前 child task 收口后，不自动继续执行下一个 child task；必须等待用户在当前回合显式点名或批准下一项任务
+- 不允许先开始具体任务实现、再回补该任务的测试门禁
+
 ### Step 1: TDD 循环
 
 **调用 Skill**：`test-driven-development` — 按 Red → Green → Refactor 循环生成测试。降级：手动按“先写失败测试 → 最小实现通过 → 重构”流程执行。
@@ -44,6 +55,7 @@ description: 任务拆好了？先写测试 — 实现前生成测试套件作�
 
 ### Step 2: 测试用例生成
 
+- 只为当前选中的任务单元生成测试，不预写尚未进入执行的 sibling / downstream task 测试
 - 按项目已确认的语言、框架、目录和命名约定生成测试文件
   - 当前项目冻结约定：
     - 单元 / 应用逻辑测试：`src/**/*.test.ts`

@@ -6,7 +6,8 @@ Freeze the real extension engineering baseline, command matrix, and verification
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T01`
-- 依赖任务：无
+- 功能依赖任务：无
+- 串行前序任务：无（主链起点）
 - 主要设计输入：`design/TAD.md`, `PLAN-01.md`
 
 ## In Scope
@@ -22,9 +23,13 @@ Freeze the real extension engineering baseline, command matrix, and verification
 ## Start Conditions
 - Parent task remains in pure plan or later receives explicit execution approval for `T01`
 - Stack selection is already frozen in design documents
+- `T01` is explicitly selected as the current and only execution task
+- The human has explicitly approved starting `T01` in the current round
 
 ## Waiting Conditions
 - Cannot execute while current stage is still pure plan without explicit authorization
+- No later child task may start before `T01` is closed out
+- Finishing `T01` does not automatically authorize `T02`; the next child task still needs explicit human approval
 
 ## Requirements
 - Engineering baseline must be single-source and auditable

@@ -6,7 +6,8 @@ Enable baseline draft editing interactions including selection, editing, child c
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T06`
-- 依赖任务：`T05`
+- 功能依赖任务：`T05`
+- 串行前序任务：`T05`
 - 主要设计输入：`design/AID.md`, `design/pages/node-editor.md`, `design/specs/bookmark-graph.md`
 
 ## In Scope
@@ -22,9 +23,12 @@ Enable baseline draft editing interactions including selection, editing, child c
 
 ## Start Conditions
 - `T05` import-to-draft flow is stable
+- `T05` has completed `test-first -> implement -> check` closeout
+- `T06` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for an editable draft graph to exist
+- Wait until `T05` is closed out in the frozen serial chain
 
 ## Requirements
 - All edits must target draft state only

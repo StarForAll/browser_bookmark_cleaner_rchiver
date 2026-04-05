@@ -6,7 +6,8 @@ Convert approved `tmp/ui` reference assets into explicit implementation constrai
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T02`
-- 依赖任务：无
+- 功能依赖任务：无
+- 串行前序任务：`T01`
 - 主要设计输入：`design/specs/visual-system.md`, `tmp/ui/`, `PLAN-01A.md`
 
 ## In Scope
@@ -20,9 +21,14 @@ Convert approved `tmp/ui` reference assets into explicit implementation constrai
 
 ## Start Conditions
 - `tmp/ui` reference assets are present and approved as reference-only evidence
+- `T01` has completed `test-first -> implement -> check` closeout
+- `T02` is explicitly selected as the next and only execution task
+- The human has explicitly approved starting `T02` in the current round
 
 ## Waiting Conditions
-- None at planning level
+- Wait until `T01` is closed out in the frozen serial chain
+- Do not execute in parallel with `T03` or any later child task
+- Even if `T01` is closed out, `T02` must remain waiting until the human explicitly authorizes it in the current round
 
 ## Requirements
 - Constraints must be implementation-facing, not mood-board-only

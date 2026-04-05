@@ -6,7 +6,8 @@ Implement cloud upload flows and version-retention management for draft and brow
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T11`
-- 依赖任务：`T10`, `T05`
+- 功能依赖任务：`T10`, `T05`
+- 串行前序任务：`T10`
 - 主要设计输入：`design/ODD.md`, `design/specs/webdav-sync.md`
 
 ## In Scope
@@ -21,9 +22,12 @@ Implement cloud upload flows and version-retention management for draft and brow
 ## Start Conditions
 - `T10` availability gating is complete
 - `T05` stable draft and browser snapshot objects exist
+- `T10` has completed `test-first -> implement -> check` closeout
+- `T11` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for both cloud capability gating and stable snapshot object model
+- Wait until `T10` is closed out in the frozen serial chain
 
 ## Requirements
 - Draft and browser snapshots must remain separated by storage contract

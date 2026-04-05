@@ -214,6 +214,17 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <task-name>
    --> python3 ./.trellis/scripts/workflow/record-session-helper.py --title "Title" --commit "hash"
 ```
 
+For workflows that split work into a parent coordination task plus child execution tasks:
+
+- freeze the project test-first baseline once in design/spec docs
+- select one concrete child task before entering test-first or implementation
+- completing the current child task does not automatically authorize the next child task
+- the next child task may start only after the human explicitly names or approves that task in the current round
+- create and verify the test gate for that child task only
+- complete that child task's test gate before entering its concrete implementation work
+- do not pre-write one-shot tests for the entire plan from the parent coordination task
+- do not run sibling child tasks in parallel; finish the current child task before switching to the next one
+
 ### Code Quality Checklist
 
 **Must pass before commit**:

@@ -6,7 +6,8 @@ Restore a selected WebDAV browser snapshot back into browser bookmarks with expl
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T12B`
-- 依赖任务：`T11`, `T09B`
+- 功能依赖任务：`T11`, `T09B`
+- 串行前序任务：`T12A`
 - 主要设计输入：`design/ODD.md`, `design/specs/webdav-sync.md`, `design/specs/history-and-recovery.md`, `design/pages/restore-version.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Restore a selected WebDAV browser snapshot back into browser bookmarks with expl
 ## Start Conditions
 - `T11` cloud snapshot semantics exist
 - `T09B` local backup and undo-overwrite boundary exists
+- `T12A` has completed `test-first -> implement -> check` closeout
+- `T12B` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for both cloud versioning and browser-risk local backup boundary
+- Wait until `T12A` is closed out in the frozen serial chain
 
 ## Requirements
 - Browser restore must be treated as a high-risk overwrite action

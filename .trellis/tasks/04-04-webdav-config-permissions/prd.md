@@ -6,7 +6,8 @@ Implement WebDAV settings, host permission handling, and capability gating for c
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
 - 对应任务ID：`T10`
-- 依赖任务：`T08B`
+- 功能依赖任务：`T08B`
+- 串行前序任务：`T09B`
 - 主要设计输入：`design/IDD.md`, `design/specs/webdav-sync.md`, `design/pages/webdav-settings.md`
 
 ## In Scope
@@ -20,9 +21,12 @@ Implement WebDAV settings, host permission handling, and capability gating for c
 
 ## Start Conditions
 - `T08B` disabled-state explanation infrastructure exists
+- `T09B` has completed `test-first -> implement -> check` closeout
+- `T10` is explicitly selected as the next and only execution task
 
 ## Waiting Conditions
 - Wait for global disabled-state explanation channel to exist
+- Wait until `T09B` is closed out in the frozen serial chain
 
 ## Requirements
 - Host permission should be requested on demand
