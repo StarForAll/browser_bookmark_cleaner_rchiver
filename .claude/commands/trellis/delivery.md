@@ -193,6 +193,11 @@ docs/workflows/新项目开发工作流/learn/
 - 归档完成后，`.trellis/tasks` 与 `.trellis/.current-task` 必须已 clean
 - staged 区不得混入非目标变更；若存在 staged 污染，必须先中断处理
 
+说明：
+
+- 对最终 `record-session` 而言，`.trellis/.current-task` 为空是正常结果，因为归档会清掉当前任务指针
+- 真正的阻塞条件是 `.trellis/tasks` 仍然 dirty，或者 staged 区混入 metadata 作用域之外的改动
+
 ```bash
 python3 ./.trellis/scripts/task.py archive <current-task>
 

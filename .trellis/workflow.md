@@ -257,6 +257,11 @@ git status --short .trellis/tasks .trellis/.current-task
 
 Expected metadata status output: empty.
 
+Notes:
+
+- `.trellis/.current-task` may be empty after archive; this is the expected final close-out state.
+- For `record-session`, the real blocker is dirty metadata, especially `.trellis/tasks`, not the absence of an active current task.
+
 Then run the workflow helper:
 
 ```bash
@@ -271,6 +276,7 @@ This helper:
 2. Calls `add_session.py`
 3. Runs metadata closure post-checks
 4. Blocks final close-out if `.trellis/tasks` is still dirty
+5. Allows final close-out to proceed even after archive has cleared `.trellis/.current-task`
 
 ### Pre-end Checklist
 

@@ -26,6 +26,11 @@ python3 ./.trellis/scripts/get_context.py --mode record
 python3 ./.trellis/scripts/task.py archive <task-name>
 ```
 
+归档后的预期状态：
+
+- `.trellis/tasks` 已 clean
+- `.trellis/.current-task` 允许为空；这表示当前任务已经完成并退出激活态
+
 ### Step 2: One-Click Add Session
 
 ```bash
@@ -53,6 +58,7 @@ The workflow helper:
 - [OK] Calls `add_session.py` internally
 - [OK] Runs metadata closure post-checks
 - [OK] Blocks final close-out if `.trellis/tasks` metadata is still dirty
+- [OK] Does **not** require `.trellis/.current-task` to remain set after archive
 
 ---
 

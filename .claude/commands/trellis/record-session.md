@@ -34,6 +34,8 @@ python3 ./.trellis/scripts/task.py archive <current-task>
 ```
 
 - Verify task metadata is already closed out:
+  - `.trellis/tasks` must be clean
+  - `.trellis/.current-task` may already be empty after archive; this is normal for final close-out
 
 ```bash
 git status --short .trellis/tasks .trellis/.current-task
@@ -53,6 +55,7 @@ python3 ./.trellis/scripts/workflow/record-session-helper.py \
 ```
 
 This helper runs the metadata closure checks before and after `add_session.py`.
+It does not require an active `.trellis/.current-task` after archive; the blocking condition is dirty metadata, especially `.trellis/tasks`.
 
 ### Step 2: One-Click Add Session
 
