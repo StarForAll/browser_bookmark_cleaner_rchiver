@@ -433,3 +433,92 @@ Completed the plan-stage restructuring for the browser bookmark cleaner workflow
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: Sonar脚本与文档同步
+
+**Date**: 2026-04-05
+**Task**: Sonar脚本与文档同步
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Feature | Description |
+|---------|-------------|
+| Sonar入口统一 | 在 `package.json` 新增 `pnpm sonar`，并把 finish-work/验证矩阵统一切到脚本入口 |
+| 文档同步 | 重写 `docs/` 口径，区分“当前实现”与“冻结目标”，降低文档漂移 |
+| 项目说明 | 新增根级 `README.md`，补充当前状态、命令入口和文档索引 |
+
+**Updated Files**:
+- `package.json`
+- `README.md`
+- `docs/DEVELOPMENT.md`
+- `docs/ARCHITECTURE.md`
+- `docs/DATA-AND-SYNC.md`
+- `docs/UI-INTERACTION.md`
+- `docs/PRD.md`
+- `docs/TESTING.md`
+- `.trellis/spec/frontend/quality-guidelines.md`
+- `.agents/skills/finish-work/SKILL.md`
+- `.claude/commands/trellis/finish-work.md`
+- `.opencode/commands/trellis/finish-work.md`
+- `.trellis/worktree.yaml`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/PLAN-01.md`
+- `.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/TAD.md`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0da5e9a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 11: Session收尾补录
+
+**Date**: 2026-04-05
+**Task**: Session收尾补录
+**Branch**: `master`
+
+### Summary
+
+在标准 helper 路径下完成 session 收尾，验证修复后的 record-session metadata guard 与 auto-commit 流程可正常工作。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0da5e9a` | (see git log) |
+| `7ca1131` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
