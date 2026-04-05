@@ -27,7 +27,7 @@ from .config import (
     resolve_package,
     validate_package,
 )
-from .git import run_git
+from .git import get_status_porcelain, has_staged_changes, has_unstaged_changes, run_git
 from .io import read_json, write_json
 from .log import Colors, colored
 from .paths import (
@@ -316,14 +316,29 @@ def cmd_archive(args: argparse.Namespace) -> int:
 def _auto_commit_archive(task_name: str, repo_root: Path) -> None:
     """Stage .trellis/tasks/ changes and commit after archive."""
     tasks_rel = f"{DIR_WORKFLOW}/{DIR_TASKS}"
-    run_git(["add", "-A", tasks_rel], cwd=repo_root)
+    rc, _, err = run_git(["add", "-A", tasks_rel], cwd=repo_root)
+    if rc != 0:
+        print(f"[WARN] Auto-commit staging failed: {err.strip()}", file=sys.stderr)
+        return
 
-    # Check if there are staged changes
-    rc, _, _ = run_git(
-        ["diff", "--cached", "--quiet", "--", tasks_rel], cwd=repo_root
-    )
-    if rc == 0:
+    rc, status_lines, err = get_status_porcelain([tasks_rel], cwd=repo_root)
+    if rc != 0:
+        print(f"[WARN] Auto-commit status check failed: {err.strip()}", file=sys.stderr)
+        return
+
+    if not has_staged_changes(status_lines):
+        if has_unstaged_changes(status_lines):
+            print("[WARN] Task changes remain unstaged after auto-stage; skipping auto-commit.", file=sys.stderr)
+            for line in status_lines:
+                print(f"  - {line}", file=sys.stderr)
+            return
         print("[OK] No task changes to commit.", file=sys.stderr)
+        return
+
+    if has_unstaged_changes(status_lines):
+        print("[WARN] Task metadata is mixed staged/unstaged; skipping auto-commit.", file=sys.stderr)
+        for line in status_lines:
+            print(f"  - {line}", file=sys.stderr)
         return
 
     commit_msg = f"chore(task): archive {task_name}"

@@ -37,6 +37,7 @@ from common.paths import (
 )
 from common.developer import ensure_developer
 from common.git import run_git
+from common.git import get_status_porcelain, has_staged_changes, has_unstaged_changes
 from common.tasks import load_task
 from common.config import (
     get_packages,
@@ -316,19 +317,32 @@ def update_index(
 def _auto_commit_workspace(repo_root: Path) -> None:
     """Stage .trellis/workspace and .trellis/tasks, then commit with a configured message."""
     commit_msg = get_session_commit_message(repo_root)
-    subprocess.run(
-        ["git", "add", "-A", ".trellis/workspace", ".trellis/tasks"],
-        cwd=repo_root,
-        capture_output=True,
-    )
-    # Check if there are staged changes
-    result = subprocess.run(
-        ["git", "diff", "--cached", "--quiet", "--", ".trellis/workspace", ".trellis/tasks"],
-        cwd=repo_root,
-    )
-    if result.returncode == 0:
+    paths = [".trellis/workspace", ".trellis/tasks"]
+    rc, _, err = run_git(["add", "-A", *paths], cwd=repo_root)
+    if rc != 0:
+        print(f"[WARN] Auto-commit staging failed: {err.strip()}", file=sys.stderr)
+        return
+
+    rc, status_lines, err = get_status_porcelain(paths, cwd=repo_root)
+    if rc != 0:
+        print(f"[WARN] Auto-commit status check failed: {err.strip()}", file=sys.stderr)
+        return
+
+    if not has_staged_changes(status_lines):
+        if has_unstaged_changes(status_lines):
+            print("[WARN] Workspace changes remain unstaged after auto-stage; skipping auto-commit.", file=sys.stderr)
+            for line in status_lines:
+                print(f"  - {line}", file=sys.stderr)
+            return
         print("[OK] No workspace changes to commit.", file=sys.stderr)
         return
+
+    if has_unstaged_changes(status_lines):
+        print("[WARN] Workspace metadata is mixed staged/unstaged; skipping auto-commit.", file=sys.stderr)
+        for line in status_lines:
+            print(f"  - {line}", file=sys.stderr)
+        return
+
     commit_result = subprocess.run(
         ["git", "commit", "-m", commit_msg],
         cwd=repo_root,
