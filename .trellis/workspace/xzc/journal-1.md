@@ -556,3 +556,36 @@ Completed T04 draft graph and local persistence contracts, finished multi-round 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: T05 Browser Import Startup Closeout
+
+**Date**: 2026-04-05
+**Task**: T05 Browser Import Startup Closeout
+**Branch**: `master`
+
+### Summary
+
+Completed T05 browser bookmark import to draft with startup restore/persistence flow, passed multi-round review, archived the task, and verified the full finish-work matrix including Sonar.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `637ac81` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
