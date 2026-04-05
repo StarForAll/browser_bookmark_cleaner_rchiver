@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run",
-    "build": "vite build"
+    "build": "vite build",
+    "sonar": "sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=\"$SONAR_TOKEN\" -Dsonar.host.url=\"https://sonarqube.xzc.com:13785\" -Dsonar.sources=\".\" -Dsonar.tests=\"src,test\" -Dsonar.test.inclusions=\"src/**/*.test.ts,src/**/*.test.tsx,test/**/*.ts,test/**/*.tsx\" -Dsonar.exclusions=\"dist/**,node_modules/**,tmp/**,.trellis/**,.scannerwork/**,.claude/**,.codex/**,.opencode/**,.agents/**,.ace-tool/**,tsconfig.node.tsbuildinfo\" -Dsonar.sourceEncoding=\"UTF-8\""
   },
   "dependencies": {
     "react": "^19.0.0",

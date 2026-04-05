@@ -16,7 +16,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.
+pnpm sonar
 ```
 
 - [ ] `pnpm lint` passes with 0 errors?

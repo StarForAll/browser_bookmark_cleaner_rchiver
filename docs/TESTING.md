@@ -8,6 +8,8 @@
 
 - 自动化验证矩阵已经冻结
 - `T01` 已落地真实测试框架和命令入口
+- 当前自动化测试只覆盖工程基线、manifest/页面入口和壳层结构约束
+- 当前尚未建立书签图谱、浏览器同步、WebDAV 恢复等业务级测试套件
 - 所有验证结果必须明确标记为 `pass / fail / not run`
 
 ## 3. 自动化验证矩阵
@@ -19,7 +21,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
-sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.
+pnpm sonar
 ```
 
 规则：
@@ -27,6 +29,7 @@ sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.ur
 - 没有执行就写 `not run`
 - 不能把目标命令写成“已通过”的事实
 - Sonar 凭据通过环境变量提供
+- `pnpm sonar` 是项目统一的 Sonar 命令入口
 
 ## 4. 测试目录约定
 
@@ -37,6 +40,8 @@ sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.ur
 ## 5. 推荐测试类型
 
 ### 5.1 自动化测试
+
+以下是后续业务任务需要逐步补齐的目标测试类型，不代表当前仓库都已存在：
 
 - 纯领域逻辑
 - 图谱标准化
@@ -82,7 +87,7 @@ sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.ur
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
-- `sonar-scanner`
+- `pnpm sonar`
 - Chrome 扩展人工验证结果
 
 每项结果都必须写成：
@@ -95,8 +100,9 @@ sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.ur
 
 当前仍缺少或尚未完成的验证能力：
 
-- Sonar 实际扫描
 - Chrome 扩展运行时人工验证
+- 浏览器书签读取与写回验证
+- WebDAV 连通性、上传与恢复验证
 - 具体业务能力对应的测试套件
 
 即使基线 scaffold 已落地，本文档中的自动化部分也不能被当作默认已通过，仍需按实际执行结果记录。

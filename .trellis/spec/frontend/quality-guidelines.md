@@ -14,7 +14,7 @@ Current target verification commands:
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
-- `sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.`
+- `pnpm sonar`
 
 These commands are the expected frontend baseline and should be treated as the target verification matrix for `PLAN-01`.
 

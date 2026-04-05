@@ -21,7 +21,7 @@ Current project target matrix after `PLAN-01` scaffold exists:
 - `pnpm typecheck`
 - `pnpm test`
 - `pnpm build`
-- `sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.`
+- `pnpm sonar`
 
 Checklist:
 

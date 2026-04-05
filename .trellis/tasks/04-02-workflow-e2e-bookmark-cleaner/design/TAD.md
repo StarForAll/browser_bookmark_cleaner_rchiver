@@ -24,7 +24,7 @@ The first release is designed as a Chrome extension with a dedicated extension p
   - `pnpm typecheck`
   - `pnpm test`
   - `pnpm build`
-  - `sonar-scanner -Dsonar.projectKey=bbcr -Dsonar.token=$SONAR_TOKEN -Dsonar.host.url=https://sonarqube.xzc.com:13785 -Dsonar.sources=.`
+  - `pnpm sonar`
 - The Sonar token must be provided through the `SONAR_TOKEN` environment variable at execution time and must not be frozen as a real secret in repository docs
 
 ### Frozen Technical Selections

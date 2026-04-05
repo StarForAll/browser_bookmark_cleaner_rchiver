@@ -4,6 +4,8 @@
 
 本文档面向开发人员，描述首版浏览器书签清理与归档器的系统边界、运行面、分层结构、关键技术选型和实现约束。
 
+说明：本文档同时包含“冻结架构目标”和“当前实现快照”。凡涉及草稿图谱、浏览器写回、WebDAV、持久化的内容，除非在“当前实现状态”中明确写明，否则都应视为目标架构，而不是当前代码事实。
+
 ## 2. 系统边界
 
 - 产品形态：Chrome MV3 扩展
@@ -58,25 +60,30 @@
 - 在扩展页面入口统一完成依赖装配
 - 不允许业务模块分散直连具体底层实现
 
-## 5. 核心技术选型
+## 5. 当前实际技术栈
 
 - UI runtime：React + TypeScript
 - Build tool：Vite
 - Package manager：`pnpm`
-- Graph library：`@xyflow/react`
-- WebDAV integration：原生 `fetch`
-- Local persistence：v1 物理上使用 `chrome.storage.local`
+- Test runner：Vitest + Testing Library
+- Lint：ESLint
 
-## 6. 浏览器与扩展能力边界
+## 6. 冻结目标但当前尚未接入的技术选型
+
+- Graph library target：`@xyflow/react`
+- WebDAV integration target：原生 `fetch`
+- Local persistence target：v1 物理上使用 `chrome.storage.local`
+
+## 7. 浏览器与扩展能力边界
 
 - 必需权限：`bookmarks`、`storage`
 - WebDAV host access：运行时按需申请
 - 浏览器能力边界按浏览器无关 contract 设计，Chrome 是首个实现
 - 未来 Firefox 支持应在适配器层补实现，而不是重写应用层契约
 
-## 7. 页面与模块组织
+## 8. 页面与模块组织
 
-建议目录方向：
+冻结目录方向：
 
 ```text
 src/
@@ -85,7 +92,7 @@ src/
   domain/
   adapters/
   shared/
-  test/
+test/
 ```
 
 组织原则：
@@ -94,23 +101,25 @@ src/
 - 技术层作为模块内子分层
 - 不采用纯 `components/stores/adapters` 顶层平铺的大杂烩结构
 
-## 8. 图渲染与布局边界
+## 9. 图渲染与布局边界
 
 - `@xyflow/react` 只作为渲染适配层
 - 规范化图谱是业务真相，渲染节点边是派生结果
 - 自动归位使用受控树布局
 - 布局器位于可替换接口之后，不让渲染库反向主导布局真相
 
-## 9. 浏览器写回边界
+## 10. 浏览器写回与存储边界
+
+### 10.1 浏览器写回
 
 - “同步当前草稿到浏览器书签”是显式确认后的覆盖式写回
 - 首版采用受管范围内的全量重建写回
 - 成功语义：受管范围内浏览器书签与当前草稿一致
 - 不做后台自动同步
 
-## 10. 存储边界
+### 10.2 存储边界
 
-- `chrome.storage.local`：v1 当前物理存储介质
+- `chrome.storage.local`：v1 目标物理存储介质
 - 逻辑上分为：
   - 普通工作区状态
   - 敏感配置
@@ -122,4 +131,7 @@ src/
 - 需求、架构、交互与数据同步边界已冻结
 - `T01` 已建立工程 scaffold、目录结构、构建脚本和基础验证矩阵
 - `T03` 已建立 MV3 manifest、独立扩展页面入口和 React 应用壳
-- 当前仍未落地草稿图谱、浏览器同步、WebDAV 和恢复链路
+- 当前页面已实现五区工作区壳层、右下角状态弹窗关闭/重开、顶部动作按钮占位和统一中文文案集中管理
+- 当前自动化测试覆盖工程基线、manifest/页面入口和壳层结构约束
+- `src/features/`、`src/domain/`、`src/adapters/` 目前仍是目录骨架，尚未进入真实业务实现
+- 当前仍未落地草稿图谱、浏览器同步、WebDAV、本地持久化适配器和恢复链路
