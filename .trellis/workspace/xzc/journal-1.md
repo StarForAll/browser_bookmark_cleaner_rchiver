@@ -383,3 +383,53 @@ Completed the plan-stage restructuring for the browser bookmark cleaner workflow
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: T03 扩展壳层与页面入口完成
+
+**Date**: 2026-04-05
+**Task**: T03 扩展壳层与页面入口完成
+**Branch**: `master`
+
+### Summary
+
+完成 T03 扩展壳层与页面入口，按设计文档和多轮人工校验收紧顶部动作区、画布内提示浮层、右下状态弹窗与状态锚点，并完成 self-review、check、round-1/round-2 多 CLI 审查与回归验证。用户已手动执行 sonar-scanner、Chrome 人工复查并完成代码提交。
+
+### Main Changes
+
+| Feature | Description |
+|---------|-------------|
+| T03 Shell | 完成扩展页入口与工作区壳层，固定顶部动作区、搜索区、画布区、操作提示区、状态结果区 |
+| UI 对齐 | 按人工校验反复收紧布局，确保提示区浮于画布内且不干扰编辑，状态区为右下弹窗/锚点形态 |
+| Review Workflow | 完成 self-review、两轮 multi-cli-review 汇总与处理，并把 check 阶段必须直接输出 reviewer 命令的规则固化到 workflow |
+
+**Updated Files**:
+- `src/app/App.tsx`
+- `src/app/app.css`
+- `src/shared/copy/appShell.ts`
+- `src/extensionShellPageEntry.test.tsx`
+- `.agents/skills/check/SKILL.md`
+- `.claude/commands/trellis/check.md`
+- `.opencode/commands/trellis/check.md`
+- `.trellis/workflow.md`
+- `.trellis/tasks/archive/2026-04/04-04-extension-shell-page-entry/`
+- `tmp/multi-cli-review/04-04-extension-shell-page-entry/`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9c99be8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
