@@ -51,6 +51,7 @@ Rules:
 - duplicate matching is strict URL-string equality only
 - folders never contain URL values
 - bookmark nodes always require URL values
+- any non-null `parentId` must reference an existing node inside `nodesById`
 - expanded/collapsed state and node positions are view state only
 - expanded/collapsed state and node positions do not participate in duplicate detection, content comparison, or browser write-back payload generation
 - system root containers stay fixed and do not enter normal rename, move, delete, or create-child semantics
@@ -62,3 +63,4 @@ Rules:
 - local expanded-state and node-position restore changes render output but does not mutate graph content truth
 - folders still normalize to `url = null`
 - bookmark nodes still fail normalization if URL is missing or empty
+- non-root nodes fail normalization if `parentId` points to a missing node

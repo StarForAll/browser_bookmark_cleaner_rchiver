@@ -1,0 +1,7 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "T04 contract tests require explicit schema versions and boundary-safe types."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "T04 contract tests freeze draft truth and persistence boundaries."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/DDD.md", "reason": "T04 derives normalized draft graph and persistence assets from DDD contracts."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md", "reason": "T04 test gate must freeze normalized graph outputs and invariants."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md", "reason": "T04 test gate must freeze undo/checkpoint/local-backup persistence rules."}

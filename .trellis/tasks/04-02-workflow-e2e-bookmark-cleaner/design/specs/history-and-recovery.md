@@ -169,6 +169,13 @@ Backup source combinations currently allowed:
 - `browser-restore-backup` from `webdav-bookmark-version`
 - `browser-restore-backup` from `draft-sync`
 
+`sourceObjectType` must remain semantically consistent with `sourceOrigin`:
+
+- `webdav-draft-version` -> `draft`
+- `browser-current-tree` -> `browser`
+- `webdav-bookmark-version` -> `browser`
+- `draft-sync` -> `draft`
+
 ### Recovery Semantics
 
 - restoring a browser backup restores browser bookmark data
