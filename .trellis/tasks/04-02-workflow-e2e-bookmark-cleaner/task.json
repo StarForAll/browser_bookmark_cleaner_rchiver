@@ -46,7 +46,6 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "04-04-graph-basic-editing",
     "04-04-graph-drag-move-validation",
     "04-04-undo-history-ctrl-z",
     "04-04-search-duplicate-focus",
