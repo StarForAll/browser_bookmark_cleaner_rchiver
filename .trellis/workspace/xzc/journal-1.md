@@ -622,3 +622,36 @@ Completed T05 browser bookmark import to draft with startup restore/persistence 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: T06 图谱基础编辑与虚拟根节点收口
+
+**Date**: 2026-04-06
+**Task**: T06 图谱基础编辑与虚拟根节点收口
+**Branch**: `master`
+
+### Summary
+
+完成 T06 图谱基础编辑与虚拟根节点收口：补齐编辑/新增/删除/同级新增、内部确认弹窗、焦点陷阱与恢复、状态区持久化与时间修正、虚拟根节点置顶可见与不抢占视口、1000 节点性能优化与视口裁剪，并同步相关设计/审查/规范文档。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d340c23` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
