@@ -43,7 +43,7 @@ Required adjustments:
   - restore a WebDAV bookmark version to browser bookmarks
   - undo overwrite operation
 - each button must be understandable from button text alone, without relying on extra helper copy
-- the bottom-left workspace area should keep a low-emphasis but always-visible operation-hint panel
+- the workspace should keep a low-emphasis but always-visible operation-hint panel anchored at the top-right of the graph canvas
 - the four overwrite-risk actions must enter one shared confirmation dialog with action-specific wording:
   - overwrite current draft from browser bookmarks
   - sync current draft to browser bookmarks

@@ -45,12 +45,12 @@ export const appShellCopy = {
   hintItems: [
     '单击：选择节点',
     '双击：编辑节点',
-    '拖拽：移动节点',
     'Enter：创建子节点',
+    'Shift + Enter：新增同级节点',
     'Delete / Backspace：删除节点',
-    'Ctrl+Z：撤销一次草稿编辑',
+    '悬浮：查看节点详情',
   ],
-  hintSummary: '透明悬浮提示区固定在画布左下角，仅提供操作提示，不遮挡节点视图。',
+  hintSummary: '透明悬浮提示区固定在画布右上角，仅提供当前可用操作，不遮挡节点视图。',
   undoUnavailableReason: '当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。',
 } as const;
 
@@ -62,6 +62,26 @@ type StartupStatusCopy = {
   canvasSummary: string;
 };
 
+function formatStatusTimestamp(occurredAt?: string): string {
+  if (!occurredAt) {
+    return '—';
+  }
+
+  const date = new Date(occurredAt);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hours = `${date.getHours()}`.padStart(2, '0');
+  const minutes = `${date.getMinutes()}`.padStart(2, '0');
+  const seconds = `${date.getSeconds()}`.padStart(2, '0');
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 export function getStartupStatusCopy(input?: {
   statusKey:
     | 'restored-local-draft'
@@ -72,7 +92,10 @@ export function getStartupStatusCopy(input?: {
     | 'browser-read-error';
   nodeCount: number;
   errorDetail?: string;
+  occurredAt?: string;
 }): StartupStatusCopy {
+  const formattedTime = formatStatusTimestamp(input?.occurredAt);
+
   if (!input) {
     return {
       action: '启动初始化',
@@ -86,7 +109,7 @@ export function getStartupStatusCopy(input?: {
   if (input.statusKey === 'restored-local-draft') {
     return {
       action: '本地草稿恢复',
-      time: '刚刚',
+      time: formattedTime,
       result: '已恢复上次保存的本地草稿会话',
       detail: `启动时优先恢复了本地草稿，会话包含 ${input.nodeCount} 个节点，本次未自动读取浏览器书签。`,
       canvasSummary: `当前草稿已从本地会话恢复，共 ${input.nodeCount} 个节点，可继续编辑与后续同步。`,
@@ -96,7 +119,7 @@ export function getStartupStatusCopy(input?: {
   if (input.statusKey === 'imported-browser-tree') {
     return {
       action: '浏览器书签读取',
-      time: '刚刚',
+      time: formattedTime,
       result: '首次启动已从浏览器导入当前书签树',
       detail: `当前草稿包含 ${input.nodeCount} 个节点，已可进入后续编辑。`,
       canvasSummary: `当前草稿包含 ${input.nodeCount} 个节点，已可进入后续编辑。`,
@@ -106,7 +129,7 @@ export function getStartupStatusCopy(input?: {
   if (input.statusKey === 'imported-browser-tree-unsaved') {
     return {
       action: '浏览器书签读取',
-      time: '刚刚',
+      time: formattedTime,
       result: '已导入浏览器书签，但本地草稿保存失败',
       detail: input.errorDetail ?? '当前草稿已导入，但保存到本地会话时失败，刷新后可能丢失。',
       canvasSummary: `当前草稿已导入 ${input.nodeCount} 个节点，但尚未成功保存到本地；刷新后可能丢失。`,
@@ -116,7 +139,7 @@ export function getStartupStatusCopy(input?: {
   if (input.statusKey === 'restore-error') {
     return {
       action: '本地草稿恢复',
-      time: '刚刚',
+      time: formattedTime,
       result: '本地草稿恢复失败',
       detail: input.errorDetail ?? '本地草稿数据无法恢复，请检查持久化数据后再继续。',
       canvasSummary: '当前检测到本地草稿数据异常，尚未自动恢复或重新导入。',
@@ -126,7 +149,7 @@ export function getStartupStatusCopy(input?: {
   if (input.statusKey === 'browser-read-error') {
     return {
       action: '浏览器书签读取',
-      time: '刚刚',
+      time: formattedTime,
       result: '浏览器书签读取失败',
       detail: input.errorDetail ?? '浏览器书签读取发生错误，请检查扩展权限与运行时状态。',
       canvasSummary: '当前无法完成浏览器书签读取，请先处理读取错误后再继续。',
@@ -135,7 +158,7 @@ export function getStartupStatusCopy(input?: {
 
   return {
     action: '浏览器书签读取',
-    time: '刚刚',
+    time: formattedTime,
     result: '当前还不能自动读取浏览器书签',
     detail: '本地草稿为空，且当前无法读取浏览器书签。请确认扩展权限后再执行导入。',
     canvasSummary: '当前尚未导入浏览器书签；确认权限后即可读取并生成第一份草稿。',

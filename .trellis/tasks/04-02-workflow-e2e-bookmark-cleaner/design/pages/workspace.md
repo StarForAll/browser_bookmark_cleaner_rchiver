@@ -21,10 +21,10 @@ The workspace always represents the current draft, not live browser bookmarks.
 3. Graph canvas
    - draft graph rendering
    - selection
-   - drag and drop
+   - product-owned mindmap branches
    - hover detail
 
-4. Bottom-left operation hint area
+4. Top-right operation hint area
    - always-visible low-emphasis help block
    - one line per operation hint
    - mouse and keyboard operations in one unified list
@@ -67,10 +67,10 @@ Constraints:
 
 - select node
 - double click to edit
-- `Enter` to create child
-- drag to move
-- `Delete` or `Backspace` to remove node or subtree directly without secondary confirmation
-- `Ctrl+Z` to undo one draft-content mutation
+- `Enter` on a selected folder node to create a child
+- `Delete` or `Backspace` to remove node or subtree
+- deleting a folder with multiple direct child nodes requires a secondary confirmation dialog
+- drag and `Ctrl+Z` remain future task scope rather than current workspace baseline
 
 ### Search and duplicate focus
 
@@ -92,6 +92,7 @@ Constraints:
 - node editor
 - create-child flow
 - create-root flow
+- delete-confirm flow
 - shared overwrite confirmation dialog
 - WebDAV settings
 - remote restore picker
@@ -111,16 +112,15 @@ Constraints:
 
 ## Operation Hint Rules
 
-- the bottom-left operation hint area is always visible
+- the top-right operation hint area is always visible
 - it must stay low-emphasis enough to avoid competing with the graph canvas
 - it must still remain readable when the user looks for guidance
-- the area shows these six operation hints in one-line-per-item format:
+- the area shows the current five operation hints in one-line-per-item format:
   - click: select node
   - double click: edit node
-  - drag: move node
-  - `Enter`: create child node
+  - `Enter`: create child node under the selected folder
   - `Delete / Backspace`: delete node
-  - `Ctrl+Z`: undo one draft edit
+  - hover: view node details
 
 ## Empty-State Rules
 
@@ -140,7 +140,7 @@ Constraints:
 - newest three entries are retained
 - newest entry appears first
 - closing the popup preserves the retained history
-- routine draft editing actions such as create-child, node edit, drag, delete, and undo do not enter this status history
+- routine draft editing actions such as create-child, node edit, and delete do not enter this status history
 
 ## Copy Rules
 

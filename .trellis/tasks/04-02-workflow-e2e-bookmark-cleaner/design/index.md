@@ -124,7 +124,7 @@ Selected implementation evidence:
   - verify that the main workspace is always expressed as the current draft
   - verify that seven explicit action buttons are distinguishable from text alone
   - verify that overwrite-risk actions use one shared confirmation-dialog pattern
-  - verify that the bottom-left operation-hint area stays visible without overpowering the graph canvas
+  - verify that the top-right operation-hint area stays visible without overpowering the graph canvas
 - Exception flow:
   - action failure is visible in the status area
   - exception-type differentiation is not required at the prototype-validation level

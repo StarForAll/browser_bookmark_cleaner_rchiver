@@ -32,9 +32,9 @@ The first release is designed as a Chrome extension with a dedicated extension p
 - UI runtime: React + TypeScript
 - Build tool: Vite
 - Package manager target: `pnpm`
-- Graph rendering strategy: node-editor library, not custom SVG/canvas implementation
-- Graph library: `@xyflow/react`
-- Node movement strategy: library-level drag interaction with domain-level folder-drop validation
+- Graph rendering strategy: product-owned React + SVG mindmap renderer behind replaceable layout and render interfaces
+- Graph library: no third-party node-editor library is part of the frozen v1 rendering baseline
+- Node movement strategy: current baseline is selection/edit/create/delete on the draft mindmap; any later movement interaction must remain product-owned and domain-validated
 - State management direction: lightweight centralized store
 - Local persistence direction: logical storage domains are frozen now, while v1 physically uses `chrome.storage.local`; large-object persisted assets may move to `IndexedDB` later if storage pressure or performance evidence appears
 - WebDAV integration direction: native `fetch` with a minimal WebDAV action surface
@@ -49,7 +49,7 @@ The first release is designed as a Chrome extension with a dedicated extension p
 - Chrome officially supports runtime-requested optional permissions and optional host permissions, which matches the user-configured WebDAV endpoint requirement.
 - Vite officially supports multi-page builds through multiple HTML entry points in build input configuration.
 - React officially fits interactive local-state-heavy UIs through declarative state-driven rendering.
-- React Flow provides custom nodes, controlled graph state, drag behavior, and viewport helpers suitable for editable node-based UIs.
+- React and SVG provide enough controlled rendering primitives for a product-owned mindmap canvas while keeping bookmark-tree semantics inside application code.
 
 Evidence sources:
 
@@ -58,7 +58,6 @@ Evidence sources:
 - https://developer.chrome.com/docs/extensions/reference/permissions
 - https://vite.dev/guide/build.html
 - https://react.dev/learn/managing-state
-- https://reactflow.dev/
 
 Implementation note:
 
@@ -162,18 +161,19 @@ Reason:
 Reason:
 - Matches the interaction density of the product
 - Keeps the implementation surface mainstream and well-documented
-- Works well with the selected graph-library direction
+- Works well with the selected product-owned graph-rendering direction
 
-### Decision 8: Graph editor based on `@xyflow/react`
+### Decision 8: Graph editor based on a product-owned React + SVG mindmap renderer
 
-- The graph canvas will be built on `@xyflow/react`
+- The graph canvas is built from product-owned React components plus SVG branch rendering
 - Custom bookmark/folder node rendering stays inside product-owned React components
-- Library drag behavior is allowed, but final folder-drop acceptance is enforced by domain rules rather than raw canvas behavior
+- Layout calculation and branch rendering sit behind replaceable product-owned interfaces instead of being delegated to a generic node-editor runtime
+- If node movement is added later, it must still be enforced by domain rules rather than raw canvas behavior
 
 Reason:
-- Reuses mature node-editor primitives
-- Avoids expensive custom canvas/SVG infrastructure work in v1
-- Preserves product-specific control over bookmark-tree semantics
+- Preserves product-specific control over bookmark-tree semantics and virtual-root behavior
+- Keeps large-graph performance controls, viewport culling, and hover behavior in product code
+- Avoids coupling future bookmark-specific interactions to a generic graph editor abstraction
 
 ### Decision 9: Lightweight centralized state management
 
@@ -265,7 +265,7 @@ Rules:
 
 ### Base
 
-- User reads bookmarks, drags a node, presses `Ctrl+Z`, and sees the layout preserved after reload
+- User reads bookmarks, edits or deletes draft nodes, and sees the restored draft/layout state preserved after reload
 
 ### Bad
 

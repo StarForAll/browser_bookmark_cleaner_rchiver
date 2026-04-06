@@ -50,3 +50,43 @@ export function createDraftGraphFixture(): DraftGraphSnapshot {
     rootIds: ['folder-root'],
   };
 }
+
+export function createLargeDraftGraphFixture(totalNodeCount = 1000): DraftGraphSnapshot {
+  const rootId = 'folder-root-large';
+  const childCount = Math.max(0, totalNodeCount - 1);
+  const childIds = Array.from({ length: childCount }, (_, index) => `bookmark-large-${index + 1}`);
+  const nodesById: DraftGraphSnapshot['nodesById'] = {
+    [rootId]: {
+      internalId: rootId,
+      sourceType: 'draft',
+      nodeType: 'folder',
+      title: '大草稿根目录',
+      url: null,
+      parentId: null,
+      childIds,
+      pathTokens: ['大草稿根目录'],
+    },
+  };
+
+  childIds.forEach((childId, index) => {
+    const title = `节点 ${index + 1}`;
+    nodesById[childId] = {
+      internalId: childId,
+      sourceType: 'draft',
+      nodeType: 'bookmark',
+      title,
+      url: `https://example.com/${index + 1}`,
+      parentId: rootId,
+      childIds: [],
+      pathTokens: ['大草稿根目录', title],
+    };
+  });
+
+  return {
+    schemaVersion: DRAFT_GRAPH_SCHEMA_VERSION,
+    snapshotVersion: 0,
+    selectedNodeId: null,
+    nodesById,
+    rootIds: [rootId],
+  };
+}

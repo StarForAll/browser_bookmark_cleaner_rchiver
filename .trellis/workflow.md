@@ -370,7 +370,8 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
    - For cross-layer features, use `/trellis:check-cross-layer`
    - Develop only one task at a time
    - Run lint and tests frequently
-   - When `/trellis:check` enters multi-CLI review, the coordinating CLI must both write `reviewer-commands-round-<N>.md` and print the exact copy-paste `multi-cli-review` command in the same response
+   - When `/trellis:check` enters multi-CLI review, the coordinating CLI must both write `reviewer-commands-round-<N>.md` and print the exact copy-paste reviewer commands in the same response
+   - Unless the human explicitly requests a different reviewer set, `/trellis:check` defaults to two reviewer commands: one for `claude` and one for `opencode`
 
 3. **After development complete**:
    - Use `/trellis:finish-work` for completion checklist

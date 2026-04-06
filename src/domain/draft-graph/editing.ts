@@ -17,6 +17,13 @@ type CreateDraftChildNodeInput = {
   url?: string;
 };
 
+type CreateDraftSiblingNodeInput = {
+  referenceNodeId: string;
+  nodeType: 'folder' | 'bookmark';
+  title: string;
+  url?: string;
+};
+
 type EditResult =
   | {
       ok: true;
@@ -37,6 +44,64 @@ type CreateChildResult =
       ok: false;
       error: string;
     };
+
+function validateCreateNodeInput(
+  nodeType: 'folder' | 'bookmark',
+  title: string,
+  url?: string,
+): { ok: true; normalizedTitle: string; normalizedUrl: string } | { ok: false; error: string } {
+  const normalizedTitle = title.trim();
+  if (normalizedTitle.length === 0) {
+    return {
+      ok: false,
+      error: '标题必填。',
+    };
+  }
+
+  const normalizedUrl = (url ?? '').trim();
+  if (nodeType === 'bookmark' && normalizedUrl.length === 0) {
+    return {
+      ok: false,
+      error: 'URL 必填。',
+    };
+  }
+
+  if (nodeType === 'folder' && normalizedUrl.length > 0) {
+    return {
+      ok: false,
+      error: '目录节点不能设置 URL。',
+    };
+  }
+
+  return {
+    ok: true,
+    normalizedTitle,
+    normalizedUrl,
+  };
+}
+
+function buildCreatedNode(
+  snapshot: DraftGraphSnapshot,
+  parentId: string | null,
+  nodeType: 'folder' | 'bookmark',
+  normalizedTitle: string,
+  normalizedUrl: string,
+  createdNodeId: string,
+  nodesById: DraftGraphSnapshot['nodesById'],
+): DraftGraphNode {
+  const parentPathTokens = parentId === null ? [] : (nodesById[parentId]?.pathTokens ?? []);
+
+  return {
+    internalId: createdNodeId,
+    sourceType: 'draft',
+    nodeType,
+    title: normalizedTitle,
+    url: nodeType === 'bookmark' ? normalizedUrl : null,
+    parentId,
+    childIds: [],
+    pathTokens: [...parentPathTokens, normalizedTitle],
+  };
+}
 
 type DeleteResult =
   | {
@@ -194,27 +259,9 @@ export function createDraftChildNode(
     };
   }
 
-  const normalizedTitle = input.title.trim();
-  if (normalizedTitle.length === 0) {
-    return {
-      ok: false,
-      error: '标题必填。',
-    };
-  }
-
-  const normalizedUrl = (input.url ?? '').trim();
-  if (input.nodeType === 'bookmark' && normalizedUrl.length === 0) {
-    return {
-      ok: false,
-      error: 'URL 必填。',
-    };
-  }
-
-  if (input.nodeType === 'folder' && normalizedUrl.length > 0) {
-    return {
-      ok: false,
-      error: '目录节点不能设置 URL。',
-    };
+  const validationInput = validateCreateNodeInput(input.nodeType, input.title, input.url);
+  if (!validationInput.ok) {
+    return validationInput;
   }
 
   const createdNodeId = nextDraftNodeId(snapshot);
@@ -223,21 +270,83 @@ export function createDraftChildNode(
   );
 
   nodesById[input.parentId].childIds.push(createdNodeId);
-  nodesById[createdNodeId] = {
-    internalId: createdNodeId,
-    sourceType: 'draft',
-    nodeType: input.nodeType,
-    title: normalizedTitle,
-    url: input.nodeType === 'bookmark' ? normalizedUrl : null,
-    parentId: input.parentId,
-    childIds: [],
-    pathTokens: [...nodesById[input.parentId].pathTokens, normalizedTitle],
-  };
+  nodesById[createdNodeId] = buildCreatedNode(
+    snapshot,
+    input.parentId,
+    input.nodeType,
+    validationInput.normalizedTitle,
+    validationInput.normalizedUrl,
+    createdNodeId,
+    nodesById,
+  );
 
   const validation = withValidatedSnapshot({
     ...snapshot,
     snapshotVersion: nextSnapshotVersion(snapshot),
     nodesById,
+  });
+
+  if (!validation.ok) {
+    return validation;
+  }
+
+  return {
+    ok: true,
+    snapshot: validation.snapshot,
+    createdNodeId,
+  };
+}
+
+export function createDraftSiblingNode(
+  snapshot: DraftGraphSnapshot,
+  input: CreateDraftSiblingNodeInput,
+): CreateChildResult {
+  const referenceNode = snapshot.nodesById[input.referenceNodeId];
+  if (!referenceNode) {
+    return {
+      ok: false,
+      error: '参考节点不存在。',
+    };
+  }
+
+  const validationInput = validateCreateNodeInput(input.nodeType, input.title, input.url);
+  if (!validationInput.ok) {
+    return validationInput;
+  }
+
+  const createdNodeId = nextDraftNodeId(snapshot);
+  const nodesById = Object.fromEntries(
+    Object.entries(snapshot.nodesById).map(([id, node]) => [id, cloneNode(node)]),
+  );
+  const nextRootIds = [...snapshot.rootIds];
+  const parentId = referenceNode.parentId;
+
+  if (parentId === null) {
+    const referenceIndex = nextRootIds.indexOf(input.referenceNodeId);
+    const insertIndex = referenceIndex >= 0 ? referenceIndex + 1 : nextRootIds.length;
+    nextRootIds.splice(insertIndex, 0, createdNodeId);
+  } else {
+    const siblingIds = nodesById[parentId].childIds;
+    const referenceIndex = siblingIds.indexOf(input.referenceNodeId);
+    const insertIndex = referenceIndex >= 0 ? referenceIndex + 1 : siblingIds.length;
+    siblingIds.splice(insertIndex, 0, createdNodeId);
+  }
+
+  nodesById[createdNodeId] = buildCreatedNode(
+    snapshot,
+    parentId,
+    input.nodeType,
+    validationInput.normalizedTitle,
+    validationInput.normalizedUrl,
+    createdNodeId,
+    nodesById,
+  );
+
+  const validation = withValidatedSnapshot({
+    ...snapshot,
+    snapshotVersion: nextSnapshotVersion(snapshot),
+    nodesById,
+    rootIds: nextRootIds,
   });
 
   if (!validation.ok) {

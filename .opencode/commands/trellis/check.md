@@ -105,7 +105,7 @@ tmp/multi-cli-review/<task-id>/review-round-<N>/
 $TASK_DIR/check/reviewer-commands-round-<N>.md
 ```
 
-并且**必须在当前回复里直接输出同一条可复制执行的完整 `multi-cli-review` 命令**，不能只给文件路径或只说“见 reviewer-commands 文件”。
+并且**必须在当前回复里直接输出可复制执行的完整 `multi-cli-review` 命令**，不能只给文件路径或只说“见 reviewer-commands 文件”。
 
 内容至少包括：
 
@@ -119,7 +119,12 @@ $TASK_DIR/check/reviewer-commands-round-<N>.md
 
 约束：
 
-- 默认 reviewer 数：1
+- 默认 reviewer 数：2
+- 默认 reviewer 组合：`claude` + `opencode`
+- 触发 `check` 时，若用户未明确指定 reviewer 集合，则必须生成两份 reviewer 命令：
+  - 一份 `--reviewer-id claude`
+  - 一份 `--reviewer-id opencode`
+- 只有在用户明确要求“只跑一个 reviewer”或明确给出其他 reviewer 组合时，才允许偏离上述默认组合
 - 最大 reviewer 数：4
 - reviewer 只允许使用 `multi-cli-review`
 - reviewer 不得直接修改代码
@@ -128,16 +133,17 @@ $TASK_DIR/check/reviewer-commands-round-<N>.md
 - 当前 CLI 给用户的最终输出必须包含：
   - 判定结果 `required / recommended / skip`
   - reviewer-commands 文件路径
-  - 可直接复制到其他 CLI 执行的完整命令正文
+  - 两条可直接复制到其他 CLI 执行的完整命令正文（默认分别指向 `claude` 与 `opencode`；若用户显式改 reviewer 组合，则按用户要求输出）
 
 这条规则是工作流要求，不因对话轮次变化而省略。
 
 ### Step 4: 其他 CLI 执行独立审查
 
-用户在其他 CLI 中手动执行标准命令，例如：
+用户在其他 CLI 中手动执行标准命令，例如默认 reviewer 组合：
 
 ```text
 /multi-cli-review "<任务级审查描述>" <目标路径> --task-dir tmp/multi-cli-review/<task-id> --reviewer-id claude --round <N> --review-focus "边界条件与风险"
+/multi-cli-review "<任务级审查描述>" <目标路径> --task-dir tmp/multi-cli-review/<task-id> --reviewer-id opencode --round <N> --review-focus "边界条件与风险"
 ```
 
 每个 reviewer 产出：

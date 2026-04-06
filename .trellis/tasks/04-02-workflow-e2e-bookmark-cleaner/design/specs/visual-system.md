@@ -75,7 +75,7 @@ The following implementation shortcuts are also forbidden:
 - `v1` auto-layout uses a controlled tree layout aligned with bookmark-tree semantics
 - re-layout restores a recommended layout without changing graph content or graph meaning
 - the layout engine must sit behind a replaceable product-owned interface
-- `@xyflow/react` consumes layout results for rendering, but it does not own layout truth
+- a product-owned React + SVG renderer consumes layout results for rendering, but it does not own layout truth
 - arbitrary graph-layout engine behavior must not redefine bookmark-tree structure semantics in v1
 
 ## Feedback Severity Layers

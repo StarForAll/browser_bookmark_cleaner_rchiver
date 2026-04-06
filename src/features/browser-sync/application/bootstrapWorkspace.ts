@@ -30,6 +30,7 @@ export type WorkspaceBootstrapResult = {
   policy: StartupImportPolicy;
   draftSnapshot: DraftGraphSnapshot | null;
   statusKey: WorkspaceStartupStatusKey;
+  occurredAt: string;
   errorDetail?: string;
 };
 
@@ -44,6 +45,7 @@ type BootstrapWorkspaceDependencies = {
 export async function bootstrapWorkspace(
   dependencies: BootstrapWorkspaceDependencies = {},
 ): Promise<WorkspaceBootstrapResult> {
+  const occurredAt = new Date().toISOString();
   const loadPersistedDraftSession =
     dependencies.readPersistedDraftSession ?? readPersistedDraftSession;
   const loadBrowserBookmarkTree =
@@ -62,6 +64,7 @@ export async function bootstrapWorkspace(
       },
       draftSnapshot: null,
       statusKey: 'restore-error',
+      occurredAt,
       errorDetail: persistedDraftSession.error,
     };
   }
@@ -85,6 +88,7 @@ export async function bootstrapWorkspace(
       policy,
       draftSnapshot: persistedDraftSession.session.draftSnapshot,
       statusKey: 'restored-local-draft',
+      occurredAt,
     };
   }
 
@@ -108,6 +112,7 @@ export async function bootstrapWorkspace(
         policy,
         draftSnapshot,
         statusKey: 'imported-browser-tree-unsaved',
+        occurredAt,
         errorDetail:
           persistResult.kind === 'error'
             ? persistResult.error
@@ -119,6 +124,7 @@ export async function bootstrapWorkspace(
       policy,
       draftSnapshot,
       statusKey: 'imported-browser-tree',
+      occurredAt,
     };
   }
 
@@ -130,6 +136,7 @@ export async function bootstrapWorkspace(
       },
       draftSnapshot: null,
       statusKey: 'browser-read-error',
+      occurredAt,
       errorDetail: browserTreeResult.error,
     };
   }
@@ -138,5 +145,6 @@ export async function bootstrapWorkspace(
     policy,
     draftSnapshot: null,
     statusKey: 'await-browser-import',
+    occurredAt,
   };
 }

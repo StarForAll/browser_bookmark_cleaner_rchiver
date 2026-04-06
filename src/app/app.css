@@ -258,6 +258,7 @@ input:disabled {
   position: relative;
   min-height: 100%;
   min-width: max-content;
+  contain: layout paint style;
 }
 
 .xmind-branch-svg {
@@ -277,6 +278,9 @@ input:disabled {
   left: 0;
   width: 220px;
   animation: xmind-node-fade-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-size: 220px 40px;
 }
 
 @keyframes xmind-node-fade-in {
@@ -313,6 +317,26 @@ input:disabled {
     border-color 180ms ease,
     background 180ms ease;
   overflow: hidden;
+}
+
+.draft-graph-workspace.is-large-graph .xmind-node-shell {
+  animation: none;
+}
+
+.draft-graph-workspace.is-large-graph .draft-node-button {
+  transition: border-color 120ms ease, background 120ms ease;
+  box-shadow:
+    0 1px 2px rgba(20, 51, 58, 0.03),
+    0 2px 6px rgba(20, 51, 58, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.draft-graph-workspace.is-large-graph .draft-node-button:hover {
+  transform: none;
+  box-shadow:
+    0 1px 2px rgba(20, 51, 58, 0.03),
+    0 3px 10px rgba(20, 51, 58, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .draft-node-button::before {
@@ -449,16 +473,21 @@ input:disabled {
   cursor: default;
   pointer-events: none;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 244, 234, 0.85) 100%);
-  border-style: dashed;
-  border-color: rgba(20, 51, 58, 0.14);
-  box-shadow: none;
-  opacity: 0.75;
+    linear-gradient(145deg, rgba(255, 253, 249, 0.98) 0%, rgba(245, 238, 224, 0.96) 100%);
+  border-style: solid;
+  border-color: rgba(122, 157, 149, 0.42);
+  box-shadow:
+    0 1px 2px rgba(20, 51, 58, 0.04),
+    0 6px 18px rgba(20, 51, 58, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+  opacity: 1;
+  padding: 12px 16px 12px 42px;
 }
 
 .draft-node-button.is-virtual-root::before {
-  background: linear-gradient(180deg, rgba(20, 51, 58, 0.25), rgba(20, 51, 58, 0.1));
-  opacity: 0.5;
+  width: 5px;
+  background: linear-gradient(180deg, rgba(122, 157, 149, 0.95), rgba(122, 157, 149, 0.45));
+  opacity: 1;
 }
 
 .draft-node-button.is-virtual-root::after {
@@ -467,14 +496,24 @@ input:disabled {
 
 .draft-node-button.is-virtual-root .draft-node-icon {
   font-size: 18px;
-  opacity: 0.7;
+  left: 15px;
+  opacity: 0.9;
+}
+
+.draft-node-button.is-virtual-root .draft-node-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  color: #6b7f83;
+  text-transform: uppercase;
 }
 
 .draft-node-button.is-virtual-root .draft-node-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #37555b;
-  letter-spacing: 0.04em;
+  font-size: 15px;
+  font-weight: 600;
+  color: #234148;
+  letter-spacing: 0.03em;
 }
 
 .xmind-node-shell.is-root .draft-node-icon {
@@ -670,6 +709,16 @@ input:disabled {
   color: #506c72;
 }
 
+.draft-dialog-warning {
+  font-weight: 600;
+  color: #7a3526;
+}
+
+.draft-dialog-note {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .draft-type-switch,
 .draft-field {
   margin: 0 0 14px;
@@ -732,6 +781,12 @@ input:disabled {
   background: rgba(196, 219, 214, 0.95);
   color: #14333a;
   box-shadow: 0 10px 18px rgba(20, 51, 58, 0.08);
+}
+
+.draft-dialog-button.is-primary.is-danger {
+  border-color: rgba(158, 61, 42, 0.2);
+  background: rgba(238, 214, 205, 0.96);
+  color: #7a3526;
 }
 
 .startup-preview {

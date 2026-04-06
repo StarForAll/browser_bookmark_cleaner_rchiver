@@ -9,6 +9,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 afterEach(() => {
   cleanup();
+  delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
 });
 
 describe('T03 extension shell and page entry', () => {
@@ -78,11 +79,32 @@ describe('T03 extension shell and page entry', () => {
     expect(statusPopover.querySelector('.status-history-list li')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '关闭状态弹窗' }));
     expect(screen.queryByRole('complementary', { name: '状态结果区' })).not.toBeInTheDocument();
+  });
 
-    const anchor = screen.getByRole('button', { name: '重新打开最新结果弹窗' });
-    expect(anchor).toHaveTextContent('启动初始化 · 正在确认本地草稿与浏览器书签状态');
+  test('restores the previous status popup visibility after a refresh-like remount', async () => {
+    const storageState: Record<string, unknown> = {};
+    (globalThis as typeof globalThis & {
+      chrome?: { storage: { local: { get: (keys: string[]) => Promise<Record<string, unknown>>; set: (items: Record<string, unknown>) => Promise<void> } } };
+    }).chrome = {
+      storage: {
+        local: {
+          get: async (keys) =>
+            Object.fromEntries(keys.map((key) => [key, storageState[key]])),
+          set: async (items) => {
+            Object.assign(storageState, items);
+          },
+        },
+      },
+    };
 
-    fireEvent.click(anchor);
-    expect(screen.getByRole('complementary', { name: '状态结果区' })).toBeInTheDocument();
+    const firstRender = render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '关闭状态弹窗' }));
+    expect(storageState['workspace-status-popover-open']).toBe(false);
+    firstRender.unmount();
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: '重新打开最新结果弹窗' })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '状态结果区' })).not.toBeInTheDocument();
   });
 });

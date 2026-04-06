@@ -62,6 +62,7 @@ The mindmap canvas renders a decorative virtual root node to unify multiple root
 
 - Does not exist in `nodesById`, `rootIds`, or any persistence contract
 - Is not a `DraftGraphNode` and has no `internalId`
+- Renders as a visible, non-interactive anchor near the top-left of the mindmap canvas so users can read the root-branch origin without treating it as a real node control
 - Cannot be selected, edited, deleted, or have children
 - Is excluded from all sync, upload, restore, overwrite, and browser write-back operations
 - Is excluded from draft mutation, undo history, and checkpoint operations

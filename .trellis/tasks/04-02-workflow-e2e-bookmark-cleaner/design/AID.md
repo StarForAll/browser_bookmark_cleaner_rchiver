@@ -21,12 +21,12 @@ The extension page is a single focused workspace with five persistent zones plus
    - duplicate-only filter
 
 3. Main graph canvas
-   - draggable nodes
+   - product-owned mindmap node cards and SVG branches
    - visible selection state
    - hover card for URL and duplicate info
    - duplicate hover summary with inline expand-more behavior
 
-4. Bottom-left operation hint panel
+4. Top-right floating operation hint panel
    - always-visible low-emphasis operation guidance
    - mouse actions and keyboard actions in one list
    - one-line-per-item layout
@@ -85,6 +85,7 @@ Secondary components:
 
 - node editor modal
 - create-child modal
+- delete-confirm modal
 - restore draft version drawer/modal
 - restore browser version drawer/modal
 - WebDAV settings drawer/modal
@@ -93,11 +94,10 @@ Secondary components:
 ## Interaction Rules
 
 - Double click: enter edit mode
-- Enter on selected node: open create-child dialog
-- Ctrl+Z: undo one draft mutation
-- Delete/Backspace: delete selected node and subtree without extra confirmation
-- Drag and drop: move node under another folder node
+- Enter on selected folder node: open create-child dialog
+- Delete/Backspace: delete selected node and subtree; folders with multiple direct child nodes require a shared delete-confirm dialog first
 - Main graph workspace always represents the current draft only
+- Current T06 baseline does not expose drag-and-drop or `Ctrl+Z` in the workspace hint set; those remain later-task scope
 - The seven top-right action buttons must be understandable from button text alone
 - Sync current draft to browser bookmarks: always requires explicit warning/confirm step
 - Overwrite current draft from browser bookmarks: always requires explicit warning/confirm step

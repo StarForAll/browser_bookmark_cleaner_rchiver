@@ -21,6 +21,7 @@ Allowed responsibilities:
 - host local interaction state such as temporary input focus or modal visibility
 - forward user intent to application actions
 - show Chinese-first copy from centralized copy resources
+- render decorative graph-only anchors or layout helpers when they stay outside draft truth and interaction semantics
 
 Forbidden responsibilities:
 
@@ -28,6 +29,7 @@ Forbidden responsibilities:
 - issuing raw WebDAV `fetch` requests
 - writing persistence data directly
 - deciding overwrite safety, recovery eligibility, or cloud availability rules
+- turning decorative graph nodes into hidden interaction surrogates for create, edit, delete, or selection flows
 
 ---
 
@@ -69,6 +71,13 @@ Keep large domain logic, layout mapping, or side-effect coordination outside the
 - modal and drawer flows must preserve focus order and keyboard escape behavior
 - destructive or overwrite-risk actions must not rely on hover-only explanation
 - keyboard-driven actions such as `Enter`, `Delete / Backspace`, and `Ctrl+Z` must remain consistent with the operation hint panel
+- decorative graph anchors such as virtual root nodes may be visible, but they must stay non-focusable and non-interactive
+
+## Canvas Viewport Safety
+
+- visual discoverability fixes must not silently reset `scrollLeft`, `scrollTop`, or viewport focus after node create, edit, delete, or layout refresh
+- if a canvas needs recentering or refocusing, it must be tied to an explicit user action such as a dedicated "重新整理布局" or "定位到节点" command
+- graph-only layout effects may derive visible subsets from the current viewport, but they must preserve the user's existing browsing position
 
 ---
 
@@ -78,3 +87,4 @@ Keep large domain logic, layout mapping, or side-effect coordination outside the
 - mixing draft-only edits with browser-write side effects in a modal component
 - scattering inline Chinese strings through many components
 - treating graph-library node objects as the primary business data model
+- fixing node visibility by adding an unconditional `useEffect` scroll reset that snaps the canvas back to the top-left corner

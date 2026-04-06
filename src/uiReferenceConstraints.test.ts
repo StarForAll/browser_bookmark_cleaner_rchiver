@@ -41,7 +41,7 @@ describe('T02 ui reference constraints', () => {
       '.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md',
     );
 
-    expect(visualDirection).toContain('Bottom-left operation hint area');
+    expect(visualDirection).toContain('Top-right operation hint area');
     expect(visualDirection).toContain('Bottom-right status popup/history');
 
     expect(workspacePage).toContain('1. overwrite current draft from browser bookmarks');

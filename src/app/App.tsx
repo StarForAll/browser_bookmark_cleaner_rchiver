@@ -16,11 +16,119 @@ type AppProps = {
   bootstrapWorkspace?: () => Promise<WorkspaceBootstrapResult>;
 };
 
+const STATUS_POPOVER_OPEN_KEY = 'workspace-status-popover-open';
+const STATUS_LATEST_ENTRY_KEY = 'workspace-latest-status-entry';
+
+type ChromeStorageArea = {
+  get: (keys: string[]) => Promise<Record<string, unknown>>;
+  set: (items: Record<string, unknown>) => Promise<void>;
+};
+
+type ChromeRuntime = {
+  storage?: {
+    local?: ChromeStorageArea;
+  };
+};
+
+type PersistedStatusEntry = {
+  statusKey: WorkspaceBootstrapResult['statusKey'] | 'pending';
+  action: string;
+  time: string;
+  result: string;
+  detail: string;
+};
+
+function resolveStorageArea(): ChromeStorageArea | null {
+  return (globalThis as typeof globalThis & { chrome?: ChromeRuntime }).chrome?.storage?.local ?? null;
+}
+
+async function readStatusPopoverOpen(): Promise<boolean | null> {
+  const storageArea = resolveStorageArea();
+  if (!storageArea?.get) {
+    return null;
+  }
+
+  try {
+    const persisted = await storageArea.get([STATUS_POPOVER_OPEN_KEY]);
+    const value = persisted[STATUS_POPOVER_OPEN_KEY];
+    return typeof value === 'boolean' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function isPersistedStatusEntry(value: unknown): value is PersistedStatusEntry {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.statusKey === 'string' &&
+    typeof candidate.action === 'string' &&
+    typeof candidate.time === 'string' &&
+    typeof candidate.result === 'string' &&
+    typeof candidate.detail === 'string'
+  );
+}
+
+async function readLatestStatusEntry(): Promise<PersistedStatusEntry | null> {
+  const storageArea = resolveStorageArea();
+  if (!storageArea?.get) {
+    return null;
+  }
+
+  try {
+    const persisted = await storageArea.get([STATUS_LATEST_ENTRY_KEY]);
+    const value = persisted[STATUS_LATEST_ENTRY_KEY];
+    return isPersistedStatusEntry(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeStatusPopoverOpen(nextValue: boolean): Promise<void> {
+  const storageArea = resolveStorageArea();
+  if (!storageArea?.set) {
+    return;
+  }
+
+  try {
+    await storageArea.set({ [STATUS_POPOVER_OPEN_KEY]: nextValue });
+  } catch {
+    // Keep UI responsive even when local persistence is unavailable.
+  }
+}
+
+async function writeLatestStatusEntry(entry: PersistedStatusEntry): Promise<void> {
+  const storageArea = resolveStorageArea();
+  if (!storageArea?.set) {
+    return;
+  }
+
+  try {
+    await storageArea.set({ [STATUS_LATEST_ENTRY_KEY]: entry });
+  } catch {
+    // Keep UI responsive even when local persistence is unavailable.
+  }
+}
+
+function hasSameStatusMeaning(left: PersistedStatusEntry, right: PersistedStatusEntry): boolean {
+  return (
+    left.statusKey === right.statusKey &&
+    left.action === right.action &&
+    left.result === right.result &&
+    left.detail === right.detail
+  );
+}
+
 export function App({
   enableStartupBootstrap = false,
   bootstrapWorkspace = defaultBootstrapWorkspace,
 }: AppProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
+  const [statusPopoverReady, setStatusPopoverReady] = useState(resolveStorageArea() === null);
+  const [persistedStatusEntry, setPersistedStatusEntry] = useState<PersistedStatusEntry | null>(null);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
   const undoActionLabel = appShellCopy.actionLabels[appShellCopy.actionLabels.length - 1];
   const startupStatusCopy = getStartupStatusCopy(
@@ -29,6 +137,7 @@ export function App({
           statusKey: startupResult.statusKey,
           nodeCount: Object.keys(startupResult.draftSnapshot?.nodesById ?? {}).length,
           errorDetail: startupResult.errorDetail,
+          occurredAt: startupResult.occurredAt,
         }
       : undefined,
   );
@@ -52,6 +161,60 @@ export function App({
       )
     : null;
   const editableDraftSnapshot = startupResult?.draftSnapshot ?? null;
+  const startupStatusEntry: PersistedStatusEntry | null = startupResult
+    ? {
+        statusKey: startupResult.statusKey,
+        action: startupStatusCopy.action,
+        time: startupStatusCopy.time,
+        result: startupStatusCopy.result,
+        detail: startupStatusCopy.detail,
+      }
+    : null;
+  const displayStatusEntry: PersistedStatusEntry =
+    startupStatusEntry && persistedStatusEntry && hasSameStatusMeaning(persistedStatusEntry, startupStatusEntry)
+      ? persistedStatusEntry
+      : startupStatusEntry ?? persistedStatusEntry ?? {
+          statusKey: 'pending',
+          action: startupStatusCopy.action,
+          time: startupStatusCopy.time,
+          result: startupStatusCopy.result,
+          detail: startupStatusCopy.detail,
+        };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void Promise.all([readStatusPopoverOpen(), readLatestStatusEntry()]).then(([persistedOpenValue, latestEntry]) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (persistedOpenValue !== null) {
+        setIsStatusOpen(persistedOpenValue);
+      }
+      if (latestEntry) {
+        setPersistedStatusEntry(latestEntry);
+      }
+      setStatusPopoverReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!startupStatusEntry) {
+      return;
+    }
+
+    if (persistedStatusEntry && hasSameStatusMeaning(persistedStatusEntry, startupStatusEntry)) {
+      return;
+    }
+
+    setPersistedStatusEntry(startupStatusEntry);
+    void writeLatestStatusEntry(startupStatusEntry);
+  }, [persistedStatusEntry, startupStatusEntry]);
 
   useEffect(() => {
     if (!enableStartupBootstrap) {
@@ -145,7 +308,6 @@ export function App({
               <DraftGraphWorkspace
                 initialSnapshot={editableDraftSnapshot}
                 onPersistDraftSession={writePersistedDraftSession}
-                onRecordStatusEntry={() => undefined}
               />
             ) : (
               <div className="canvas-placeholder">
@@ -200,48 +362,54 @@ export function App({
                     <button
                       aria-label="关闭状态弹窗"
                       className="status-close"
-                      onClick={() => setIsStatusOpen(false)}
+                      onClick={() => {
+                        setIsStatusOpen(false);
+                        void writeStatusPopoverOpen(false);
+                      }}
                       type="button"
                     >
                       关闭
                     </button>
                   </div>
                   <div className="status-entry">
-                    <strong>{startupStatusCopy.action}</strong>
+                    <strong>{displayStatusEntry.action}</strong>
                     <dl className="status-meta">
                       <div>
                         <dt>操作时间</dt>
-                        <dd>{startupStatusCopy.time}</dd>
+                        <dd>{displayStatusEntry.time}</dd>
                       </div>
                       <div>
                         <dt>操作结果</dt>
-                        <dd>{startupStatusCopy.result}</dd>
+                        <dd>{displayStatusEntry.result}</dd>
                       </div>
                     </dl>
-                    <p>{startupStatusCopy.detail}</p>
+                    <p>{displayStatusEntry.detail}</p>
                   </div>
                   <div className="status-retained">
                     <strong>{appShellCopy.statusRetainedTitle}</strong>
                     <ul className="status-history-list">
-                      <li key={`${startupStatusCopy.action}-${startupStatusCopy.time}`}>
-                        <span>{startupStatusCopy.action}</span>
-                        <span>{startupStatusCopy.time}</span>
-                        <span>{startupStatusCopy.result}</span>
+                      <li key={`${displayStatusEntry.action}-${displayStatusEntry.time}`}>
+                        <span>{displayStatusEntry.action}</span>
+                        <span>{displayStatusEntry.time}</span>
+                        <span>{displayStatusEntry.result}</span>
                       </li>
                     </ul>
                   </div>
                 </aside>
               ) : null}
 
-              {!isStatusOpen ? (
+              {!isStatusOpen && statusPopoverReady ? (
                 <button
                   aria-label={appShellCopy.statusAnchorAriaLabel}
                   className="status-anchor"
-                  onClick={() => setIsStatusOpen(true)}
+                  onClick={() => {
+                    setIsStatusOpen(true);
+                    void writeStatusPopoverOpen(true);
+                  }}
                   type="button"
                 >
                   <strong>{appShellCopy.statusAnchorLabel}</strong>
-                  <span>{`${startupStatusCopy.action} · ${startupStatusCopy.result}`}</span>
+                  <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
                 </button>
               ) : null}
             </div>

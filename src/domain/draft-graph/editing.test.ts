@@ -83,6 +83,56 @@ describe('T06 draft graph editing domain gate', () => {
     expect(invalidChild.ok).toBe(false);
   });
 
+  test('creates sibling nodes under the same parent, including top-level roots without a visible virtual root control', async () => {
+    const editing = await import('./editing');
+    const initialSnapshot = createDraftGraphFixture();
+
+    const createdRootSibling = editing.createDraftSiblingNode(initialSnapshot, {
+      referenceNodeId: 'folder-root',
+      nodeType: 'folder',
+      title: '个人资料',
+    });
+    const createdNestedSibling = editing.createDraftSiblingNode(initialSnapshot, {
+      referenceNodeId: 'bookmark-docs',
+      nodeType: 'bookmark',
+      title: '设计规范',
+      url: 'https://design.example.com',
+    });
+
+    expect(createdRootSibling.ok).toBe(true);
+    if (createdRootSibling.ok) {
+      const newRootNode = createdRootSibling.snapshot.nodesById[createdRootSibling.createdNodeId];
+      expect(createdRootSibling.snapshot.rootIds).toEqual(['folder-root', createdRootSibling.createdNodeId]);
+      expect(newRootNode).toEqual(
+        expect.objectContaining({
+          parentId: null,
+          nodeType: 'folder',
+          title: '个人资料',
+          pathTokens: ['个人资料'],
+        }),
+      );
+    }
+
+    expect(createdNestedSibling.ok).toBe(true);
+    if (createdNestedSibling.ok) {
+      const newSiblingNode = createdNestedSibling.snapshot.nodesById[createdNestedSibling.createdNodeId];
+      expect(createdNestedSibling.snapshot.nodesById['folder-root']?.childIds).toEqual([
+        'bookmark-docs',
+        createdNestedSibling.createdNodeId,
+        'folder-archive',
+      ]);
+      expect(newSiblingNode).toEqual(
+        expect.objectContaining({
+          parentId: 'folder-root',
+          nodeType: 'bookmark',
+          title: '设计规范',
+          url: 'https://design.example.com',
+          pathTokens: ['工作资料', '设计规范'],
+        }),
+      );
+    }
+  });
+
   test('deletes a selected subtree and clears selection when the removed node was selected', async () => {
     const editing = await import('./editing');
     const initialSnapshot = {
