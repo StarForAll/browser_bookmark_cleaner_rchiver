@@ -106,6 +106,19 @@ Secondary components:
 - Undo overwrite operation: opens a target chooser instead of directly running recovery
 - Undo overwrite operation stays disabled when neither browser-target nor draft-target overwrite backup is available
 
+## Virtual Root Node
+
+The graph canvas renders a single visual root node at the leftmost position that connects all actual root branches. This node:
+
+- Is **purely a view-layer decoration** with no backing data model entry
+- Does **not** exist in `nodesById`, `rootIds`, or any persistence contract
+- Cannot be selected, edited, deleted, or have children created under it
+- Does not respond to hover, click, double-click, or keyboard events
+- Is **excluded** from all sync, upload, restore, overwrite, and browser write-back operations
+- Is **excluded** from draft mutation, undo history, and checkpoint operations
+- Must not be treated as a business node by any downstream consumer (persistence, sync, export, import)
+- Its sole purpose is to provide a unified visual anchor for the mindmap layout
+
 ## Edit Dialog Rules
 
 ### Folder node

@@ -7,6 +7,8 @@ import {
   bootstrapWorkspace as defaultBootstrapWorkspace,
   type WorkspaceBootstrapResult,
 } from '@/features/browser-sync/application/bootstrapWorkspace';
+import { DraftGraphWorkspace } from '@/features/bookmark-graph/ui/DraftGraphWorkspace';
+import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
 import './app.css';
 
 type AppProps = {
@@ -49,6 +51,7 @@ export function App({
         { folderCount: 0, bookmarkCount: 0 },
       )
     : null;
+  const editableDraftSnapshot = startupResult?.draftSnapshot ?? null;
 
   useEffect(() => {
     if (!enableStartupBootstrap) {
@@ -138,33 +141,41 @@ export function App({
           </div>
 
           <div className="canvas-surface">
-            <div className="canvas-placeholder">
-              <div className="canvas-draft-card">
-                <span className="canvas-badge">{appShellCopy.canvasDraftTitle}</span>
-                <strong>{appShellCopy.title}</strong>
-                <p>{startupStatusCopy.canvasSummary}</p>
-                {startupRootNodes.length > 0 && startupNodeStats ? (
-                  <div className="startup-preview" role="status">
-                    <h4>导入摘要</h4>
-                    <p className="startup-preview-summary">
-                      {`根节点 ${startupRootNodes.length} 个 · 目录 ${startupNodeStats.folderCount} 个 · 书签 ${startupNodeStats.bookmarkCount} 个`}
-                    </p>
-                    <ul>
-                      {startupRootNodes.map((node) => (
-                        <li key={node.internalId}>
-                          <span>{node.nodeType === 'folder' ? '目录' : '书签'}</span>
-                          <span>{node.title || '（无标题）'}</span>
-                          <span>{node.nodeType === 'folder' ? `${node.childIds.length} 个直接子节点` : '根层书签'}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="startup-preview-note">
-                      当前只展示导入摘要；完整思维导图渲染与节点交互会在后续图谱任务接入。
-                    </p>
-                  </div>
-                ) : null}
+            {editableDraftSnapshot ? (
+              <DraftGraphWorkspace
+                initialSnapshot={editableDraftSnapshot}
+                onPersistDraftSession={writePersistedDraftSession}
+                onRecordStatusEntry={() => undefined}
+              />
+            ) : (
+              <div className="canvas-placeholder">
+                <div className="canvas-draft-card">
+                  <span className="canvas-badge">{appShellCopy.canvasDraftTitle}</span>
+                  <strong>{appShellCopy.title}</strong>
+                  <p>{startupStatusCopy.canvasSummary}</p>
+                  {startupRootNodes.length > 0 && startupNodeStats ? (
+                    <div className="startup-preview" role="status">
+                      <h4>导入摘要</h4>
+                      <p className="startup-preview-summary">
+                        {`根节点 ${startupRootNodes.length} 个 · 目录 ${startupNodeStats.folderCount} 个 · 书签 ${startupNodeStats.bookmarkCount} 个`}
+                      </p>
+                      <ul>
+                        {startupRootNodes.map((node) => (
+                          <li key={node.internalId}>
+                            <span>{node.nodeType === 'folder' ? '目录' : '书签'}</span>
+                            <span>{node.title || '（无标题）'}</span>
+                            <span>{node.nodeType === 'folder' ? `${node.childIds.length} 个直接子节点` : '根层书签'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="startup-preview-note">
+                        当前只展示导入摘要；完整思维导图渲染与节点交互会在后续图谱任务接入。
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            )}
 
             <aside aria-label={appShellCopy.hintLabel} className="hint-overlay" role="complementary">
               <div className="section-heading">

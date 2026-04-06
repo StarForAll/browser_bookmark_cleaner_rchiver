@@ -1,0 +1,23 @@
+export const draftGraphWorkspaceCopy = {
+  treeLabel: '当前草稿节点列表',
+  emptyCanvasTitle: '当前草稿为空',
+  emptyCanvasDetail: '导入或创建首个根节点后，就可以在这里继续编辑当前草稿。',
+  editorDialogTitle: '编辑当前草稿节点',
+  createChildDialogTitle: '在当前草稿下创建子节点',
+  nodeTypeLabel: '节点类型',
+  folderOption: '目录',
+  bookmarkOption: '书签',
+  titleLabel: '标题',
+  urlLabel: 'URL',
+  cancelLabel: '取消',
+  saveLabel: '保存',
+  createLabel: '创建',
+  parentPrefix: '父节点',
+  pathPrefix: '当前路径',
+  validation: {
+    titleRequired: '标题必填',
+    urlRequired: 'URL 必填',
+    folderUrlForbidden: '目录节点不能设置 URL',
+    folderOnlyCreateChild: '只有目录节点可以创建子节点',
+  },
+} as const;

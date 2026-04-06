@@ -1,18 +1,18 @@
 export const appShellCopy = {
   title: '书签清理与归档工作区',
-  subtitle: '当前阶段先冻结扩展壳和页面入口，后续任务再接入草稿图谱与同步能力。',
+  subtitle: '当前草稿工作区已经接入基础编辑，后续任务继续补拖拽、撤销、搜索与同步能力。',
   topShellLabel: '顶部动作区',
   searchLabel: '搜索与聚焦区',
   canvasLabel: '图谱画布区',
   hintLabel: '操作提示区',
   statusLabel: '状态结果区',
-  topShellSummary: '显式动作入口先固定下来，执行逻辑在后续任务接入。',
-  searchSummary: '后续任务会在这里接入标题或 URL 搜索与重复聚焦。',
+  topShellSummary: '高风险动作入口保持显式可见，真正执行逻辑会按后续任务逐步接入。',
+  searchSummary: '标题或 URL 搜索与重复聚焦会在后续任务接入；当前先保留入口位置。',
   searchInputPlaceholder: '搜索标题或 URL',
   searchToggleLabel: '仅看重复项',
-  canvasPlaceholder: '图谱工作区入口已建立，后续任务将在这里挂接草稿图谱和节点交互。',
+  canvasPlaceholder: '当前区域承载可编辑的草稿图谱；后续任务会继续补拖拽、撤销与聚焦能力。',
   canvasDraftTitle: '当前草稿画布',
-  canvasDraftSummary: '这里保留主图谱工作区，后续节点编辑、拖拽、悬浮信息都会挂在当前草稿之上。',
+  canvasDraftSummary: '这里承载当前草稿节点列表与基础编辑；后续节点拖拽、悬浮信息与同步动作会继续挂接在当前草稿之上。',
   statusSummary: '结果历史以右下角弹窗呈现，关闭后仍可从锚点重新打开。',
   statusPopupTitle: '最新结果',
   statusLatestEntry: {
@@ -50,7 +50,7 @@ export const appShellCopy = {
     'Delete / Backspace：删除节点',
     'Ctrl+Z：撤销一次草稿编辑',
   ],
-  hintSummary: '低干扰操作提示区嵌在画布左下角，以虚线参考框持续可见。',
+  hintSummary: '透明悬浮提示区固定在画布左下角，仅提供操作提示，不遮挡节点视图。',
   undoUnavailableReason: '当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。',
 } as const;
 

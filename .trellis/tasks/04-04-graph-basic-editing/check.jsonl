@@ -1,0 +1,8 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check draft-only state mutations and external-side-effect boundaries."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check T06 against the frozen verification matrix and child-task test-first rules."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "Check interaction semantics for selection, edit, create-child, and delete shortcuts."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/node-editor.md", "reason": "Check node editor validation, locked type semantics, and draft-only save behavior."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md", "reason": "Check graph invariants and parent-child integrity after edit mutations."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md", "reason": "Check workspace keyboard semantics and the rule that draft edits do not create status-history entries."}

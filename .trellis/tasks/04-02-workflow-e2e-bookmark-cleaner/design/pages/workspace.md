@@ -49,6 +49,18 @@ The following seven actions must be directly visible and understandable from but
 
 No extra action grouping is required as long as each button is individually clear.
 
+## Virtual Root Node
+
+The graph canvas renders a single visual root node at the leftmost position. It connects all actual root branches into one unified tree.
+
+Constraints:
+- Purely a view-layer decoration; no backing entry in `nodesById` or any persistence contract
+- Cannot be selected, edited, deleted, or have children created under it
+- Does not respond to hover, click, double-click, or keyboard events
+- Excluded from all sync, upload, restore, overwrite, and browser write-back operations
+- Excluded from draft mutation, undo history, and checkpoint operations
+- Must not be treated as a business node by any downstream consumer
+
 ## Core Workspace Behaviors
 
 ### Draft editing

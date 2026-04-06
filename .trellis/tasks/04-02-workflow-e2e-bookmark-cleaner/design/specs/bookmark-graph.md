@@ -56,6 +56,17 @@ Rules:
 - expanded/collapsed state and node positions do not participate in duplicate detection, content comparison, or browser write-back payload generation
 - system root containers stay fixed and do not enter normal rename, move, delete, or create-child semantics
 
+## Virtual Root Node (View Layer Only)
+
+The mindmap canvas renders a decorative virtual root node to unify multiple root branches visually. This node:
+
+- Does not exist in `nodesById`, `rootIds`, or any persistence contract
+- Is not a `DraftGraphNode` and has no `internalId`
+- Cannot be selected, edited, deleted, or have children
+- Is excluded from all sync, upload, restore, overwrite, and browser write-back operations
+- Is excluded from draft mutation, undo history, and checkpoint operations
+- Any code that iterates `nodesById` or processes graph content must not encounter or handle this node
+
 ## Test Points
 
 - graph builds from nested bookmark data into `nodesById` plus `rootIds`

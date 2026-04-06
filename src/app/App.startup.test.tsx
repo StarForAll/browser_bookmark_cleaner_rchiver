@@ -43,13 +43,9 @@ describe('T05 app startup integration', () => {
       expect(screen.getByText('首次启动已从浏览器导入当前书签树', { selector: '.status-entry dd' })).toBeInTheDocument();
     });
 
-    expect(screen.getAllByText('当前草稿包含 1 个节点，已可进入后续编辑。')).toHaveLength(2);
-    expect(screen.getByRole('heading', { level: 4, name: '导入摘要' })).toBeInTheDocument();
-    expect(screen.getByText('根节点 1 个 · 目录 0 个 · 书签 1 个')).toBeInTheDocument();
+    expect(screen.getByText('当前草稿包含 1 个节点，已可进入后续编辑。')).toBeInTheDocument();
     expect(screen.getByText('Docs')).toBeInTheDocument();
     expect(screen.getByText('书签')).toBeInTheDocument();
-    expect(screen.getByText('根层书签')).toBeInTheDocument();
-    expect(screen.getByText('当前只展示导入摘要；完整思维导图渲染与节点交互会在后续图谱任务接入。')).toBeInTheDocument();
   });
 
   test('surfaces an unsaved import warning when startup import cannot be persisted locally', async () => {
@@ -90,6 +86,6 @@ describe('T05 app startup integration', () => {
     });
 
     expect(screen.getByText('Storage quota exceeded.')).toBeInTheDocument();
-    expect(screen.getByText('当前草稿已导入 1 个节点，但尚未成功保存到本地；刷新后可能丢失。')).toBeInTheDocument();
+    expect(screen.getByText('Docs')).toBeInTheDocument();
   });
 });

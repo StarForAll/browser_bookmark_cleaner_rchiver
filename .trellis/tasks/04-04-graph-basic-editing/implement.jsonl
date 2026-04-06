@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Centralized draft-only state and undo/external-action boundaries for T06 editing flows."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "UI must forward edit intent without embedding browser or persistence side effects."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Node-type constraints and strong snapshot contracts for create/edit/delete."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frozen test-first baseline and verification commands for T06 child-task gate."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Graph basic editing spans domain snapshot, state, and UI interaction boundaries."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "Workspace interaction rules define selection, double-click edit, Enter create-child, and Delete semantics."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/node-editor.md", "reason": "Node editor contract defines editable fields, validation, and draft-only save behavior."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md", "reason": "Bookmark graph invariants define normalized draft truth and parent-child validity during edits."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/create-child.md", "reason": "Create-child flow defines Enter trigger, parent context, type toggle, and validation rules."}

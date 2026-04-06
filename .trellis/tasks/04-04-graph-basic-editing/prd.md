@@ -15,6 +15,7 @@ Enable baseline draft editing interactions including selection, editing, child c
 - Double-click edit flow
 - Create-child flow
 - Delete node and subtree flow
+- Virtual root node (view-layer only decoration)
 
 ## Out Of Scope
 - No drag move
