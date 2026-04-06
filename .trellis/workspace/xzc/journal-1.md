@@ -589,3 +589,36 @@ Completed T05 browser bookmark import to draft with startup restore/persistence 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: T06: 实现图谱基础编辑与虚拟根节点
+
+**Date**: 2026-04-06
+**Task**: T06: 实现图谱基础编辑与虚拟根节点
+**Branch**: `master`
+
+### Summary
+
+实现图谱基础编辑交互：虚拟根节点（视图层装饰）、悬浮详情卡片、智能节点间距（同父/不同父）、SVG 渐变内存优化、节点重叠修复。更新设计文档（AID.md、workspace.md、bookmark-graph.md）。自审 + 补充审查完成（SKIP）。已归档。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `426b483` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

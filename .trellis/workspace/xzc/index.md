@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 13
-- **Last Active**: 2026-04-05
+- **Total Sessions**: 14
+- **Last Active**: 2026-04-06
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~591 | Active |
+| `journal-1.md` | ~624 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 14 | 2026-04-06 | T06: 实现图谱基础编辑与虚拟根节点 | `426b483` | `master` |
 | 13 | 2026-04-05 | T05 Browser Import Startup Closeout | `637ac81` | `master` |
 | 12 | 2026-04-05 | T04 Contracts And Persistence Session | `8a9ab25`, `58bfb80` | `master` |
 | 11 | 2026-04-05 | Session收尾补录 | `0da5e9a`, `7ca1131` | `master` |
