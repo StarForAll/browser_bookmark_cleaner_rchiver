@@ -29,8 +29,9 @@ Read these files before changing frontend code or frontend-facing specs:
 4. [Hook Guidelines](./hook-guidelines.md)
 5. [Type Safety](./type-safety.md)
 6. [Browser Import Startup](./browser-import-startup.md)
-7. [Quality Guidelines](./quality-guidelines.md)
-8. [Guides Index](../guides/index.md)
+7. [Draft Graph Workspace](./draft-graph-workspace.md)
+8. [Quality Guidelines](./quality-guidelines.md)
+9. [Guides Index](../guides/index.md)
 
 Use the task `design/` package as the contract source for feature behavior, especially:
 
@@ -51,6 +52,7 @@ Use the task `design/` package as the contract source for feature behavior, espe
 | [Hook Guidelines](./hook-guidelines.md) | Hook scope, side-effect boundaries, and composition rules | Project-specific |
 | [State Management](./state-management.md) | Centralized state model, persistence timing, and external-action rules | Project-specific |
 | [Browser Import Startup](./browser-import-startup.md) | Executable startup bootstrap, restore, import, and error-state contracts | Project-specific |
+| [Draft Graph Workspace](./draft-graph-workspace.md) | Executable draft editing, drag-move, keyboard, hover, and persistence contracts | Project-specific |
 | [Quality Guidelines](./quality-guidelines.md) | Verification baseline, required patterns, and review checklist | Project-specific |
 | [Type Safety](./type-safety.md) | Domain contracts, adapter validation, and versioned payload rules | Project-specific |
 

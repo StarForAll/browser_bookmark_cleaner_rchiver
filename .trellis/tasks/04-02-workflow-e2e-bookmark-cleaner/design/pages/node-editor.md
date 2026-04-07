@@ -52,11 +52,15 @@ This surface edits the current draft node only. It never mutates browser bookmar
 - `Esc` closes without saving
 - submit is allowed only when validation passes
 - save updates the current draft only
-- save success creates one draft-history entry
+- save success persists the current draft session
 - save success does not trigger browser sync
 - save success does not create WebDAV versions
-- save success does not create a bottom-right status-history entry
+- save success does not create a status-history entry
 - invalid input stays local to the form and does not create a status-history record
+
+Current implementation note:
+
+- dedicated undo-history entry creation remains future task scope
 
 ## Validation Rules
 
@@ -67,8 +71,12 @@ This surface edits the current draft node only. It never mutates browser bookmar
 ## Success Result
 
 - the edited node updates immediately in the draft graph
-- hover information and duplicate calculations refresh if title or URL changed
+- hover information and URL preview refresh if title or URL changed
 - browser bookmarks remain unchanged until a later explicit sync action
+
+Current implementation note:
+
+- duplicate calculations remain future task scope
 
 ## Failure Result
 

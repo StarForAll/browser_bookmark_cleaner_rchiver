@@ -83,7 +83,7 @@ This surface is separate from WebDAV remote-version restore.
 
 ## Status Rules
 
-- completed recovery writes one entry into the bottom-right status history
+- completed recovery writes one entry into the status history
 - failed recovery writes one entry with short failure reason
 
 ## Copy Rules

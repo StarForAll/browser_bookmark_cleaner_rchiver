@@ -33,7 +33,7 @@ Define the configuration surface for the single WebDAV profile used in v1.
 
 ## Success Result
 
-- successful test writes one completed-action entry to the bottom-right status history
+- successful test writes one completed-action entry to the status history
 - successful save updates local configuration without implying upload or restore
 
 ## Failure Result

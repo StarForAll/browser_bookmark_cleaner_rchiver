@@ -72,7 +72,7 @@ This surface is used only for remote version restore. It does not cover local ba
 ## Status Rules
 
 - success or failure is recorded only after execution finishes
-- result entries go into the bottom-right status history
+- result entries go into the status history
 - failed entries include a short failure reason
 
 ## Copy Rules

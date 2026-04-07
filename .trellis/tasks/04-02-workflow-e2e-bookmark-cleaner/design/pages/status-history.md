@@ -2,7 +2,13 @@
 
 ## Purpose
 
-Define the bottom-right result popup and retained history entry pattern.
+Define the canvas-side result popup and retained history entry pattern.
+
+Current implementation snapshot:
+
+- popup open / close state is persisted locally
+- the latest startup result is persisted locally
+- retained multi-entry history is still future task scope; the current implementation shows the latest persisted entry only
 
 ## Layout
 
@@ -38,6 +44,7 @@ Define the bottom-right result popup and retained history entry pattern.
 
 ## Covered Actions
 
+- workspace startup initialization
 - overwrite current draft from browser bookmarks
 - sync current draft to browser bookmarks
 - upload current draft to WebDAV

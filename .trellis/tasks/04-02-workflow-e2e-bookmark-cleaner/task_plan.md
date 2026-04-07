@@ -8,16 +8,17 @@
 
 - 目录：`04-02-workflow-e2e-bookmark-cleaner`
 - 当前角色：总览、依赖汇总、阶段门禁、child task 编排
-- 当前阶段：`test-first`
+- 当前阶段：`implementation`
 
 当前状态：
 
 - 设计包已冻结并完成 `plan` 入场确认
 - refined task graph 已完成
 - 17 个 child task 已创建完成
-- 所有 child task 当前均为 `planning`
-- `plan` 已完成并已切换到 `test-first`
-- 尚未启动任何 child task 的测试编写或实现
+- `T01` 至 `T07A` 已完成实现并归档
+- 当前仍处于 active / planning 的 child task 为 `T07B` 至 `T13`
+- 已完成 child task 的实现范围已覆盖：工程基线、扩展运行壳、本地持久化契约、浏览器读取导入、图谱基础编辑、拖拽移动
+- 后续 child task 仍需按既定串行顺序推进，不能把已完成前序任务误记为“尚未启动”
 
 ## 父 Task 边界
 
@@ -36,7 +37,7 @@
 
 ## 当前门禁
 
-- 当前父 task 已进入 `test-first`
+- 父 task 的项目级 `test-first` 基线已冻结完成
 - 当前 `test-first` 采用双层规则：
   - 全局只冻结一次项目级测试基线
   - 执行时按 child task 逐个编写测试门禁
@@ -54,6 +55,8 @@
 - 旧式过渡方案文档：`PLAN-01.md`, `PLAN-01A.md`
 
 ## 产品验收摘要
+
+说明：以下为父 task 的产品验收目标摘要，不代表当前仓库已全部完成；当前已实现范围以“当前状态”和 child task 实际状态为准。
 
 - Chrome 扩展可加载，并打开独立工作区页面
 - 能读取浏览器书签并形成可编辑草稿图谱
@@ -118,11 +121,11 @@
 ## 当前执行状态摘要
 
 - 父 task：`in_progress`
-- child task：17/17 已创建，17/17 为 `planning`
-- 当前未执行 `init-context`
-- 当前未切换到任何 child task
-- 当前未开始任何 child task 的 `test-first`
-- 当前未开始任何实现
+- 已归档完成：`T01`、`T02`、`T03`、`T04`、`T05`、`T06`、`T07A`
+- 待继续推进：`T07B`、`T08A`、`T08B`、`T09A`、`T09B`、`T10`、`T11`、`T12A`、`T12B`、`T13`
+- child task：17/17 已创建；其中 7 个已归档完成，10 个仍处于 active / planning
+- 当前没有新的 active child task 正在执行；下一步若继续推进，应从剩余串行任务中显式点名
+- 剩余 child task 仍未开始各自的 `test-first` 与实现
 
 ## 后续入口
 

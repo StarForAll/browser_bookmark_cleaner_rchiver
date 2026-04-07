@@ -45,10 +45,14 @@ This surface exists to add one new child node under the selected parent without 
 - folder type hides or disables URL input
 - bookmark type requires URL input before submit
 - parent context stays visible during the whole flow
-- successful submit creates one draft-history entry
+- successful submit persists the current draft session
 - successful submit keeps the user inside the draft workspace
-- create success does not create a bottom-right status-history entry
+- create success does not create a status-history entry
 - failed create validation is shown inline and does not create a status-history record
+
+Current implementation note:
+
+- dedicated undo-history entry creation remains future task scope
 
 ## Validation Rules
 
@@ -71,7 +75,7 @@ This surface exists to add one new child node under the selected parent without 
 - the new node appears under the selected parent
 - the graph remains in draft mode
 - browser bookmarks remain unchanged
-- the bottom-right status area remains reserved for explicit overwrite, sync, upload, restore, recovery, and availability-test results
+- the status-result area remains reserved for explicit overwrite, sync, upload, restore, recovery, and availability-test results
 
 ## Failure Result
 

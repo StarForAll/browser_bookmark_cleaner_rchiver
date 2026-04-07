@@ -24,16 +24,24 @@ The workspace always represents the current draft, not live browser bookmarks.
    - product-owned mindmap branches
    - hover detail
 
-4. Top-right operation hint area
+4. Canvas-side operation hint area
    - always-visible low-emphasis help block
    - one line per operation hint
    - mouse and keyboard operations in one unified list
 
-5. Bottom-right result area
+5. Canvas-side result area
    - latest-result popup
    - close action
    - reopen anchor
    - newest-three history
+
+Current implementation snapshot:
+
+- when startup restores or imports a draft, the graph canvas renders the real draft workspace rather than a placeholder card
+- the visual virtual root is already rendered as a view-only anchor at the left side of the draft graph
+- the operation hint area and status result area are rendered together inside the canvas side rail
+- drag, create, edit, delete, reorder, and promote interactions are implemented for the current draft
+- search / duplicate focus and duplicate-path hover expansion remain future task scope
 
 ## Top-Right Explicit Actions
 
@@ -63,20 +71,31 @@ Constraints:
 
 ## Core Workspace Behaviors
 
+Unless a line is explicitly marked as future scope, the draft-editing behaviors below describe the current accepted workspace baseline.
+
 ### Draft editing
 
 - select node
 - double click to edit
 - `Enter` on a selected folder node to create a child
+- `Shift + Enter` on a selected node to create a sibling, including a new top-level root
 - `Delete` or `Backspace` to remove node or subtree
 - deleting a folder with multiple direct child nodes requires a secondary confirmation dialog
-- drag and `Ctrl+Z` remain future task scope rather than current workspace baseline
+- `ArrowUp / ArrowDown` reorder the selected node within the current level
+- `ArrowLeft` promotes the selected node by one level
+- drag moves and reorders the current draft only
+- `Ctrl+Z` remains future task scope rather than the current workspace baseline
 
 ### Search and duplicate focus
 
 - search matches title and URL only
 - duplicate-only mode filters the current draft view
 - search and duplicate-only mode can coexist
+
+Current implementation note:
+
+- search and duplicate-only mode are still future task scope
+- the workspace currently keeps the dedicated UI entry points visible but disabled
 
 ### Hover information
 
@@ -86,6 +105,11 @@ Constraints:
   - duplicate total count
   - first two duplicate paths by default
   - inline expand-more when more than two exist
+
+Current implementation note:
+
+- title, node type, full path, and bookmark URL are implemented
+- duplicate-count and duplicate-path expansion remain future task scope
 
 ## Secondary Surfaces Opened From The Workspace
 
@@ -112,13 +136,17 @@ Constraints:
 
 ## Operation Hint Rules
 
-- the top-right operation hint area is always visible
+- the canvas-side operation hint area is always visible
 - it must stay low-emphasis enough to avoid competing with the graph canvas
 - it must still remain readable when the user looks for guidance
-- the area shows the current five operation hints in one-line-per-item format:
+- the area shows one-line-per-item operation hints
+- the current implemented hint set is:
   - click: select node
   - double click: edit node
   - `Enter`: create child node under the selected folder
+  - `Shift + Enter`: create sibling node
+  - `ArrowUp / ArrowDown`: reorder within current level
+  - `ArrowLeft`: promote one level
   - `Delete / Backspace`: delete node
   - hover: view node details
 
@@ -141,6 +169,11 @@ Constraints:
 - newest entry appears first
 - closing the popup preserves the retained history
 - routine draft editing actions such as create-child, node edit, and delete do not enter this status history
+
+Current implementation note:
+
+- the status area already persists popup-open state and the latest startup result
+- newest-three retained history is still future task scope; the current implementation shows the latest persisted entry only
 
 ## Copy Rules
 

@@ -1,6 +1,6 @@
 export const appShellCopy = {
   title: '书签清理与归档工作区',
-  subtitle: '当前草稿工作区已经接入基础编辑，后续任务继续补拖拽、撤销、搜索与同步能力。',
+  subtitle: '当前草稿工作区已经接入基础编辑与拖拽，后续任务继续补撤销、搜索与同步能力。',
   topShellLabel: '顶部动作区',
   searchLabel: '搜索与聚焦区',
   canvasLabel: '图谱画布区',
@@ -10,10 +10,10 @@ export const appShellCopy = {
   searchSummary: '标题或 URL 搜索与重复聚焦会在后续任务接入；当前先保留入口位置。',
   searchInputPlaceholder: '搜索标题或 URL',
   searchToggleLabel: '仅看重复项',
-  canvasPlaceholder: '当前区域承载可编辑的草稿图谱；后续任务会继续补拖拽、撤销与聚焦能力。',
+  canvasPlaceholder: '当前区域承载可编辑的草稿图谱；后续任务会继续补撤销与聚焦能力。',
   canvasDraftTitle: '当前草稿画布',
-  canvasDraftSummary: '这里承载当前草稿节点列表与基础编辑；后续节点拖拽、悬浮信息与同步动作会继续挂接在当前草稿之上。',
-  statusSummary: '结果历史以右下角弹窗呈现，关闭后仍可从锚点重新打开。',
+  canvasDraftSummary: '这里承载当前草稿节点列表、基础编辑、拖拽与基础悬浮信息；后续同步、撤销与聚焦能力会继续挂接在当前草稿之上。',
+  statusSummary: '最新结果在画布侧状态区展示，关闭后仍可从锚点重新打开。',
   statusPopupTitle: '最新结果',
   statusLatestEntry: {
     action: '浏览器书签读取',
@@ -52,7 +52,7 @@ export const appShellCopy = {
     'Delete / Backspace：删除节点',
     '悬浮：查看节点详情',
   ],
-  hintSummary: '透明悬浮提示区固定在画布右上角，仅提供当前可用操作，不遮挡节点视图。',
+  hintSummary: '低干扰提示区位于画布侧栏，只展示当前可用操作，不遮挡节点视图。',
   undoUnavailableReason: '当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。',
 } as const;
 

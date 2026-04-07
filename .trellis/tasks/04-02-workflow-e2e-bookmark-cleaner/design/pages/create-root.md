@@ -43,7 +43,7 @@ This surface exists to close the empty-state creation path without introducing a
 - it creates the first root node only
 - once at least one root node exists, normal create-child flow handles later additions under selected parents
 - successful submit creates one draft-history entry
-- successful submit does not create a bottom-right status-history entry
+- successful submit does not create a status-history entry
 
 ## Validation Rules
 
