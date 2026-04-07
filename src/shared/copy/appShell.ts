@@ -47,6 +47,8 @@ export const appShellCopy = {
     '双击：编辑节点',
     'Enter：创建子节点',
     'Shift + Enter：新增同级节点',
+    '↑ / ↓：调整当前层级顺序',
+    '←：提升一级目录层级',
     'Delete / Backspace：删除节点',
     '悬浮：查看节点详情',
   ],

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import type { DraftGraphSnapshot } from './contracts';
 import { createDraftGraphFixture } from '../../../test/fixtures/draftGraph';
 
 describe('T06 draft graph editing domain gate', () => {
@@ -150,5 +151,232 @@ describe('T06 draft graph editing domain gate', () => {
       expect(deletionResult.snapshot.nodesById['bookmark-legacy']).toBeUndefined();
       expect(deletionResult.snapshot.nodesById['folder-root']?.childIds).toEqual(['bookmark-docs']);
     }
+  });
+});
+
+type MoveDraftNodeInput = {
+  nodeId: string;
+  targetParentId: string | null;
+  targetIndex?: number;
+};
+
+type MoveDraftNodeResult =
+  | {
+      ok: true;
+      snapshot: DraftGraphSnapshot;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+type EditingModuleWithMove = typeof import('./editing') & {
+  moveDraftNode?: (snapshot: DraftGraphSnapshot, input: MoveDraftNodeInput) => MoveDraftNodeResult;
+};
+
+function createMultiRootDraftGraphFixture(): DraftGraphSnapshot {
+  const snapshot = createDraftGraphFixture();
+
+  return {
+    ...snapshot,
+    nodesById: {
+      ...snapshot.nodesById,
+      'folder-personal': {
+        internalId: 'folder-personal',
+        sourceType: 'draft',
+        nodeType: 'folder',
+        title: '个人收藏',
+        url: null,
+        parentId: null,
+        childIds: ['bookmark-start'],
+        pathTokens: ['个人收藏'],
+      },
+      'bookmark-start': {
+        internalId: 'bookmark-start',
+        sourceType: 'draft',
+        nodeType: 'bookmark',
+        title: '起始页',
+        url: 'https://start.example.com',
+        parentId: 'folder-personal',
+        childIds: [],
+        pathTokens: ['个人收藏', '起始页'],
+      },
+    },
+    rootIds: ['folder-root', 'folder-personal'],
+  };
+}
+
+describe('T07A draft graph drag-move domain gate', () => {
+  test('moves a top-level root node into another folder and removes it from rootIds', async () => {
+    const editing = (await import('./editing')) as EditingModuleWithMove;
+    const moveDraftNode = editing.moveDraftNode;
+    const initialSnapshot = createMultiRootDraftGraphFixture();
+
+    expect(moveDraftNode).toBeTypeOf('function');
+    if (!moveDraftNode) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(initialSnapshot, {
+      nodeId: 'folder-personal',
+      targetParentId: 'folder-root',
+      targetIndex: 1,
+    });
+
+    expect(moveResult.ok).toBe(true);
+    if (moveResult.ok) {
+      expect(moveResult.snapshot.rootIds).toEqual(['folder-root']);
+      expect(moveResult.snapshot.nodesById['folder-root']?.childIds).toEqual([
+        'bookmark-docs',
+        'folder-personal',
+        'folder-archive',
+      ]);
+      expect(moveResult.snapshot.nodesById['folder-personal']).toEqual(
+        expect.objectContaining({
+          parentId: 'folder-root',
+          pathTokens: ['工作资料', '个人收藏'],
+        }),
+      );
+      expect(moveResult.snapshot.nodesById['bookmark-start']?.pathTokens).toEqual([
+        '工作资料',
+        '个人收藏',
+        '起始页',
+      ]);
+    }
+  });
+
+  test('moves a nested node to the top level and adds it into rootIds', async () => {
+    const editing = (await import('./editing')) as EditingModuleWithMove;
+    const moveDraftNode = editing.moveDraftNode;
+    const initialSnapshot = createDraftGraphFixture();
+
+    expect(moveDraftNode).toBeTypeOf('function');
+    if (!moveDraftNode) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(initialSnapshot, {
+      nodeId: 'bookmark-docs',
+      targetParentId: null,
+      targetIndex: 0,
+    });
+
+    expect(moveResult.ok).toBe(true);
+    if (moveResult.ok) {
+      expect(moveResult.snapshot.rootIds).toEqual(['bookmark-docs', 'folder-root']);
+      expect(moveResult.snapshot.nodesById['folder-root']?.childIds).toEqual(['folder-archive']);
+      expect(moveResult.snapshot.nodesById['bookmark-docs']).toEqual(
+        expect.objectContaining({
+          parentId: null,
+          pathTokens: ['产品文档'],
+        }),
+      );
+    }
+  });
+
+  test('reorders sibling nodes inside the same parent without changing the parent relationship', async () => {
+    const editing = (await import('./editing')) as EditingModuleWithMove;
+    const moveDraftNode = editing.moveDraftNode;
+    const initialSnapshot = createDraftGraphFixture();
+
+    expect(moveDraftNode).toBeTypeOf('function');
+    if (!moveDraftNode) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(initialSnapshot, {
+      nodeId: 'folder-archive',
+      targetParentId: 'folder-root',
+      targetIndex: 0,
+    });
+
+    expect(moveResult.ok).toBe(true);
+    if (moveResult.ok) {
+      expect(moveResult.snapshot.nodesById['folder-root']?.childIds).toEqual(['folder-archive', 'bookmark-docs']);
+      expect(moveResult.snapshot.nodesById['folder-archive']).toEqual(
+        expect.objectContaining({
+          parentId: 'folder-root',
+          pathTokens: ['工作资料', '归档'],
+        }),
+      );
+    }
+  });
+
+  test('moves a bookmark into a folder while preserving normalized draft invariants', async () => {
+    const editing = (await import('./editing')) as EditingModuleWithMove;
+    const moveDraftNode = editing.moveDraftNode;
+    const initialSnapshot = createDraftGraphFixture();
+
+    expect(moveDraftNode).toBeTypeOf('function');
+    if (!moveDraftNode) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(initialSnapshot, {
+      nodeId: 'bookmark-docs',
+      targetParentId: 'folder-archive',
+      targetIndex: 0,
+    });
+
+    expect(moveResult.ok).toBe(true);
+    if (moveResult.ok) {
+      expect(moveResult.snapshot.nodesById['bookmark-docs']).toEqual(
+        expect.objectContaining({
+          parentId: 'folder-archive',
+          pathTokens: ['工作资料', '归档', '产品文档'],
+        }),
+      );
+      expect(moveResult.snapshot.nodesById['folder-root']?.childIds).toEqual(['folder-archive']);
+      expect(moveResult.snapshot.nodesById['folder-archive']?.childIds).toEqual([
+        'bookmark-docs',
+        'bookmark-legacy',
+      ]);
+    }
+  });
+
+  test('rejects non-folder drop targets before mutating the draft snapshot', async () => {
+    const editing = (await import('./editing')) as EditingModuleWithMove;
+    const moveDraftNode = editing.moveDraftNode;
+    const initialSnapshot = createDraftGraphFixture();
+
+    expect(moveDraftNode).toBeTypeOf('function');
+    if (!moveDraftNode) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(initialSnapshot, {
+      nodeId: 'folder-archive',
+      targetParentId: 'bookmark-docs',
+    });
+
+    expect(moveResult.ok).toBe(false);
+    if (!moveResult.ok) {
+      expect(moveResult.error.trim().length).toBeGreaterThan(0);
+    }
+    expect(initialSnapshot.nodesById['folder-root']?.childIds).toEqual(['bookmark-docs', 'folder-archive']);
+    expect(initialSnapshot.nodesById['folder-archive']?.parentId).toBe('folder-root');
+  });
+
+  test('rejects moves that would place a folder inside its own descendant subtree', async () => {
+    const editing = (await import('./editing')) as EditingModuleWithMove;
+    const moveDraftNode = editing.moveDraftNode;
+    const initialSnapshot = createDraftGraphFixture();
+
+    expect(moveDraftNode).toBeTypeOf('function');
+    if (!moveDraftNode) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(initialSnapshot, {
+      nodeId: 'folder-root',
+      targetParentId: 'folder-archive',
+    });
+
+    expect(moveResult.ok).toBe(false);
+    if (!moveResult.ok) {
+      expect(moveResult.error.trim().length).toBeGreaterThan(0);
+    }
+    expect(initialSnapshot.rootIds).toEqual(['folder-root']);
+    expect(initialSnapshot.nodesById['folder-archive']?.parentId).toBe('folder-root');
   });
 });

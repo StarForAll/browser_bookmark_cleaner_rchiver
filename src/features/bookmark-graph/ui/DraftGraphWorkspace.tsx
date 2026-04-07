@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type DragEvent as ReactDragEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react';
@@ -18,6 +19,7 @@ import {
   createDraftSiblingNode,
   deleteDraftNodeSubtree,
   editDraftNode,
+  moveDraftNode,
   selectDraftNode,
 } from '@/domain/draft-graph/editing';
 import { type DraftGraphNode, type DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
@@ -66,9 +68,12 @@ type MindmapLayoutNode = {
   nodeId: string;
   x: number;
   y: number;
+  height: number;
   branchColor: string;
   depth: number;
   isVirtualRoot?: boolean;
+  shellTop?: number;
+  shellHeight?: number;
 };
 
 type MindmapLayoutBranch = {
@@ -92,6 +97,7 @@ type LayoutNodeMeta = {
   depth: number;
   parentId: string | null;
   baseY: number;
+  height: number;
 };
 
 type CanvasViewport = {
@@ -102,7 +108,11 @@ type CanvasViewport = {
 };
 
 const MINDMAP_NODE_WIDTH = 220;
-const MINDMAP_NODE_HEIGHT = 40;
+const BOOKMARK_NODE_HEIGHT = 56;
+const ROOT_BOOKMARK_NODE_HEIGHT = 66;
+const ROOT_FOLDER_NODE_HEIGHT = 46;
+const FOLDER_NODE_HEIGHT = 40;
+const VIRTUAL_ROOT_NODE_HEIGHT = 46;
 const MINDMAP_HORIZONTAL_GAP = 80;
 const MINDMAP_VERTICAL_GAP = 16;
 const MINDMAP_PADDING_X = 32;
@@ -132,6 +142,12 @@ type HoverCardPosition = {
   top: number;
 };
 
+type DragPreviewState = {
+  highlightNodeId: string;
+  targetParentId: string | null;
+  targetIndex: number;
+} | null;
+
 function buildPersistedDraftSession(snapshot: DraftGraphSnapshot): PersistedDraftSession {
   return {
     schemaVersion: LOCAL_PERSISTENCE_SCHEMA_VERSION,
@@ -141,6 +157,14 @@ function buildPersistedDraftSession(snapshot: DraftGraphSnapshot): PersistedDraf
     undoHistory: [],
     checkpoints: [],
   };
+}
+
+function getDraftNodeLayoutHeight(node: DraftGraphNode, depth: number): number {
+  if (node.nodeType === 'bookmark') {
+    return depth === 0 ? ROOT_BOOKMARK_NODE_HEIGHT : BOOKMARK_NODE_HEIGHT;
+  }
+
+  return depth === 0 ? ROOT_FOLDER_NODE_HEIGHT : FOLDER_NODE_HEIGHT;
 }
 
 const VIRTUAL_ROOT_ID = '__virtual_root__';
@@ -181,7 +205,7 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
   let maxDepth = 0;
   let traversalIndex = 0;
 
-  const leafStride = MINDMAP_NODE_HEIGHT + MINDMAP_VERTICAL_GAP;
+  const leafStride = ROOT_BOOKMARK_NODE_HEIGHT + MINDMAP_VERTICAL_GAP;
 
   function placeNode(
     nodeId: string,
@@ -190,16 +214,18 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
     leafIndex: number,
   ): { centerY: number; nextLeafIndex: number } {
     const node = snapshot.nodesById[nodeId] as DraftGraphNode;
+    const nodeHeight = getDraftNodeLayoutHeight(node, depth);
     const entry = traversalIndex;
     traversalIndex += 1;
     maxDepth = Math.max(maxDepth, depth);
 
     if (node.childIds.length === 0) {
-      const centerY = MINDMAP_PADDING_Y + leafIndex * leafStride + MINDMAP_NODE_HEIGHT / 2;
+      const centerY = MINDMAP_PADDING_Y + leafIndex * leafStride + nodeHeight / 2;
       const layoutNode = {
         nodeId,
         x: MINDMAP_PADDING_X + depth * (MINDMAP_NODE_WIDTH + MINDMAP_HORIZONTAL_GAP),
-        y: centerY - MINDMAP_NODE_HEIGHT / 2,
+        y: centerY - nodeHeight / 2,
+        height: nodeHeight,
         branchColor,
         depth,
       };
@@ -212,6 +238,7 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
         depth,
         parentId: node.parentId,
         baseY: layoutNode.y,
+        height: nodeHeight,
       });
       return {
         centerY,
@@ -238,7 +265,8 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
     const layoutNode = {
       nodeId,
       x: MINDMAP_PADDING_X + depth * (MINDMAP_NODE_WIDTH + MINDMAP_HORIZONTAL_GAP),
-      y: centerY - MINDMAP_NODE_HEIGHT / 2,
+      y: centerY - nodeHeight / 2,
+      height: nodeHeight,
       branchColor,
       depth,
     };
@@ -251,6 +279,7 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
       depth,
       parentId: node.parentId,
       baseY: layoutNode.y,
+      height: nodeHeight,
     });
 
     return {
@@ -267,20 +296,24 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
     leafIndex = placement.nextLeafIndex + 1;
   });
 
-  // Add virtual root node at depth -1, aligned with the first root node's top
-  // This ensures the virtual root is always visible near the top of the canvas
+  // Add a visible virtual root at depth -1. The button itself should sit in the
+  // vertical middle of the root cluster, while the drop zone still spans the
+  // whole root band so nested nodes can be dropped back to top level anywhere
+  // along that band.
   if (snapshot.rootIds.length > 0 && rootCenters.length > 0) {
     const virtualRootX = MINDMAP_PADDING_X;
-    // Align virtual root with the first root node's top edge (not centered on all roots)
-    const firstRootTop = rootCenters[0] - MINDMAP_NODE_HEIGHT / 2;
+    const rootMidpoint = (rootCenters[0] + rootCenters[rootCenters.length - 1]) / 2;
 
     const virtualRootNode = {
       nodeId: VIRTUAL_ROOT_ID,
       x: virtualRootX,
-      y: firstRootTop,
+      y: rootMidpoint - VIRTUAL_ROOT_NODE_HEIGHT / 2,
+      height: VIRTUAL_ROOT_NODE_HEIGHT,
       branchColor: ROOT_BRANCH_COLORS[0],
       depth: -1,
       isVirtualRoot: true,
+      shellTop: rootMidpoint - VIRTUAL_ROOT_NODE_HEIGHT / 2,
+      shellHeight: VIRTUAL_ROOT_NODE_HEIGHT,
     };
     nodes.push(virtualRootNode);
     nodeById.set(VIRTUAL_ROOT_ID, virtualRootNode);
@@ -310,24 +343,37 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
   // We push overlapping subtrees down to resolve this.
   resolveOverlaps(nodeById, layoutMetaById);
 
-  // After resolving overlaps, keep the virtual root aligned with the first visible root.
+  // After resolving overlaps, keep the virtual root button centered on the
+  // visible root band and expand its shell so the virtual-root drop zone still
+  // covers the whole root layer.
   const virtualRootNode = nodeById.get(VIRTUAL_ROOT_ID);
   if (virtualRootNode) {
-    const rootCenters = snapshot.rootIds
+    const rootLayouts = snapshot.rootIds
       .map((rootId) => nodeById.get(rootId))
-      .filter((node): node is MindmapLayoutNode => node !== undefined)
-      .map((node) => node.y + MINDMAP_NODE_HEIGHT / 2);
+      .filter((node): node is MindmapLayoutNode => node !== undefined);
 
-    if (rootCenters.length > 0) {
-      // Keep virtual root aligned with the first root's top (not centered)
-      // This ensures it stays near the top of the canvas regardless of graph size
-      virtualRootNode.y = rootCenters[0] - MINDMAP_NODE_HEIGHT / 2;
+    if (rootLayouts.length > 0) {
+      const rootTop = rootLayouts.reduce(
+        (currentTop, node) => Math.min(currentTop, node.y),
+        rootLayouts[0].y,
+      );
+      const rootBottom = rootLayouts.reduce(
+        (currentBottom, node) => Math.max(currentBottom, node.y + node.height),
+        rootLayouts[0].y + rootLayouts[0].height,
+      );
+      const rootMidpoint =
+        ((rootLayouts[0].y + rootLayouts[0].height / 2) +
+          (rootLayouts[rootLayouts.length - 1].y + rootLayouts[rootLayouts.length - 1].height / 2)) / 2;
+
+      virtualRootNode.y = rootMidpoint - virtualRootNode.height / 2;
+      virtualRootNode.shellTop = rootTop;
+      virtualRootNode.shellHeight = Math.max(virtualRootNode.height, rootBottom - rootTop);
     }
   }
 
   const maxBottom = nodes.reduce(
-    (currentMax, node) => Math.max(currentMax, node.y + MINDMAP_NODE_HEIGHT),
-    MINDMAP_PADDING_Y + MINDMAP_NODE_HEIGHT,
+    (currentMax, node) => Math.max(currentMax, node.y + node.height),
+    MINDMAP_PADDING_Y + BOOKMARK_NODE_HEIGHT,
   );
 
   return {
@@ -386,7 +432,7 @@ function resolveOverlaps(
         currentTop += pushDown;
       }
 
-      previousBottom = currentTop + MINDMAP_NODE_HEIGHT;
+      previousBottom = currentTop + currentNode.height;
       previousParentId = currentNode.parentId;
     }
   }
@@ -414,6 +460,221 @@ function getHoverCardPosition(layout: MindmapLayoutNode, canvas: MindmapLayoutRe
   return {
     left: Math.min(left, maxLeft),
     top: clampedTop,
+  };
+}
+
+function resolveDropTargetIndex(
+  snapshot: DraftGraphSnapshot,
+  layoutByNodeId: Record<string, MindmapLayoutNode>,
+  targetParentId: string,
+  clientY: number,
+  treeContainer: HTMLElement | null,
+): number {
+  const targetParent = snapshot.nodesById[targetParentId];
+  if (!targetParent || targetParent.childIds.length === 0 || treeContainer === null) {
+    return 0;
+  }
+
+  const treeRect = treeContainer.getBoundingClientRect();
+  const canvasY = clientY - treeRect.top + treeContainer.scrollTop - TREE_CONTENT_PADDING;
+  const targetParentLayout = layoutByNodeId[targetParentId];
+  if (targetParentLayout && canvasY <= targetParentLayout.y + targetParentLayout.height / 2) {
+    return 0;
+  }
+  const childCenters = targetParent.childIds
+    .map((childId) => layoutByNodeId[childId])
+    .filter((layoutNode): layoutNode is MindmapLayoutNode => layoutNode !== undefined)
+    .map((layoutNode) => layoutNode.y + layoutNode.height / 2);
+
+  for (let index = 0; index < childCenters.length; index += 1) {
+    if (canvasY < childCenters[index]) {
+      return index;
+    }
+  }
+
+  return childCenters.length;
+}
+
+function resolveRootDropTargetIndex(
+  snapshot: DraftGraphSnapshot,
+  layoutByNodeId: Record<string, MindmapLayoutNode>,
+  clientY: number,
+  treeContainer: HTMLElement | null,
+): number {
+  if (snapshot.rootIds.length === 0 || treeContainer === null) {
+    return 0;
+  }
+
+  const treeRect = treeContainer.getBoundingClientRect();
+  const canvasY = clientY - treeRect.top + treeContainer.scrollTop - TREE_CONTENT_PADDING;
+  const rootCenters = snapshot.rootIds
+    .map((rootId) => layoutByNodeId[rootId])
+    .filter((layoutNode): layoutNode is MindmapLayoutNode => layoutNode !== undefined)
+    .map((layoutNode) => layoutNode.y + layoutNode.height / 2);
+
+  for (let index = 0; index < rootCenters.length; index += 1) {
+    if (canvasY < rootCenters[index]) {
+      return index;
+    }
+  }
+
+  return rootCenters.length;
+}
+
+function resolveSiblingReorderTarget(
+  snapshot: DraftGraphSnapshot,
+  layoutByNodeId: Record<string, MindmapLayoutNode>,
+  sourceNodeId: string,
+  targetNodeId: string,
+  clientY: number,
+  treeContainer: HTMLElement | null,
+): DragPreviewState {
+  const sourceNode = snapshot.nodesById[sourceNodeId];
+  const targetNode = snapshot.nodesById[targetNodeId];
+  if (!sourceNode || !targetNode || sourceNode.internalId === targetNode.internalId) {
+    return null;
+  }
+
+  if (sourceNode.parentId !== targetNode.parentId) {
+    return null;
+  }
+
+  const siblingIds = sourceNode.parentId === null
+    ? snapshot.rootIds.filter((childId) => childId !== sourceNodeId)
+    : snapshot.nodesById[sourceNode.parentId]?.childIds.filter((childId) => childId !== sourceNodeId);
+  const targetLayout = layoutByNodeId[targetNodeId];
+  if (!siblingIds || !targetLayout) {
+    return null;
+  }
+
+  const targetIndexBase = siblingIds.indexOf(targetNodeId);
+  if (targetIndexBase < 0) {
+    return null;
+  }
+
+  const treeRect = treeContainer?.getBoundingClientRect();
+  const canvasY = treeRect
+    ? clientY - treeRect.top + (treeContainer?.scrollTop ?? 0) - TREE_CONTENT_PADDING
+    : targetLayout.y;
+  const targetMidpoint = targetLayout.y + targetLayout.height / 2;
+  const insertAfterTarget = canvasY >= targetMidpoint;
+
+  return {
+    highlightNodeId: targetNodeId,
+    targetParentId: sourceNode.parentId,
+    targetIndex: targetIndexBase + (insertAfterTarget ? 1 : 0),
+  };
+}
+
+function resolveKeyboardReorderTarget(
+  snapshot: DraftGraphSnapshot,
+  nodeId: string,
+  direction: -1 | 1,
+): { targetParentId: string | null; targetIndex: number } | null {
+  const node = snapshot.nodesById[nodeId];
+  if (!node) {
+    return null;
+  }
+
+  const siblingIds =
+    node.parentId === null
+      ? snapshot.rootIds
+      : snapshot.nodesById[node.parentId]?.childIds;
+  if (!siblingIds) {
+    return null;
+  }
+
+  const currentIndex = siblingIds.indexOf(nodeId);
+  if (currentIndex < 0) {
+    return null;
+  }
+
+  const targetIndex = currentIndex + direction;
+  if (targetIndex < 0 || targetIndex >= siblingIds.length) {
+    return null;
+  }
+
+  return {
+    targetParentId: node.parentId,
+    targetIndex,
+  };
+}
+
+function resolveKeyboardPromoteTarget(
+  snapshot: DraftGraphSnapshot,
+  nodeId: string,
+): { targetParentId: string | null; targetIndex: number } | null {
+  const node = snapshot.nodesById[nodeId];
+  if (!node || node.parentId === null) {
+    return null;
+  }
+
+  const currentParent = snapshot.nodesById[node.parentId];
+  if (!currentParent) {
+    return null;
+  }
+
+  return {
+    targetParentId: currentParent.parentId,
+    targetIndex: 0,
+  };
+}
+
+function resolveDragPreviewState(
+  snapshot: DraftGraphSnapshot,
+  layoutByNodeId: Record<string, MindmapLayoutNode>,
+  sourceNodeId: string,
+  targetNodeId: string,
+  clientY: number,
+  treeContainer: HTMLElement | null,
+  preferIntoFolder: boolean,
+): DragPreviewState {
+  if (targetNodeId === VIRTUAL_ROOT_ID) {
+    return {
+      highlightNodeId: VIRTUAL_ROOT_ID,
+      targetParentId: null,
+      targetIndex: resolveRootDropTargetIndex(
+        snapshot,
+        layoutByNodeId,
+        clientY,
+        treeContainer,
+      ),
+    };
+  }
+
+  const targetNode = snapshot.nodesById[targetNodeId];
+  if (!targetNode || targetNode.nodeType !== 'folder') {
+    return resolveSiblingReorderTarget(
+      snapshot,
+      layoutByNodeId,
+      sourceNodeId,
+      targetNodeId,
+      clientY,
+      treeContainer,
+    );
+  }
+
+  if (!preferIntoFolder) {
+    return resolveSiblingReorderTarget(
+      snapshot,
+      layoutByNodeId,
+      sourceNodeId,
+      targetNodeId,
+      clientY,
+      treeContainer,
+    );
+  }
+
+  return {
+    highlightNodeId: targetNodeId,
+    targetParentId: targetNodeId,
+    targetIndex: resolveDropTargetIndex(
+      snapshot,
+      layoutByNodeId,
+      targetNodeId,
+      clientY,
+      treeContainer,
+    ),
   };
 }
 
@@ -450,7 +711,7 @@ function isLayoutNodeVisible(layoutNode: MindmapLayoutNode, viewport: CanvasView
   const nodeLeft = layoutNode.x;
   const nodeTop = layoutNode.y;
   const nodeRight = nodeLeft + MINDMAP_NODE_WIDTH;
-  const nodeBottom = nodeTop + MINDMAP_NODE_HEIGHT;
+  const nodeBottom = nodeTop + layoutNode.height;
 
   return (
     nodeRight >= viewport.left - VIEWPORT_OVERSCAN_X &&
@@ -510,6 +771,9 @@ export function DraftGraphWorkspace({
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [hoverState, setHoverState] = useState<HoverState>(null);
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [dragPreviewState, setDragPreviewState] = useState<DragPreviewState>(null);
+  const [dragMoveError, setDragMoveError] = useState<string | null>(null);
   const treeContainerRef = useRef<HTMLElement | null>(null);
   const dialogBackdropRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -611,6 +875,7 @@ export function DraftGraphWorkspace({
       return;
     }
 
+    setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
     setDialogState({
       kind: 'edit',
@@ -627,6 +892,7 @@ export function DraftGraphWorkspace({
       return;
     }
 
+    setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
     setDialogState({
       kind: 'create-child',
@@ -644,6 +910,7 @@ export function DraftGraphWorkspace({
       return;
     }
 
+    setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
     setDialogState({
       kind: 'create-sibling',
@@ -657,6 +924,7 @@ export function DraftGraphWorkspace({
   }, [snapshot.nodesById]);
 
   const openDeleteConfirmDialog = useCallback((node: DraftGraphNode): void => {
+    setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
     setDialogState({
       kind: 'delete-confirm',
@@ -743,6 +1011,49 @@ export function DraftGraphWorkspace({
     await commitDelete(targetNodeId);
   }, [closeDialog, commitDelete, dialogState]);
 
+  const reorderNodeWithinCurrentLevel = useCallback(async (
+    nodeId: string,
+    direction: -1 | 1,
+  ): Promise<void> => {
+    const reorderTarget = resolveKeyboardReorderTarget(snapshot, nodeId, direction);
+    if (!reorderTarget) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(snapshot, {
+      nodeId,
+      targetParentId: reorderTarget.targetParentId,
+      targetIndex: reorderTarget.targetIndex,
+    });
+    if (!moveResult.ok) {
+      setDragMoveError(moveResult.error);
+      return;
+    }
+
+    setDragMoveError(null);
+    await commitSnapshot(moveResult.snapshot);
+  }, [commitSnapshot, snapshot]);
+
+  const promoteNodeOneLevel = useCallback(async (nodeId: string): Promise<void> => {
+    const promoteTarget = resolveKeyboardPromoteTarget(snapshot, nodeId);
+    if (!promoteTarget) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(snapshot, {
+      nodeId,
+      targetParentId: promoteTarget.targetParentId,
+      targetIndex: promoteTarget.targetIndex,
+    });
+    if (!moveResult.ok) {
+      setDragMoveError(moveResult.error);
+      return;
+    }
+
+    setDragMoveError(null);
+    await commitSnapshot(moveResult.snapshot);
+  }, [commitSnapshot, snapshot]);
+
   const handleNodeKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>, nodeId: string): void => {
     if (isDialogOpen) {
       event.preventDefault();
@@ -768,8 +1079,29 @@ export function DraftGraphWorkspace({
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
       void handleDelete(nodeId);
+      return;
     }
-  }, [handleDelete, isDialogOpen, openCreateChildDialog, openCreateSiblingDialog, snapshot.nodesById]);
+
+    if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && snapshot.selectedNodeId === nodeId) {
+      event.preventDefault();
+      void reorderNodeWithinCurrentLevel(nodeId, event.key === 'ArrowUp' ? -1 : 1);
+      return;
+    }
+
+    if (event.key === 'ArrowLeft' && snapshot.selectedNodeId === nodeId) {
+      event.preventDefault();
+      void promoteNodeOneLevel(nodeId);
+    }
+  }, [
+    handleDelete,
+    isDialogOpen,
+    openCreateChildDialog,
+    openCreateSiblingDialog,
+    promoteNodeOneLevel,
+    reorderNodeWithinCurrentLevel,
+    snapshot.nodesById,
+    snapshot.selectedNodeId,
+  ]);
 
   const handleNodeMouseEnter = useCallback((_event: ReactMouseEvent<HTMLButtonElement>, nodeId: string): void => {
     setHoverState({ nodeId });
@@ -780,9 +1112,141 @@ export function DraftGraphWorkspace({
   }, []);
 
   const handleNodeSelect = useCallback((nodeId: string): void => {
+    setDragMoveError(null);
     setSnapshot((current) => selectDraftNode(current, nodeId));
     setHoverState(null);
   }, []);
+
+  const handleNodeDragStart = useCallback((event: ReactDragEvent<HTMLElement>): void => {
+    if (isDialogOpen) {
+      event.preventDefault();
+      return;
+    }
+
+    const nodeId = event.currentTarget.dataset.nodeId;
+    if (!nodeId) {
+      event.preventDefault();
+      return;
+    }
+
+    setDragMoveError(null);
+    setDraggedNodeId(nodeId);
+    setDragPreviewState(null);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', nodeId);
+    event.dataTransfer.setData('application/x-draft-node-id', nodeId);
+  }, [isDialogOpen]);
+
+  const handleNodeDragEnd = useCallback((): void => {
+    setDraggedNodeId(null);
+    setDragPreviewState(null);
+  }, []);
+
+  const handleNodeDragOver = useCallback((event: ReactDragEvent<HTMLElement>): void => {
+    const targetNodeId = event.currentTarget.dataset.nodeId;
+    if (!targetNodeId) {
+      return;
+    }
+
+    const sourceNodeId = draggedNodeId ?? event.dataTransfer.getData('application/x-draft-node-id');
+    if (!sourceNodeId) {
+      return;
+    }
+
+    const preferIntoFolder = event.currentTarget.classList.contains('draft-node-drop-zone');
+    const nextPreviewState = resolveDragPreviewState(
+      snapshot,
+      layoutByNodeId,
+      sourceNodeId,
+      targetNodeId,
+      event.clientY,
+      treeContainerRef.current,
+      preferIntoFolder,
+    );
+    if (!nextPreviewState) {
+      return;
+    }
+
+    const movePreview = moveDraftNode(snapshot, {
+      nodeId: sourceNodeId,
+      targetParentId: nextPreviewState.targetParentId,
+      targetIndex: nextPreviewState.targetIndex,
+    });
+    if (!movePreview.ok) {
+      setDragPreviewState((current) => (current?.highlightNodeId === targetNodeId ? null : current));
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragPreviewState(nextPreviewState);
+  }, [draggedNodeId, layoutByNodeId, snapshot, snapshot.nodesById]);
+
+  const handleNodeDragLeave = useCallback((event: ReactDragEvent<HTMLElement>): void => {
+    const currentTargetNodeId = event.currentTarget.dataset.nodeId;
+    if (!currentTargetNodeId) {
+      return;
+    }
+
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) {
+      return;
+    }
+
+    setDragPreviewState((current) => (current?.highlightNodeId === currentTargetNodeId ? null : current));
+  }, []);
+
+  const handleNodeDrop = useCallback(async (event: ReactDragEvent<HTMLElement>): Promise<void> => {
+    event.preventDefault();
+
+    const targetNodeId = event.currentTarget.dataset.nodeId;
+    if (!targetNodeId) {
+      setDraggedNodeId(null);
+      return;
+    }
+
+    const sourceNodeId =
+      draggedNodeId ??
+      event.dataTransfer.getData('application/x-draft-node-id') ??
+      event.dataTransfer.getData('text/plain');
+    setDraggedNodeId(null);
+    setDragPreviewState(null);
+
+    if (!sourceNodeId) {
+      return;
+    }
+
+    const preferIntoFolder = event.currentTarget.classList.contains('draft-node-drop-zone');
+    const nextPreviewState =
+      dragPreviewState?.highlightNodeId === targetNodeId
+        ? dragPreviewState
+        : resolveDragPreviewState(
+            snapshot,
+            layoutByNodeId,
+            sourceNodeId,
+            targetNodeId,
+            event.clientY,
+            treeContainerRef.current,
+            preferIntoFolder,
+          );
+    if (!nextPreviewState) {
+      return;
+    }
+
+    const moveResult = moveDraftNode(snapshot, {
+      nodeId: sourceNodeId,
+      targetParentId: nextPreviewState.targetParentId,
+      targetIndex: nextPreviewState.targetIndex,
+    });
+
+    if (!moveResult.ok) {
+      setDragMoveError(moveResult.error);
+      return;
+    }
+
+    setDragMoveError(null);
+    await commitSnapshot(moveResult.snapshot);
+  }, [commitSnapshot, dragPreviewState, draggedNodeId, layoutByNodeId, snapshot]);
 
   const submitEditDialog = useCallback(async (): Promise<void> => {
     if (dialogState?.kind !== 'edit') {
@@ -887,6 +1351,26 @@ export function DraftGraphWorkspace({
     handleNodeMouseEnter(event, nodeId);
   }, [handleNodeMouseEnter]);
 
+  const handleNodeButtonDragStart = useCallback((event: ReactDragEvent<HTMLButtonElement>): void => {
+    handleNodeDragStart(event);
+  }, [handleNodeDragStart]);
+
+  const handleNodeButtonDragEnd = useCallback((): void => {
+    handleNodeDragEnd();
+  }, [handleNodeDragEnd]);
+
+  const handleNodeButtonDragOver = useCallback((event: ReactDragEvent<HTMLElement>): void => {
+    void handleNodeDragOver(event);
+  }, [handleNodeDragOver]);
+
+  const handleNodeButtonDragLeave = useCallback((event: ReactDragEvent<HTMLElement>): void => {
+    handleNodeDragLeave(event);
+  }, [handleNodeDragLeave]);
+
+  const handleNodeButtonDrop = useCallback((event: ReactDragEvent<HTMLElement>): void => {
+    void handleNodeDrop(event);
+  }, [handleNodeDrop]);
+
   const branchElements = useMemo(() => visibleMindmap.branches.map((branch) => {
     const fromNode = layoutByNodeId[branch.fromId];
     const toNode = layoutByNodeId[branch.toId];
@@ -896,9 +1380,9 @@ export function DraftGraphWorkspace({
     }
 
     const startX = fromNode.x + MINDMAP_NODE_WIDTH;
-    const startY = fromNode.y + MINDMAP_NODE_HEIGHT / 2;
+    const startY = fromNode.y + fromNode.height / 2;
     const endX = toNode.x;
-    const endY = toNode.y + MINDMAP_NODE_HEIGHT / 2;
+    const endY = toNode.y + toNode.height / 2;
     const curveOffset = MINDMAP_HORIZONTAL_GAP * 0.45;
     const path = `M ${startX} ${startY} C ${startX + curveOffset} ${startY}, ${endX - curveOffset} ${endY}, ${endX} ${endY}`;
     const colorIndex = ROOT_BRANCH_COLORS.indexOf(branch.branchColor as typeof ROOT_BRANCH_COLORS[number]);
@@ -929,23 +1413,40 @@ export function DraftGraphWorkspace({
 
   const nodeElements = useMemo(() => visibleMindmap.nodes.map((layoutNode) => {
     if (layoutNode.isVirtualRoot) {
+      const virtualRootShellTop = layoutNode.shellTop ?? layoutNode.y;
+      const virtualRootShellHeight = layoutNode.shellHeight ?? layoutNode.height;
+      const virtualRootStyle = {
+        '--branch-color': layoutNode.branchColor,
+        height: `${virtualRootShellHeight}px`,
+        transform: `translate(${layoutNode.x}px, ${virtualRootShellTop}px)`,
+      } as CSSProperties;
+      const virtualRootButtonStyle = {
+        top: `${layoutNode.y - virtualRootShellTop}px`,
+      } as CSSProperties;
+
       return (
         <div
           className="xmind-node-shell is-virtual-root"
           key={layoutNode.nodeId}
-          style={{
-            '--branch-color': layoutNode.branchColor,
-            transform: `translate(${layoutNode.x}px, ${layoutNode.y}px)`,
-          } as CSSProperties}
+          style={virtualRootStyle}
         >
           <div
             aria-label={`虚拟根节点：${VIRTUAL_ROOT_TITLE}`}
-            className="draft-node-button is-virtual-root"
+            className={`draft-node-button is-virtual-root${dragPreviewState?.highlightNodeId === VIRTUAL_ROOT_ID ? ' is-drop-target' : ''}`}
+            style={virtualRootButtonStyle}
           >
             <span className="draft-node-icon" aria-hidden="true">🌳</span>
             <span className="draft-node-eyebrow">虚拟根节点</span>
             <span className="draft-node-title">{VIRTUAL_ROOT_TITLE}</span>
           </div>
+          <div
+            aria-hidden="true"
+            className="draft-virtual-root-drop-zone"
+            data-node-id={VIRTUAL_ROOT_ID}
+            onDragLeave={handleNodeButtonDragLeave}
+            onDragOver={handleNodeButtonDragOver}
+            onDrop={handleNodeButtonDrop}
+          />
         </div>
       );
     }
@@ -957,8 +1458,16 @@ export function DraftGraphWorkspace({
         : layoutNode.depth === 1
           ? 'is-primary-child'
           : 'is-deep-child';
+    const directChildBottom = node.childIds
+      .map((childId) => layoutByNodeId[childId])
+      .filter((childLayout): childLayout is MindmapLayoutNode => childLayout !== undefined)
+      .reduce(
+        (currentBottom, childLayout) => Math.max(currentBottom, childLayout.y + childLayout.height),
+        layoutNode.y + layoutNode.height,
+      );
     const nodeStyle = {
       '--branch-color': layoutNode.branchColor,
+      height: `${Math.max(layoutNode.height, directChildBottom - layoutNode.y)}px`,
       transform: `translate(${layoutNode.x}px, ${layoutNode.y}px)`,
     } as CSSProperties;
 
@@ -967,10 +1476,20 @@ export function DraftGraphWorkspace({
         <button
           aria-label={buildNodeAriaLabel(node)}
           aria-pressed={snapshot.selectedNodeId === node.internalId}
-          className={`draft-node-button${snapshot.selectedNodeId === node.internalId ? ' is-selected' : ''}`}
+          className={`draft-node-button is-${node.nodeType}${snapshot.selectedNodeId === node.internalId ? ' is-selected' : ''}${
+            draggedNodeId === node.internalId ? ' is-dragging' : ''
+          }${
+            dragPreviewState?.highlightNodeId === node.internalId ? ' is-drop-target' : ''
+          }`}
           data-node-id={node.internalId}
           disabled={isDialogOpen}
+          draggable={!isDialogOpen}
           onClick={handleNodeButtonClick}
+          onDragEnd={handleNodeButtonDragEnd}
+          onDragLeave={handleNodeButtonDragLeave}
+          onDragOver={handleNodeButtonDragOver}
+          onDragStart={handleNodeButtonDragStart}
+          onDrop={handleNodeButtonDrop}
           onDoubleClick={handleNodeButtonDoubleClick}
           onKeyDown={handleNodeButtonKeyDown}
           onMouseEnter={handleNodeButtonMouseEnter}
@@ -991,14 +1510,31 @@ export function DraftGraphWorkspace({
             <span className="draft-node-child-count">{node.childIds.length}</span>
           ) : null}
         </button>
+        {node.nodeType === 'folder' ? (
+          <div
+            aria-hidden="true"
+            className={`draft-node-drop-zone${dragPreviewState?.highlightNodeId === node.internalId ? ' is-active' : ''}`}
+            data-node-id={node.internalId}
+            onDragLeave={handleNodeButtonDragLeave}
+            onDragOver={handleNodeButtonDragOver}
+            onDrop={handleNodeButtonDrop}
+          />
+        ) : null}
       </div>
     );
   }), [
     handleNodeButtonClick,
+    handleNodeButtonDragEnd,
+    handleNodeButtonDragLeave,
+    handleNodeButtonDragOver,
+    handleNodeButtonDragStart,
+    handleNodeButtonDrop,
     handleNodeButtonDoubleClick,
     handleNodeButtonKeyDown,
     handleNodeButtonMouseEnter,
     handleNodeMouseLeave,
+    dragPreviewState,
+    draggedNodeId,
     isDialogOpen,
     snapshot.nodesById,
     snapshot.selectedNodeId,
@@ -1055,6 +1591,11 @@ export function DraftGraphWorkspace({
   return (
     <div className={`draft-graph-workspace${isLargeGraph ? ' is-large-graph' : ''}`}>
       <section aria-label={draftGraphWorkspaceCopy.treeLabel} className="draft-graph-tree" ref={treeContainerRef}>
+        {dragMoveError ? (
+          <p className="draft-form-error">
+            {draftGraphWorkspaceCopy.dragMoveErrorPrefix}：{dragMoveError}
+          </p>
+        ) : null}
         {hasRootNodes ? (
           <div className="xmind-canvas" style={{ height: mindmapLayout.height, width: mindmapLayout.width }}>
             <svg

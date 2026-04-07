@@ -62,7 +62,8 @@ The mindmap canvas renders a decorative virtual root node to unify multiple root
 
 - Does not exist in `nodesById`, `rootIds`, or any persistence contract
 - Is not a `DraftGraphNode` and has no `internalId`
-- Renders as a visible, non-interactive anchor near the top-left of the mindmap canvas so users can read the root-branch origin without treating it as a real node control
+- Renders as a visible, non-focusable anchor near the top-left of the mindmap canvas so users can read the root-branch origin without treating it as a real node control
+- May expose a separate drag-only drop zone so users can promote nodes into the top layer and reorder `rootIds` without turning the anchor itself into a selectable control
 - Cannot be selected, edited, deleted, or have children
 - Is excluded from all sync, upload, restore, overwrite, and browser write-back operations
 - Is excluded from draft mutation, undo history, and checkpoint operations
@@ -73,6 +74,7 @@ The mindmap canvas renders a decorative virtual root node to unify multiple root
 - graph builds from nested bookmark data into `nodesById` plus `rootIds`
 - duplicate index updates after edit/create/delete using exact URL-string matching only
 - local expanded-state and node-position restore changes render output but does not mutate graph content truth
+- virtual-root top-level drop reorders `rootIds` while keeping affected top-level nodes at `parentId = null`
 - folders still normalize to `url = null`
 - bookmark nodes still fail normalization if URL is missing or empty
 - non-root nodes fail normalization if `parentId` points to a missing node

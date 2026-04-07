@@ -1,7 +1,7 @@
 # Implement Graph Drag Move Validation
 
 ## Goal
-Add drag-move interaction and folder drop validation for the draft graph.
+Add drag-move interaction, top-level reordering, and the selected-node keyboard move shortcuts that reuse the same move validation for the draft graph.
 
 ## Inputs
 - 父 task：`04-02-workflow-e2e-bookmark-cleaner`
@@ -14,6 +14,7 @@ Add drag-move interaction and folder drop validation for the draft graph.
 - Drag-move interaction
 - Folder-only drop validation
 - Structural invalid-move prevention
+- Selected-node keyboard reorder and promote shortcuts that mutate only the current draft graph
 
 ## Out Of Scope
 - No undo history
@@ -35,12 +36,15 @@ Add drag-move interaction and folder drop validation for the draft graph.
 ## Acceptance Criteria
 - [ ] Valid drag moves update draft structure correctly
 - [ ] Invalid drops are blocked with consistent feedback
+- [ ] Selected-node keyboard move shortcuts update only the current draft graph and preserve graph invariants
 
 ## Verification Plan
 - `not run` in pure plan stage
 - Later execution commands:
   - interaction tests for valid and invalid moves
+  - keyboard interaction tests for reorder / promote flows
   - manual drag-drop walkthrough
 
 ## Technical Notes
-- This task focuses on structure validation rather than history semantics
+- This task focuses on draft-structure validation rather than history semantics
+- The visual virtual-root anchor may use a separate drag-only drop zone for top-level reorder and promotion, but it still does not become a persisted business node

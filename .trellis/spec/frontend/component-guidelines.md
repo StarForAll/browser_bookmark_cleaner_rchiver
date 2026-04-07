@@ -62,6 +62,7 @@ Keep large domain logic, layout mapping, or side-effect coordination outside the
 - keep layout and styling decisions aligned with the single-workspace shell
 - store reusable copy, spacing intent, and shared visual helpers centrally rather than scattering one-off magic values
 - do not copy implementation code from `tmp/ui/`; only align with its design intent
+- when graph cards use per-depth typography or padding variants, keep the render layout height and the visible card min-height in sync; otherwise contained node shells can clip root-level bookmark cards even when nested cards still look correct
 
 ---
 
@@ -71,7 +72,7 @@ Keep large domain logic, layout mapping, or side-effect coordination outside the
 - modal and drawer flows must preserve focus order and keyboard escape behavior
 - destructive or overwrite-risk actions must not rely on hover-only explanation
 - keyboard-driven actions such as `Enter`, `Delete / Backspace`, and `Ctrl+Z` must remain consistent with the operation hint panel
-- decorative graph anchors such as virtual root nodes may be visible, but they must stay non-focusable and non-interactive
+- decorative graph anchors such as virtual root nodes may be visible, but they must stay non-focusable and non-interactive as node controls; if a separate drag-only drop zone is added for top-level reordering, it must not add click, focus, or keyboard semantics to the anchor itself
 
 ## Canvas Viewport Safety
 

@@ -1,6 +1,98 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import type { PersistedDraftSession } from '@/adapters/local-persistence/contracts';
+import type { DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
 import { createDraftGraphFixture, createLargeDraftGraphFixture } from '../../../../test/fixtures/draftGraph';
+
+function createNodeDragDataTransfer(sourceNodeId: string): DataTransfer {
+  const payload = new Map<string, string>([
+    ['text/plain', sourceNodeId],
+    ['application/x-draft-node-id', sourceNodeId],
+  ]);
+
+  return {
+    clearData: vi.fn((format?: string) => {
+      if (format) {
+        payload.delete(format);
+        return;
+      }
+      payload.clear();
+    }),
+    dropEffect: 'move',
+    effectAllowed: 'move',
+    files: [] as unknown as FileList,
+    getData: vi.fn((format: string) => payload.get(format) ?? ''),
+    items: [] as unknown as DataTransferItemList,
+    setData: vi.fn((format: string, value: string) => {
+      payload.set(format, value);
+    }),
+    setDragImage: vi.fn(),
+    types: ['text/plain', 'application/x-draft-node-id'],
+  } as unknown as DataTransfer;
+}
+
+function createMultiRootDraftGraphFixture(): DraftGraphSnapshot {
+  const snapshot = createDraftGraphFixture();
+
+  return {
+    ...snapshot,
+    nodesById: {
+      ...snapshot.nodesById,
+      'folder-personal': {
+        internalId: 'folder-personal',
+        sourceType: 'draft',
+        nodeType: 'folder',
+        title: '个人收藏',
+        url: null,
+        parentId: null,
+        childIds: ['bookmark-start'],
+        pathTokens: ['个人收藏'],
+      },
+      'bookmark-start': {
+        internalId: 'bookmark-start',
+        sourceType: 'draft',
+        nodeType: 'bookmark',
+        title: '起始页',
+        url: 'https://start.example.com',
+        parentId: 'folder-personal',
+        childIds: [],
+        pathTokens: ['个人收藏', '起始页'],
+      },
+    },
+    rootIds: ['folder-root', 'folder-personal'],
+  };
+}
+
+function createTopLevelBookmarkDraftGraphFixture(): DraftGraphSnapshot {
+  const snapshot = createDraftGraphFixture();
+
+  return {
+    ...snapshot,
+    nodesById: {
+      ...snapshot.nodesById,
+      'bookmark-top-level': {
+        internalId: 'bookmark-top-level',
+        sourceType: 'draft',
+        nodeType: 'bookmark',
+        title: '顶级入口',
+        url: 'https://portal.example.com',
+        parentId: null,
+        childIds: [],
+        pathTokens: ['顶级入口'],
+      },
+    },
+    rootIds: ['bookmark-top-level', ...snapshot.rootIds],
+  };
+}
+
+function parseTranslateY(transform: string): number {
+  const match = transform.match(/translate\([^,]+,\s*([^)]+)\)/);
+  return match ? Number.parseFloat(match[1].replace('px', '')) : 0;
+}
+
+function parsePixelValue(value: string | null | undefined): number {
+  return value ? Number.parseFloat(value.replace('px', '')) : 0;
+}
 
 afterEach(() => {
   cleanup();
@@ -17,9 +109,9 @@ describe('T06 draft graph workspace interaction gate', () => {
         width: 1200,
         height: 900,
         nodes: [
-          { nodeId: '__virtual_root__', x: 32, y: 180, branchColor: '#7a9d95', depth: -1, isVirtualRoot: true },
-          { nodeId: 'near-node', x: 360, y: 120, branchColor: '#7a9d95', depth: 0 },
-          { nodeId: 'far-node', x: 360, y: 1900, branchColor: '#7a9d95', depth: 0 },
+          { nodeId: '__virtual_root__', x: 32, y: 180, height: 46, branchColor: '#7a9d95', depth: -1, isVirtualRoot: true },
+          { nodeId: 'near-node', x: 360, y: 120, height: 40, branchColor: '#7a9d95', depth: 0 },
+          { nodeId: 'far-node', x: 360, y: 1900, height: 40, branchColor: '#7a9d95', depth: 0 },
         ],
         branches: [
           { fromId: '__virtual_root__', toId: 'near-node', branchColor: '#7a9d95', depth: -1 },
@@ -48,10 +140,10 @@ describe('T06 draft graph workspace interaction gate', () => {
         width: 2000,
         height: 1400,
         nodes: [
-          { nodeId: '__virtual_root__', x: 32, y: 180, branchColor: '#7a9d95', depth: -1, isVirtualRoot: true },
-          { nodeId: 'overscan-left-edge', x: -500, y: 120, branchColor: '#7a9d95', depth: 0 },
-          { nodeId: 'overscan-top-edge', x: 360, y: -200, branchColor: '#7a9d95', depth: 1 },
-          { nodeId: 'outside-overscan', x: -501, y: 1200, branchColor: '#7a9d95', depth: 0 },
+          { nodeId: '__virtual_root__', x: 32, y: 180, height: 46, branchColor: '#7a9d95', depth: -1, isVirtualRoot: true },
+          { nodeId: 'overscan-left-edge', x: -500, y: 120, height: 40, branchColor: '#7a9d95', depth: 0 },
+          { nodeId: 'overscan-top-edge', x: 360, y: -200, height: 40, branchColor: '#7a9d95', depth: 1 },
+          { nodeId: 'outside-overscan', x: -501, y: 1200, height: 40, branchColor: '#7a9d95', depth: 0 },
         ],
         branches: [
           { fromId: '__virtual_root__', toId: 'overscan-left-edge', branchColor: '#7a9d95', depth: -1 },
@@ -121,7 +213,7 @@ describe('T06 draft graph workspace interaction gate', () => {
     expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
   });
 
-  test('shows the virtual root node as a visible but non-interactive mindmap anchor', async () => {
+  test('renders the virtual root as a visible non-focusable anchor with a separate drag-only top-level drop zone', async () => {
     const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
     const persistDraftSession = vi.fn(async () => undefined);
 
@@ -137,6 +229,89 @@ describe('T06 draft graph workspace interaction gate', () => {
     expect(within(tree).getByText('虚拟根节点')).toBeInTheDocument();
     expect(within(tree).getByText('书签图谱')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '虚拟根节点：书签图谱' })).not.toBeInTheDocument();
+    expect(document.querySelector('.draft-virtual-root-drop-zone')).toBeInTheDocument();
+  });
+
+  test('keeps the virtual root button vertically centered across top-level branches while preserving a full-height drop zone', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createMultiRootDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const virtualRootButton = within(tree).getByText('书签图谱').closest('.draft-node-button') as HTMLElement | null;
+    const virtualRootShell = virtualRootButton?.closest('.xmind-node-shell') as HTMLElement | null;
+    const workRootShell = screen
+      .getByRole('button', { name: '目录节点：工作资料' })
+      .closest('.xmind-node-shell') as HTMLElement | null;
+    const personalRootShell = screen
+      .getByRole('button', { name: '目录节点：个人收藏' })
+      .closest('.xmind-node-shell') as HTMLElement | null;
+
+    expect(virtualRootButton).toBeInTheDocument();
+    expect(virtualRootShell).toBeInTheDocument();
+    expect(workRootShell).toBeInTheDocument();
+    expect(personalRootShell).toBeInTheDocument();
+
+    const virtualRootCenter =
+      parseTranslateY(virtualRootShell?.style.transform ?? '') +
+      parsePixelValue(virtualRootButton?.style.top) +
+      23;
+    const rootsMidpoint =
+      (parseTranslateY(workRootShell?.style.transform ?? '') +
+        23 +
+        parseTranslateY(personalRootShell?.style.transform ?? '') +
+        23) / 2;
+
+    expect(virtualRootCenter).toBeCloseTo(rootsMidpoint, 0);
+    expect(parsePixelValue(virtualRootShell?.style.height)).toBeGreaterThan(46);
+  });
+
+  test('renders bookmark nodes taller than folder nodes so URL previews fit without bloating folders', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const bookmarkNode = screen.getByRole('button', { name: '书签节点：产品文档' });
+    const bookmarkShell = bookmarkNode.closest('.xmind-node-shell') as HTMLElement | null;
+    const folderNode = screen.getByRole('button', { name: '目录节点：归档' });
+    const folderShell = folderNode.closest('.xmind-node-shell') as HTMLElement | null;
+
+    expect(bookmarkNode).toHaveTextContent('docs.example.com');
+    expect(bookmarkShell?.style.height).toBe('56px');
+    expect(Number.parseFloat(folderShell?.style.height ?? '0')).toBeLessThan(56);
+  });
+
+  test('renders top-level bookmark nodes with a taller shell so the root card border is not clipped', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createTopLevelBookmarkDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const topLevelBookmark = screen.getByRole('button', { name: '书签节点：顶级入口' });
+    const topLevelBookmarkShell = topLevelBookmark.closest('.xmind-node-shell') as HTMLElement | null;
+    const nestedBookmark = screen.getByRole('button', { name: '书签节点：产品文档' });
+    const nestedBookmarkShell = nestedBookmark.closest('.xmind-node-shell') as HTMLElement | null;
+
+    expect(topLevelBookmark).toHaveTextContent('portal.example.com');
+    expect(topLevelBookmarkShell?.style.height).toBe('66px');
+    expect(nestedBookmarkShell?.style.height).toBe('56px');
   });
 
   test('editing and create-child inputs keep focus while typing instead of being refocused by dialog state updates', async () => {
@@ -524,6 +699,222 @@ describe('T06 draft graph workspace interaction gate', () => {
     expect(bookmarksApi.create).not.toHaveBeenCalled();
   });
 
+  test('ArrowUp reorders a selected top-level node within rootIds without writing to browser bookmarks', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const bookmarksApi = {
+      update: vi.fn(),
+      create: vi.fn(),
+      removeTree: vi.fn(),
+    };
+
+    (globalThis as typeof globalThis & { chrome?: { bookmarks: typeof bookmarksApi } }).chrome = {
+      bookmarks: bookmarksApi,
+    };
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createMultiRootDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const personalRootNode = screen.getByRole('button', { name: '目录节点：个人收藏' });
+    fireEvent.click(personalRootNode);
+    fireEvent.keyDown(personalRootNode, { key: 'ArrowUp' });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.rootIds).toEqual(['folder-personal', 'folder-root']);
+    expect(persistedSession?.draftSnapshot.selectedNodeId).toBe('folder-personal');
+    expect(bookmarksApi.update).not.toHaveBeenCalled();
+    expect(bookmarksApi.create).not.toHaveBeenCalled();
+    expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
+  });
+
+  test('ArrowUp and ArrowDown reorder the selected node inside its current parent at the current layer position', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const bookmarksApi = {
+      update: vi.fn(),
+      create: vi.fn(),
+      removeTree: vi.fn(),
+    };
+
+    (globalThis as typeof globalThis & { chrome?: { bookmarks: typeof bookmarksApi } }).chrome = {
+      bookmarks: bookmarksApi,
+    };
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const archiveNode = screen.getByRole('button', { name: '目录节点：归档' });
+    fireEvent.click(archiveNode);
+    fireEvent.keyDown(archiveNode, { key: 'ArrowUp' });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const movedUpSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(movedUpSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual([
+      'folder-archive',
+      'bookmark-docs',
+    ]);
+    expect(movedUpSession?.draftSnapshot.selectedNodeId).toBe('folder-archive');
+
+    const archiveNodeAfterMove = screen.getByRole('button', { name: '目录节点：归档' });
+    fireEvent.keyDown(archiveNodeAfterMove, { key: 'ArrowDown' });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(2);
+    });
+    const movedDownSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[1]?.[0];
+
+    expect(movedDownSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual([
+      'bookmark-docs',
+      'folder-archive',
+    ]);
+    expect(movedDownSession?.draftSnapshot.selectedNodeId).toBe('folder-archive');
+    expect(bookmarksApi.update).not.toHaveBeenCalled();
+    expect(bookmarksApi.create).not.toHaveBeenCalled();
+    expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
+  });
+
+  test('ArrowLeft promotes a selected nested node to its parent layer top without writing to browser bookmarks', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const bookmarksApi = {
+      update: vi.fn(),
+      create: vi.fn(),
+      removeTree: vi.fn(),
+    };
+
+    (globalThis as typeof globalThis & { chrome?: { bookmarks: typeof bookmarksApi } }).chrome = {
+      bookmarks: bookmarksApi,
+    };
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const legacyNode = screen.getByRole('button', { name: '书签节点：旧系统' });
+    fireEvent.click(legacyNode);
+    fireEvent.keyDown(legacyNode, { key: 'ArrowLeft' });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.nodesById['bookmark-legacy']?.parentId).toBe('folder-root');
+    expect(persistedSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual([
+      'bookmark-legacy',
+      'bookmark-docs',
+      'folder-archive',
+    ]);
+    expect(persistedSession?.draftSnapshot.nodesById['folder-archive']?.childIds).toEqual([]);
+    expect(persistedSession?.draftSnapshot.nodesById['bookmark-legacy']?.pathTokens).toEqual([
+      '工作资料',
+      '旧系统',
+    ]);
+    expect(persistedSession?.draftSnapshot.selectedNodeId).toBe('bookmark-legacy');
+    expect(bookmarksApi.update).not.toHaveBeenCalled();
+    expect(bookmarksApi.create).not.toHaveBeenCalled();
+    expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
+  });
+
+  test('repeated ArrowLeft promotes the selected node one level at a time until it becomes top-level', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const bookmarksApi = {
+      update: vi.fn(),
+      create: vi.fn(),
+      removeTree: vi.fn(),
+    };
+
+    (globalThis as typeof globalThis & { chrome?: { bookmarks: typeof bookmarksApi } }).chrome = {
+      bookmarks: bookmarksApi,
+    };
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const legacyNode = screen.getByRole('button', { name: '书签节点：旧系统' });
+    fireEvent.click(legacyNode);
+    fireEvent.keyDown(legacyNode, { key: 'ArrowLeft' });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+
+    const legacyNodeAfterFirstPromote = screen.getByRole('button', { name: '书签节点：旧系统' });
+    fireEvent.keyDown(legacyNodeAfterFirstPromote, { key: 'ArrowLeft' });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(2);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[1]?.[0];
+
+    expect(persistedSession?.draftSnapshot.rootIds).toEqual(['bookmark-legacy', 'folder-root']);
+    expect(persistedSession?.draftSnapshot.nodesById['bookmark-legacy']?.parentId).toBeNull();
+    expect(persistedSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual([
+      'bookmark-docs',
+      'folder-archive',
+    ]);
+    expect(persistedSession?.draftSnapshot.nodesById['bookmark-legacy']?.pathTokens).toEqual(['旧系统']);
+    expect(persistedSession?.draftSnapshot.selectedNodeId).toBe('bookmark-legacy');
+    expect(bookmarksApi.update).not.toHaveBeenCalled();
+    expect(bookmarksApi.create).not.toHaveBeenCalled();
+    expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
+  });
+
+  test('repeated ArrowLeft never mutates a selected top-level node', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const bookmarksApi = {
+      update: vi.fn(),
+      create: vi.fn(),
+      removeTree: vi.fn(),
+    };
+
+    (globalThis as typeof globalThis & { chrome?: { bookmarks: typeof bookmarksApi } }).chrome = {
+      bookmarks: bookmarksApi,
+    };
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createMultiRootDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const personalRootNode = screen.getByRole('button', { name: '目录节点：个人收藏' });
+    fireEvent.click(personalRootNode);
+    fireEvent.keyDown(personalRootNode, { key: 'ArrowLeft' });
+    fireEvent.keyDown(personalRootNode, { key: 'ArrowLeft' });
+    fireEvent.keyDown(personalRootNode, { key: 'ArrowLeft' });
+
+    expect(persistDraftSession).not.toHaveBeenCalled();
+    expect(bookmarksApi.update).not.toHaveBeenCalled();
+    expect(bookmarksApi.create).not.toHaveBeenCalled();
+    expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
+  });
+
   test('hover exposes detailed node info while the node button keeps an explicit accessible type label', async () => {
     const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
     const persistDraftSession = vi.fn(async () => undefined);
@@ -568,5 +959,377 @@ describe('T06 draft graph workspace interaction gate', () => {
     expect(tailNode).toHaveAttribute('aria-pressed', 'true');
     expect(persistDraftSession).not.toHaveBeenCalled();
     expect(recordStatusEntry).not.toHaveBeenCalled();
+  });
+});
+
+describe('T07A draft graph drag-move interaction gate', () => {
+  test('dragging a top-level root node into another folder removes it from the root branch list', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createMultiRootDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedRootNode = screen.getByRole('button', { name: '目录节点：个人收藏' });
+    const targetFolderNode = screen.getByRole('button', { name: '目录节点：工作资料' });
+    const targetFolderShell = targetFolderNode.closest('.xmind-node-shell');
+    const dataTransfer = createNodeDragDataTransfer('folder-personal');
+
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 900,
+      bottom: 700,
+      width: 900,
+      height: 700,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedRootNode, { dataTransfer });
+    fireEvent.dragOver(targetFolderShell?.querySelector('.draft-node-drop-zone') as Element, { dataTransfer, clientY: 220 });
+    fireEvent.drop(targetFolderShell?.querySelector('.draft-node-drop-zone') as Element, { dataTransfer, clientY: 220 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.rootIds).toEqual(['folder-root']);
+    expect(persistedSession?.draftSnapshot.nodesById['folder-personal']?.parentId).toBe('folder-root');
+    expect(persistedSession?.draftSnapshot.nodesById['bookmark-start']?.pathTokens).toEqual([
+      '工作资料',
+      '个人收藏',
+      '起始页',
+    ]);
+  });
+
+  test('dragging a nested node onto the virtual root makes it a top-level node', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const draggedBookmarkNode = screen.getByRole('button', { name: '书签节点：产品文档' });
+    const virtualRootDropZone = document.querySelector('.draft-virtual-root-drop-zone');
+    const dataTransfer = createNodeDragDataTransfer('bookmark-docs');
+
+    expect(virtualRootDropZone).toBeInTheDocument();
+
+    fireEvent.dragStart(draggedBookmarkNode, { dataTransfer });
+    fireEvent.dragOver(virtualRootDropZone as Element, { dataTransfer, clientY: 20 });
+    fireEvent.drop(virtualRootDropZone as Element, { dataTransfer, clientY: 20 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.rootIds).toContain('bookmark-docs');
+    expect(persistedSession?.draftSnapshot.rootIds).toContain('folder-root');
+    expect(persistedSession?.draftSnapshot.nodesById['bookmark-docs']).toEqual(
+      expect.objectContaining({
+        parentId: null,
+        pathTokens: ['产品文档'],
+      }),
+    );
+    expect(persistedSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual(['folder-archive']);
+  });
+
+  test('dragging a top-level node onto the virtual root reorders it within rootIds without leaving the top layer', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createMultiRootDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedRootNode = screen.getByRole('button', { name: '目录节点：工作资料' });
+    const virtualRootDropZone = document.querySelector('.draft-virtual-root-drop-zone');
+    const dataTransfer = createNodeDragDataTransfer('folder-root');
+
+    expect(virtualRootDropZone).toBeInTheDocument();
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 900,
+      bottom: 700,
+      width: 900,
+      height: 700,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedRootNode, { dataTransfer });
+    fireEvent.dragOver(virtualRootDropZone as Element, { dataTransfer, clientY: 520 });
+    fireEvent.drop(virtualRootDropZone as Element, { dataTransfer, clientY: 520 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.rootIds).toEqual(['folder-personal', 'folder-root']);
+    expect(persistedSession?.draftSnapshot.nodesById['folder-root']?.parentId).toBeNull();
+    expect(persistedSession?.draftSnapshot.nodesById['folder-personal']?.parentId).toBeNull();
+  });
+
+  test('dragging over a valid folder tail drop zone highlights the folder and preserves draft-only move behavior', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const bookmarksApi = {
+      update: vi.fn(),
+      create: vi.fn(),
+      removeTree: vi.fn(),
+    };
+
+    (globalThis as typeof globalThis & { chrome?: { bookmarks: typeof bookmarksApi } }).chrome = {
+      bookmarks: bookmarksApi,
+    };
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedBookmarkNode = screen.getByRole('button', { name: '书签节点：产品文档' });
+    const targetFolderNode = screen.getByRole('button', { name: '目录节点：归档' });
+    const targetFolderShell = targetFolderNode.closest('.xmind-node-shell');
+    const dataTransfer = createNodeDragDataTransfer('bookmark-docs');
+
+    expect(draggedBookmarkNode).toHaveAttribute('draggable', 'true');
+    expect(targetFolderShell?.querySelector('.draft-node-drop-zone')).toBeInTheDocument();
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedBookmarkNode, { dataTransfer });
+    fireEvent.dragOver(targetFolderShell?.querySelector('.draft-node-drop-zone') as Element, { dataTransfer, clientY: 40 });
+
+    expect(targetFolderNode).toHaveClass('is-drop-target');
+
+    fireEvent.drop(targetFolderShell?.querySelector('.draft-node-drop-zone') as Element, { dataTransfer, clientY: 40 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    fireEvent.mouseEnter(screen.getByRole('button', { name: '书签节点：产品文档' }));
+
+    expect(screen.getByText('当前路径：工作资料 / 归档 / 产品文档')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '书签节点：产品文档' })).toBeInTheDocument();
+    expect(persistedSession?.draftSnapshot.nodesById['folder-archive']).toBeDefined();
+    expect(bookmarksApi.create).not.toHaveBeenCalled();
+    expect(bookmarksApi.update).not.toHaveBeenCalled();
+    expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
+  });
+
+  test('dragging across parent levels onto a folder body does not nest into that folder', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedBookmarkNode = screen.getByRole('button', { name: '书签节点：旧系统' });
+    const targetFolderNode = screen.getByRole('button', { name: '目录节点：工作资料' });
+    const dataTransfer = createNodeDragDataTransfer('bookmark-legacy');
+
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 900,
+      bottom: 700,
+      width: 900,
+      height: 700,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedBookmarkNode, { dataTransfer });
+    fireEvent.dragOver(targetFolderNode, { dataTransfer, clientY: 40 });
+
+    expect(targetFolderNode).not.toHaveClass('is-drop-target');
+
+    fireEvent.drop(targetFolderNode, { dataTransfer, clientY: 40 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).not.toHaveBeenCalled();
+    });
+    expect(screen.getByRole('button', { name: '书签节点：旧系统' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '目录节点：工作资料' })).toBeInTheDocument();
+  });
+
+  test('dropping lower inside the same folder inserts after the existing child instead of forcing top or tail defaults', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedBookmarkNode = screen.getByRole('button', { name: '书签节点：产品文档' });
+    const targetFolderNode = screen.getByRole('button', { name: '目录节点：归档' });
+    const targetFolderShell = targetFolderNode.closest('.xmind-node-shell');
+    const dataTransfer = createNodeDragDataTransfer('bookmark-docs');
+
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedBookmarkNode, { dataTransfer });
+    fireEvent.dragOver(targetFolderShell?.querySelector('.draft-node-drop-zone') as Element, { dataTransfer, clientY: 240 });
+    fireEvent.drop(targetFolderShell?.querySelector('.draft-node-drop-zone') as Element, { dataTransfer, clientY: 240 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.nodesById['folder-archive']?.childIds).toEqual([
+      'bookmark-legacy',
+      'bookmark-docs',
+    ]);
+  });
+
+  test('dragging onto a folder body in the same level reorders beside that folder instead of nesting into it', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createMultiRootDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedRootNode = screen.getByRole('button', { name: '目录节点：个人收藏' });
+    const targetFolderNode = screen.getByRole('button', { name: '目录节点：工作资料' });
+    const dataTransfer = createNodeDragDataTransfer('folder-personal');
+
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 900,
+      bottom: 700,
+      width: 900,
+      height: 700,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedRootNode, { dataTransfer });
+    fireEvent.dragOver(targetFolderNode, { dataTransfer, clientY: 40 });
+
+    expect(targetFolderNode).toHaveClass('is-drop-target');
+
+    fireEvent.drop(targetFolderNode, { dataTransfer, clientY: 40 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.rootIds).toEqual(['folder-personal', 'folder-root']);
+    expect(persistedSession?.draftSnapshot.nodesById['folder-personal']?.parentId).toBeNull();
+    expect(persistedSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual([
+      'bookmark-docs',
+      'folder-archive',
+    ]);
+  });
+
+  test('dragging onto a sibling node inside the same parent reorders the sibling sequence at the mouse release position', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const draggedFolderNode = screen.getByRole('button', { name: '目录节点：归档' });
+    const targetBookmarkNode = screen.getByRole('button', { name: '书签节点：产品文档' });
+    const dataTransfer = createNodeDragDataTransfer('folder-archive');
+
+    vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 600,
+      width: 800,
+      height: 600,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(draggedFolderNode, { dataTransfer });
+    fireEvent.dragOver(targetBookmarkNode, { dataTransfer, clientY: 40 });
+
+    expect(targetBookmarkNode).toHaveClass('is-drop-target');
+
+    fireEvent.drop(targetBookmarkNode, { dataTransfer, clientY: 40 });
+
+    await waitFor(() => {
+      expect(persistDraftSession).toHaveBeenCalledTimes(1);
+    });
+    const persistedSession = ((persistDraftSession.mock.calls as unknown) as Array<[PersistedDraftSession]>)[0]?.[0];
+
+    expect(persistedSession?.draftSnapshot.nodesById['folder-root']?.childIds).toEqual([
+      'folder-archive',
+      'bookmark-docs',
+    ]);
+    expect(persistedSession?.draftSnapshot.nodesById['folder-archive']?.parentId).toBe('folder-root');
   });
 });

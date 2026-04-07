@@ -304,114 +304,118 @@ export function App({
           </div>
 
           <div className="canvas-surface">
-            {editableDraftSnapshot ? (
-              <DraftGraphWorkspace
-                initialSnapshot={editableDraftSnapshot}
-                onPersistDraftSession={writePersistedDraftSession}
-              />
-            ) : (
-              <div className="canvas-placeholder">
-                <div className="canvas-draft-card">
-                  <span className="canvas-badge">{appShellCopy.canvasDraftTitle}</span>
-                  <strong>{appShellCopy.title}</strong>
-                  <p>{startupStatusCopy.canvasSummary}</p>
-                  {startupRootNodes.length > 0 && startupNodeStats ? (
-                    <div className="startup-preview" role="status">
-                      <h4>导入摘要</h4>
-                      <p className="startup-preview-summary">
-                        {`根节点 ${startupRootNodes.length} 个 · 目录 ${startupNodeStats.folderCount} 个 · 书签 ${startupNodeStats.bookmarkCount} 个`}
-                      </p>
-                      <ul>
-                        {startupRootNodes.map((node) => (
-                          <li key={node.internalId}>
-                            <span>{node.nodeType === 'folder' ? '目录' : '书签'}</span>
-                            <span>{node.title || '（无标题）'}</span>
-                            <span>{node.nodeType === 'folder' ? `${node.childIds.length} 个直接子节点` : '根层书签'}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="startup-preview-note">
-                        当前只展示导入摘要；完整思维导图渲染与节点交互会在后续图谱任务接入。
-                      </p>
-                    </div>
-                  ) : null}
+            <div className="canvas-main">
+              {editableDraftSnapshot ? (
+                <DraftGraphWorkspace
+                  initialSnapshot={editableDraftSnapshot}
+                  onPersistDraftSession={writePersistedDraftSession}
+                />
+              ) : (
+                <div className="canvas-placeholder">
+                  <div className="canvas-draft-card">
+                    <span className="canvas-badge">{appShellCopy.canvasDraftTitle}</span>
+                    <strong>{appShellCopy.title}</strong>
+                    <p>{startupStatusCopy.canvasSummary}</p>
+                    {startupRootNodes.length > 0 && startupNodeStats ? (
+                      <div className="startup-preview" role="status">
+                        <h4>导入摘要</h4>
+                        <p className="startup-preview-summary">
+                          {`根节点 ${startupRootNodes.length} 个 · 目录 ${startupNodeStats.folderCount} 个 · 书签 ${startupNodeStats.bookmarkCount} 个`}
+                        </p>
+                        <ul>
+                          {startupRootNodes.map((node) => (
+                            <li key={node.internalId}>
+                              <span>{node.nodeType === 'folder' ? '目录' : '书签'}</span>
+                              <span>{node.title || '（无标题）'}</span>
+                              <span>{node.nodeType === 'folder' ? `${node.childIds.length} 个直接子节点` : '根层书签'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="startup-preview-note">
+                          当前只展示导入摘要；完整思维导图渲染与节点交互会在后续图谱任务接入。
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            <aside aria-label={appShellCopy.hintLabel} className="hint-overlay" role="complementary">
-              <div className="section-heading">
-                <h3>{appShellCopy.hintLabel}</h3>
-                <p>{appShellCopy.hintSummary}</p>
-              </div>
-              <ul>
-                {appShellCopy.hintItems.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </aside>
+            <div className="canvas-side-rail">
+              <aside aria-label={appShellCopy.hintLabel} className="hint-overlay" role="complementary">
+                <div className="section-heading">
+                  <h3>{appShellCopy.hintLabel}</h3>
+                  <p>{appShellCopy.hintSummary}</p>
+                </div>
+                <ul>
+                  {appShellCopy.hintItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </aside>
 
-            <div className="status-layer">
-              {isStatusOpen ? (
-                <aside aria-label={appShellCopy.statusLabel} className="status-popover" role="complementary">
-                  <div className="status-popover-header">
-                    <div className="section-heading">
-                      <h3>{appShellCopy.statusPopupTitle}</h3>
-                      <p>{appShellCopy.statusSummary}</p>
+              <div className="status-layer">
+                {isStatusOpen ? (
+                  <aside aria-label={appShellCopy.statusLabel} className="status-popover" role="complementary">
+                    <div className="status-popover-header">
+                      <div className="section-heading">
+                        <h3>{appShellCopy.statusPopupTitle}</h3>
+                        <p>{appShellCopy.statusSummary}</p>
+                      </div>
+                      <button
+                        aria-label="关闭状态弹窗"
+                        className="status-close"
+                        onClick={() => {
+                          setIsStatusOpen(false);
+                          void writeStatusPopoverOpen(false);
+                        }}
+                        type="button"
+                      >
+                        关闭
+                      </button>
                     </div>
-                    <button
-                      aria-label="关闭状态弹窗"
-                      className="status-close"
-                      onClick={() => {
-                        setIsStatusOpen(false);
-                        void writeStatusPopoverOpen(false);
-                      }}
-                      type="button"
-                    >
-                      关闭
-                    </button>
-                  </div>
-                  <div className="status-entry">
-                    <strong>{displayStatusEntry.action}</strong>
-                    <dl className="status-meta">
-                      <div>
-                        <dt>操作时间</dt>
-                        <dd>{displayStatusEntry.time}</dd>
-                      </div>
-                      <div>
-                        <dt>操作结果</dt>
-                        <dd>{displayStatusEntry.result}</dd>
-                      </div>
-                    </dl>
-                    <p>{displayStatusEntry.detail}</p>
-                  </div>
-                  <div className="status-retained">
-                    <strong>{appShellCopy.statusRetainedTitle}</strong>
-                    <ul className="status-history-list">
-                      <li key={`${displayStatusEntry.action}-${displayStatusEntry.time}`}>
-                        <span>{displayStatusEntry.action}</span>
-                        <span>{displayStatusEntry.time}</span>
-                        <span>{displayStatusEntry.result}</span>
-                      </li>
-                    </ul>
-                  </div>
-                </aside>
-              ) : null}
+                    <div className="status-entry">
+                      <strong>{displayStatusEntry.action}</strong>
+                      <dl className="status-meta">
+                        <div>
+                          <dt>操作时间</dt>
+                          <dd>{displayStatusEntry.time}</dd>
+                        </div>
+                        <div>
+                          <dt>操作结果</dt>
+                          <dd>{displayStatusEntry.result}</dd>
+                        </div>
+                      </dl>
+                      <p>{displayStatusEntry.detail}</p>
+                    </div>
+                    <div className="status-retained">
+                      <strong>{appShellCopy.statusRetainedTitle}</strong>
+                      <ul className="status-history-list">
+                        <li key={`${displayStatusEntry.action}-${displayStatusEntry.time}`}>
+                          <span>{displayStatusEntry.action}</span>
+                          <span>{displayStatusEntry.time}</span>
+                          <span>{displayStatusEntry.result}</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </aside>
+                ) : null}
 
-              {!isStatusOpen && statusPopoverReady ? (
-                <button
-                  aria-label={appShellCopy.statusAnchorAriaLabel}
-                  className="status-anchor"
-                  onClick={() => {
-                    setIsStatusOpen(true);
-                    void writeStatusPopoverOpen(true);
-                  }}
-                  type="button"
-                >
-                  <strong>{appShellCopy.statusAnchorLabel}</strong>
-                  <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
-                </button>
-              ) : null}
+                {!isStatusOpen && statusPopoverReady ? (
+                  <button
+                    aria-label={appShellCopy.statusAnchorAriaLabel}
+                    className="status-anchor"
+                    onClick={() => {
+                      setIsStatusOpen(true);
+                      void writeStatusPopoverOpen(true);
+                    }}
+                    type="button"
+                  >
+                    <strong>{appShellCopy.statusAnchorLabel}</strong>
+                    <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         </section>

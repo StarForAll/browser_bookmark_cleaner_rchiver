@@ -1,0 +1,14 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Draft remains the only editable truth while drag-move mutates local graph structure only."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Workspace UI can host drag intent but must not mix browser side effects into move handling."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "T07A test-first gate must add automated coverage before implementation claims."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Drag wiring stays UI-local and must not become a hidden service layer."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Move validation needs strict snapshot and node-kind boundaries."}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Search existing graph-editing patterns before introducing move-specific helpers."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Drag-move spans domain invariants, persisted draft updates, and workspace interaction."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/TAD.md", "reason": "Runtime boundary keeps drag-drop ownership in the extension page and draft mutation core."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "Workspace interaction rules define current baseline and where T07A extends it with drag-drop."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Edit flow confirms drag mutates local draft, refreshes persisted draft, and never writes browser bookmarks."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md", "reason": "Workspace page contract defines current editing baseline and future-scope drag behavior."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md", "reason": "Graph invariants define legal parent-child structure and fixed root-container constraints for moves."}

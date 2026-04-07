@@ -1,0 +1,7 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check drag-move keeps draft-only truth and persists after committed mutations."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Check edit flow still updates only local draft/persistence and not browser state."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check T07A against the frozen verification matrix and child-task test-first rules."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "Check drag/drop semantics stay aligned with workspace interaction rules and non-interactive virtual root constraints."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/bookmark-graph.md", "reason": "Check all legal and blocked moves preserve graph invariants and fixed root rules."}

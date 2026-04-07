@@ -21,6 +21,7 @@ export const draftGraphWorkspaceCopy = {
   rootLevelLabel: '顶层根节点',
   pathPrefix: '当前路径',
   deleteFolderSubtreeConfirm: '确定要删除目录“{title}”及其 {count} 个子节点吗？',
+  dragMoveErrorPrefix: '当前拖拽未生效',
   validation: {
     titleRequired: '标题必填',
     urlRequired: 'URL 必填',

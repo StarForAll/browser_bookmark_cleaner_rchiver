@@ -95,9 +95,14 @@ Secondary components:
 
 - Double click: enter edit mode
 - Enter on selected folder node: open create-child dialog
+- ArrowUp / ArrowDown on the selected node: reorder it within the current layer
+- ArrowLeft on a non-top-level selected node: move it one layer outward and insert it at the new layer top
+- Dragging onto a sibling node body in the same parent: upper half inserts before, lower half inserts after
+- Dragging onto a folder tail drop zone: move into that folder; folder body itself does not imply nesting
+- Dragging onto the virtual-root drop zone: promote the node into the top layer or reorder existing top-level nodes inside `rootIds`
 - Delete/Backspace: delete selected node and subtree; folders with multiple direct child nodes require a shared delete-confirm dialog first
 - Main graph workspace always represents the current draft only
-- Current T06 baseline does not expose drag-and-drop or `Ctrl+Z` in the workspace hint set; those remain later-task scope
+- `Ctrl+Z` still remains later-task scope and is not exposed yet
 - The seven top-right action buttons must be understandable from button text alone
 - Sync current draft to browser bookmarks: always requires explicit warning/confirm step
 - Overwrite current draft from browser bookmarks: always requires explicit warning/confirm step
@@ -113,7 +118,9 @@ The graph canvas renders a single visual root node at the leftmost position that
 - Is **purely a view-layer decoration** with no backing data model entry
 - Does **not** exist in `nodesById`, `rootIds`, or any persistence contract
 - Cannot be selected, edited, deleted, or have children created under it
-- Does not respond to hover, click, double-click, or keyboard events
+- The rendered anchor itself does not respond to hover, click, double-click, or keyboard events
+- A separate drag-only drop zone may share the same visual column to support top-level reordering and promotion into `rootIds`
+- That drop zone never creates children under the virtual root and never turns the virtual root into a business node
 - Is **excluded** from all sync, upload, restore, overwrite, and browser write-back operations
 - Is **excluded** from draft mutation, undo history, and checkpoint operations
 - Must not be treated as a business node by any downstream consumer (persistence, sync, export, import)

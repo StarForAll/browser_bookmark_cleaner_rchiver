@@ -24,6 +24,12 @@ type CreateDraftSiblingNodeInput = {
   url?: string;
 };
 
+type MoveDraftNodeInput = {
+  nodeId: string;
+  targetParentId: string | null;
+  targetIndex?: number;
+};
+
 type EditResult =
   | {
       ok: true;
@@ -165,6 +171,21 @@ function nextDraftNodeId(snapshot: DraftGraphSnapshot): string {
     candidate = `draft-${counter}`;
   }
   return candidate;
+}
+
+function collectAncestorIds(
+  nodesById: DraftGraphSnapshot['nodesById'],
+  nodeId: string,
+): Set<string> {
+  const ancestorIds = new Set<string>();
+  let cursor = nodesById[nodeId]?.parentId ?? null;
+
+  while (cursor !== null) {
+    ancestorIds.add(cursor);
+    cursor = nodesById[cursor]?.parentId ?? null;
+  }
+
+  return ancestorIds;
 }
 
 export function selectDraftNode(
@@ -358,6 +379,119 @@ export function createDraftSiblingNode(
     snapshot: validation.snapshot,
     createdNodeId,
   };
+}
+
+export function moveDraftNode(
+  snapshot: DraftGraphSnapshot,
+  input: MoveDraftNodeInput,
+): EditResult {
+  const targetNode = snapshot.nodesById[input.nodeId];
+  if (!targetNode) {
+    return {
+      ok: false,
+      error: '目标节点不存在。',
+    };
+  }
+
+  const targetParent = input.targetParentId === null ? null : snapshot.nodesById[input.targetParentId];
+  if (input.targetParentId !== null && !targetParent) {
+    return {
+      ok: false,
+      error: '投放目标不存在。',
+    };
+  }
+
+  if (targetParent && targetParent.nodeType !== 'folder') {
+    return {
+      ok: false,
+      error: '只能投放到目录节点。',
+    };
+  }
+
+  if (targetParent && targetNode.internalId === targetParent.internalId) {
+    return {
+      ok: false,
+      error: '不能将节点移动到自身之下。',
+    };
+  }
+
+  if (input.targetParentId !== null) {
+    const ancestorIds = collectAncestorIds(snapshot.nodesById, input.targetParentId);
+    if (ancestorIds.has(targetNode.internalId)) {
+      return {
+        ok: false,
+        error: '不能将目录移动到自己的子树之下。',
+      };
+    }
+  }
+
+  if (targetNode.parentId === input.targetParentId && input.targetIndex === undefined) {
+    return {
+      ok: true,
+      snapshot,
+    };
+  }
+
+  const nodesById = Object.fromEntries(
+    Object.entries(snapshot.nodesById).map(([id, node]) => [id, cloneNode(node)]),
+  );
+  const movingNode = nodesById[input.nodeId];
+  const sourceParentId = movingNode.parentId;
+  const nextRootIds = [...snapshot.rootIds];
+
+  const sourceSiblingIds =
+    sourceParentId === null
+      ? nextRootIds
+      : nodesById[sourceParentId]?.childIds;
+  const targetSiblingIds =
+    input.targetParentId === null
+      ? nextRootIds
+      : nodesById[input.targetParentId]?.childIds;
+  if (!sourceSiblingIds || !targetSiblingIds) {
+    return {
+      ok: false,
+      error: '当前节点结构无效，无法移动。',
+    };
+  }
+
+  if (sourceParentId === input.targetParentId) {
+    const nextSiblingIds = sourceSiblingIds.filter((childId) => childId !== input.nodeId);
+    const boundedTargetIndex = Math.max(0, Math.min(input.targetIndex ?? 0, nextSiblingIds.length));
+    nextSiblingIds.splice(boundedTargetIndex, 0, input.nodeId);
+
+    if (sourceParentId === null) {
+      nextRootIds.splice(0, nextRootIds.length, ...nextSiblingIds);
+    } else {
+      nodesById[sourceParentId].childIds = nextSiblingIds;
+    }
+  } else {
+    const nextSourceSiblingIds = sourceSiblingIds.filter((childId) => childId !== input.nodeId);
+    const nextTargetSiblingIds = targetSiblingIds.filter((childId) => childId !== input.nodeId);
+    const boundedTargetIndex = Math.max(0, Math.min(input.targetIndex ?? 0, nextTargetSiblingIds.length));
+    nextTargetSiblingIds.splice(boundedTargetIndex, 0, input.nodeId);
+
+    if (sourceParentId === null) {
+      nextRootIds.splice(0, nextRootIds.length, ...nextSourceSiblingIds);
+    } else {
+      nodesById[sourceParentId].childIds = nextSourceSiblingIds;
+    }
+
+    if (input.targetParentId === null) {
+      nextRootIds.splice(0, nextRootIds.length, ...nextTargetSiblingIds);
+    } else {
+      nodesById[input.targetParentId].childIds = nextTargetSiblingIds;
+    }
+  }
+
+  movingNode.parentId = input.targetParentId;
+  updateNodePathTokens(nodesById, movingNode.internalId, targetParent?.pathTokens ?? []);
+
+  return withValidatedSnapshot({
+    ...snapshot,
+    snapshotVersion: nextSnapshotVersion(snapshot),
+    nodesById,
+    rootIds: nextRootIds,
+  });
 }
 
 function collectSubtreeIds(
