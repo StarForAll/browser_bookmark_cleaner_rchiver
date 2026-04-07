@@ -171,7 +171,7 @@ input:disabled {
 .canvas-surface {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   flex: 1 1 auto;
   min-height: 0;
@@ -191,13 +191,6 @@ input:disabled {
   position: relative;
   min-width: 0;
   min-height: 0;
-}
-
-.canvas-side-rail {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 18px;
 }
 
 .canvas-placeholder {
@@ -755,21 +748,30 @@ input:disabled {
 }
 
 .draft-dialog-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 3;
-  display: grid;
-  place-items: center;
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
   background: rgba(20, 51, 58, 0.18);
 }
 
 .draft-dialog-card {
-  width: min(100% - 32px, 460px);
+  position: relative;
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
   border: 1px solid rgba(20, 51, 58, 0.12);
   border-radius: 24px;
   background: rgba(255, 252, 246, 0.98);
   box-shadow: 0 24px 48px rgba(20, 51, 58, 0.14);
   padding: 22px;
+}
+
+.draft-dialog-card.is-anchored {
+  position: fixed;
 }
 
 .draft-dialog-card h3 {
@@ -914,16 +916,19 @@ input:disabled {
 }
 
 .hint-overlay {
-  position: relative;
+  position: fixed;
+  z-index: 18;
   pointer-events: none;
   user-select: none;
-  width: 100%;
-  border: none;
+  width: min(320px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid rgba(20, 51, 58, 0.08);
   border-radius: 18px;
-  background: transparent;
-  box-shadow: none;
-  backdrop-filter: none;
-  padding: 6px 2px 0;
+  background: rgba(255, 252, 246, 0.72);
+  box-shadow: 0 18px 36px rgba(20, 51, 58, 0.1);
+  backdrop-filter: blur(14px);
+  padding: 16px 18px;
   opacity: 1;
 }
 
@@ -954,15 +959,16 @@ input:disabled {
   margin-top: 6px;
 }
 
-.status-layer {
-  display: grid;
-  margin-top: auto;
-  justify-items: stretch;
-  gap: 10px;
+.status-popover,
+.status-anchor {
+  position: fixed;
+  z-index: 19;
 }
 
 .status-popover {
-  width: 100%;
+  width: min(320px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
   border: 1px solid rgba(20, 51, 58, 0.14);
   border-radius: 22px;
   background: rgba(255, 252, 246, 0.94);
@@ -1047,7 +1053,7 @@ input:disabled {
 }
 
 .status-anchor {
-  width: 220px;
+  width: min(240px, calc(100vw - 32px));
   border-radius: 18px;
   padding: 12px 14px;
   text-align: left;
@@ -1074,28 +1080,6 @@ input:disabled {
     grid-template-columns: 1fr;
   }
 
-  .canvas-side-rail {
-    gap: 14px;
-  }
-
-  .hint-overlay,
-  .status-layer {
-    width: auto;
-  }
-
-  .hint-overlay {
-    padding-top: 0;
-  }
-
-  .status-layer {
-    justify-items: stretch;
-  }
-
-  .status-popover,
-  .status-anchor {
-    width: 100%;
-  }
-
   .action-note {
     left: 0;
     right: auto;
@@ -1117,5 +1101,33 @@ input:disabled {
   .secondary-actions,
   .search-placeholder {
     flex-direction: column;
+  }
+
+  .draft-dialog-backdrop {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .draft-dialog-card,
+  .draft-dialog-card.is-anchored {
+    position: relative;
+    width: min(100%, 460px);
+    max-height: min(80vh, 640px);
+  }
+
+  .hint-overlay {
+    width: min(280px, calc(100vw - 32px));
+    max-height: min(40vh, 360px);
+    padding: 14px 16px;
+  }
+
+  .status-popover {
+    width: min(280px, calc(100vw - 32px));
+    max-height: min(42vh, 360px);
+    padding: 14px 16px;
+  }
+
+  .status-anchor {
+    width: min(280px, calc(100vw - 32px));
   }
 }

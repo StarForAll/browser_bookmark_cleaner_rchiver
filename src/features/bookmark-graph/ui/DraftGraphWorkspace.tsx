@@ -9,7 +9,9 @@ import {
   type DragEvent as ReactDragEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   LOCAL_PERSISTENCE_SCHEMA_VERSION,
   type PersistedDraftSession,
@@ -22,11 +24,21 @@ import {
   moveDraftNode,
   selectDraftNode,
 } from '@/domain/draft-graph/editing';
-import { type DraftGraphNode, type DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
+import {
+  type DraftGraphNode,
+  type DraftGraphSnapshot,
+  type DraftUndoMutationType,
+} from '@/domain/draft-graph/contracts';
+import {
+  applyLatestDraftUndo,
+  createDraftUndoEntry,
+} from '@/features/bookmark-graph/state/draftUndo';
 import { draftGraphWorkspaceCopy } from '@/shared/copy/draftGraphWorkspace';
 
 type DraftGraphWorkspaceProps = {
   initialSnapshot: DraftGraphSnapshot;
+  initialUndoHistory?: PersistedDraftSession['undoHistory'];
+  initialCheckpoints?: PersistedDraftSession['checkpoints'];
   onPersistDraftSession: (session: PersistedDraftSession) => Promise<unknown>;
 };
 
@@ -63,6 +75,8 @@ type DialogState =
       message: string;
     }
   | null;
+
+type DialogKind = NonNullable<DialogState>['kind'];
 
 type MindmapLayoutNode = {
   nodeId: string;
@@ -119,6 +133,10 @@ const MINDMAP_PADDING_X = 32;
 const MINDMAP_PADDING_Y = 32;
 const HOVER_CARD_WIDTH = 280;
 const HOVER_CARD_GAP = 16;
+const DIALOG_CARD_MAX_WIDTH = 460;
+const DIALOG_CARD_GAP = 20;
+const DIALOG_CARD_VIEWPORT_MARGIN = 16;
+const DIALOG_ANCHORED_MIN_VIEWPORT_WIDTH = 721;
 const ROOT_BRANCH_COLORS = ['#7a9d95', '#8aa6c0', '#b59677', '#8d9a76'] as const;
 const LARGE_GRAPH_NODE_THRESHOLD = 400;
 const VIEWPORT_OVERSCAN_X = 280;
@@ -148,15 +166,106 @@ type DragPreviewState = {
   targetIndex: number;
 } | null;
 
-function buildPersistedDraftSession(snapshot: DraftGraphSnapshot): PersistedDraftSession {
+type DialogCardPosition = {
+  left: number;
+  top: number;
+};
+
+type DialogAnchorRect = Pick<DOMRect, 'left' | 'right' | 'top' | 'height'>;
+
+function buildPersistedDraftSession(
+  snapshot: DraftGraphSnapshot,
+  undoHistory: PersistedDraftSession['undoHistory'],
+  checkpoints: PersistedDraftSession['checkpoints'],
+): PersistedDraftSession {
   return {
     schemaVersion: LOCAL_PERSISTENCE_SCHEMA_VERSION,
     draftSnapshot: snapshot,
     expandedStateById: {},
     nodePositionsById: {},
-    undoHistory: [],
-    checkpoints: [],
+    undoHistory,
+    checkpoints,
   };
+}
+
+function resolveEditUndoMutationType(
+  previousSnapshot: DraftGraphSnapshot,
+  nextSnapshot: DraftGraphSnapshot,
+  nodeId: string,
+): DraftUndoMutationType {
+  const previousNode = previousSnapshot.nodesById[nodeId];
+  const nextNode = nextSnapshot.nodesById[nodeId];
+
+  if (
+    previousNode?.nodeType === 'bookmark' &&
+    nextNode?.nodeType === 'bookmark' &&
+    previousNode.title === nextNode.title &&
+    previousNode.url !== nextNode.url
+  ) {
+    return 'edit-bookmark-url';
+  }
+
+  return 'rename-node';
+}
+
+export function resolveDialogCardPosition(input: {
+  anchorRect: DialogAnchorRect;
+  dialogKind: DialogKind;
+  viewportWidth: number;
+  viewportHeight: number;
+}): DialogCardPosition {
+  const availableWidth = Math.max(280, input.viewportWidth - DIALOG_CARD_VIEWPORT_MARGIN * 2);
+  const cardWidth = Math.min(DIALOG_CARD_MAX_WIDTH, availableWidth);
+  const estimatedHeight =
+    input.dialogKind === 'delete-confirm'
+      ? 240
+      : input.dialogKind === 'edit'
+        ? 320
+        : 420;
+  const preferredLeft = input.anchorRect.right + DIALOG_CARD_GAP;
+  const fallbackLeft = input.anchorRect.left - cardWidth - DIALOG_CARD_GAP;
+  const left =
+    preferredLeft + cardWidth <= input.viewportWidth - DIALOG_CARD_VIEWPORT_MARGIN
+      ? preferredLeft
+      : Math.max(DIALOG_CARD_VIEWPORT_MARGIN, fallbackLeft);
+  const centeredTop = input.anchorRect.top + input.anchorRect.height / 2 - estimatedHeight / 2;
+  const maxTop = Math.max(
+    DIALOG_CARD_VIEWPORT_MARGIN,
+    input.viewportHeight - estimatedHeight - DIALOG_CARD_VIEWPORT_MARGIN,
+  );
+
+  return {
+    left,
+    top: Math.max(DIALOG_CARD_VIEWPORT_MARGIN, Math.min(centeredTop, maxTop)),
+  };
+}
+
+function resolveDialogAnchorNodeId(dialogState: NonNullable<DialogState>): string {
+  switch (dialogState.kind) {
+    case 'edit':
+    case 'delete-confirm':
+      return dialogState.nodeId;
+    case 'create-child':
+      return dialogState.parentId;
+    case 'create-sibling':
+      return dialogState.referenceNodeId;
+  }
+}
+
+function resolveDialogPositionFromAnchorRect(
+  anchorRect: DialogAnchorRect,
+  dialogKind: DialogKind,
+): DialogCardPosition | null {
+  if (window.innerWidth < DIALOG_ANCHORED_MIN_VIEWPORT_WIDTH) {
+    return null;
+  }
+
+  return resolveDialogCardPosition({
+    anchorRect,
+    dialogKind,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  });
 }
 
 function getDraftNodeLayoutHeight(node: DraftGraphNode, depth: number): number {
@@ -707,6 +816,20 @@ function getCurrentActiveElement(): HTMLElement | null {
   return document.activeElement instanceof HTMLElement ? document.activeElement : null;
 }
 
+function shouldIgnoreGlobalUndoShortcut(activeElement: HTMLElement | null): boolean {
+  if (!activeElement) {
+    return false;
+  }
+
+  const tagName = activeElement.tagName;
+  return (
+    activeElement.isContentEditable ||
+    tagName === 'INPUT' ||
+    tagName === 'TEXTAREA' ||
+    tagName === 'SELECT'
+  );
+}
+
 function isLayoutNodeVisible(layoutNode: MindmapLayoutNode, viewport: CanvasViewport): boolean {
   const nodeLeft = layoutNode.x;
   const nodeTop = layoutNode.y;
@@ -766,16 +889,22 @@ export function deriveVisibleMindmapElements(
 
 export function DraftGraphWorkspace({
   initialSnapshot,
+  initialUndoHistory = [],
+  initialCheckpoints = [],
   onPersistDraftSession,
 }: DraftGraphWorkspaceProps) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
+  const [undoHistory, setUndoHistory] = useState<PersistedDraftSession['undoHistory']>(() => [...initialUndoHistory]);
+  const [checkpoints, setCheckpoints] = useState<PersistedDraftSession['checkpoints']>(() => [...initialCheckpoints]);
   const [dialogState, setDialogState] = useState<DialogState>(null);
+  const [dialogCardPosition, setDialogCardPosition] = useState<DialogCardPosition | null>(null);
   const [hoverState, setHoverState] = useState<HoverState>(null);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [dragPreviewState, setDragPreviewState] = useState<DragPreviewState>(null);
   const [dragMoveError, setDragMoveError] = useState<string | null>(null);
   const treeContainerRef = useRef<HTMLElement | null>(null);
   const dialogBackdropRef = useRef<HTMLDivElement | null>(null);
+  const nodeButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const [canvasViewport, setCanvasViewport] = useState<CanvasViewport | null>(null);
 
@@ -864,12 +993,123 @@ export function DraftGraphWorkspace({
     focusBoundaryDialogElement(dialogBackdropRef.current, 'first');
   }, [isDialogOpen]);
 
-  const commitSnapshot = useCallback(async (nextSnapshot: DraftGraphSnapshot): Promise<void> => {
+  const persistWorkspaceSession = useCallback(async (
+    nextSnapshot: DraftGraphSnapshot,
+    nextUndoHistory: PersistedDraftSession['undoHistory'],
+    nextCheckpoints: PersistedDraftSession['checkpoints'],
+  ): Promise<void> => {
     setSnapshot(nextSnapshot);
-    await onPersistDraftSession(buildPersistedDraftSession(nextSnapshot));
+    setUndoHistory(nextUndoHistory);
+    setCheckpoints(nextCheckpoints);
+    await onPersistDraftSession(buildPersistedDraftSession(nextSnapshot, nextUndoHistory, nextCheckpoints));
   }, [onPersistDraftSession]);
 
-  const openEditDialog = useCallback((nodeId: string): void => {
+  const commitDraftMutation = useCallback(async (
+    nextSnapshot: DraftGraphSnapshot,
+    mutationType: DraftUndoMutationType,
+    affectedNodeIds: string[],
+  ): Promise<void> => {
+    const nextUndoHistory = [
+      ...undoHistory,
+      createDraftUndoEntry({
+        previousSnapshot: snapshot,
+        nextSnapshot,
+        mutationType,
+        affectedNodeIds,
+        timestamp: new Date().toISOString(),
+      }),
+    ];
+
+    await persistWorkspaceSession(nextSnapshot, nextUndoHistory, checkpoints);
+  }, [checkpoints, persistWorkspaceSession, snapshot, undoHistory]);
+
+  const undoLatestDraftMutation = useCallback(async (): Promise<void> => {
+    const undoResult = applyLatestDraftUndo({
+      currentSnapshot: snapshot,
+      undoHistory,
+    });
+    if (!undoResult.ok) {
+      return;
+    }
+
+    setDragMoveError(null);
+    await persistWorkspaceSession(undoResult.snapshot, undoResult.undoHistory, checkpoints);
+  }, [checkpoints, persistWorkspaceSession, snapshot, undoHistory]);
+
+  const setNodeButtonRef = useCallback((nodeId: string, element: HTMLButtonElement | null): void => {
+    if (element) {
+      nodeButtonRefs.current.set(nodeId, element);
+      return;
+    }
+
+    nodeButtonRefs.current.delete(nodeId);
+  }, []);
+
+  const resolveDialogCardPositionFromElement = useCallback((element: HTMLElement | null, dialogKind: DialogKind): DialogCardPosition | null => {
+    if (!element) {
+      return null;
+    }
+
+    return resolveDialogPositionFromAnchorRect(element.getBoundingClientRect(), dialogKind);
+  }, []);
+
+  const resolveNodeDialogCardPosition = useCallback((nodeId: string, dialogKind: DialogKind): DialogCardPosition | null => {
+    const anchorElement = nodeButtonRefs.current.get(nodeId);
+    if (!anchorElement) {
+      return null;
+    }
+
+    return resolveDialogCardPositionFromElement(anchorElement, dialogKind);
+  }, [resolveDialogCardPositionFromElement]);
+
+  useEffect(() => {
+    if (!dialogState) {
+      return;
+    }
+
+    const anchorNodeId = resolveDialogAnchorNodeId(dialogState);
+    const updateDialogCardPosition = (): void => {
+      setDialogCardPosition(resolveNodeDialogCardPosition(anchorNodeId, dialogState.kind));
+    };
+
+    const treeElement = treeContainerRef.current;
+
+    updateDialogCardPosition();
+    window.addEventListener('resize', updateDialogCardPosition);
+    treeElement?.addEventListener('scroll', updateDialogCardPosition, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', updateDialogCardPosition);
+      treeElement?.removeEventListener('scroll', updateDialogCardPosition);
+    };
+  }, [dialogState, resolveNodeDialogCardPosition]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (isDialogOpen || event.defaultPrevented) {
+        return;
+      }
+
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') {
+        return;
+      }
+
+      if (shouldIgnoreGlobalUndoShortcut(getCurrentActiveElement())) {
+        return;
+      }
+
+      event.preventDefault();
+      void undoLatestDraftMutation();
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, [isDialogOpen, undoLatestDraftMutation]);
+
+  const openEditDialog = useCallback((nodeId: string, anchorElement?: HTMLElement | null): void => {
     const node = snapshot.nodesById[nodeId];
     if (!node) {
       return;
@@ -877,6 +1117,11 @@ export function DraftGraphWorkspace({
 
     setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
+    setDialogCardPosition(
+      anchorElement
+        ? resolveDialogCardPositionFromElement(anchorElement, 'edit')
+        : resolveNodeDialogCardPosition(nodeId, 'edit'),
+    );
     setDialogState({
       kind: 'edit',
       nodeId,
@@ -884,9 +1129,9 @@ export function DraftGraphWorkspace({
       url: node.url ?? '',
       error: null,
     });
-  }, [snapshot.nodesById]);
+  }, [resolveDialogCardPositionFromElement, resolveNodeDialogCardPosition, snapshot.nodesById]);
 
-  const openCreateChildDialog = useCallback((parentId: string): void => {
+  const openCreateChildDialog = useCallback((parentId: string, anchorElement?: HTMLElement | null): void => {
     const parent = snapshot.nodesById[parentId];
     if (!parent || parent.nodeType !== 'folder') {
       return;
@@ -894,6 +1139,11 @@ export function DraftGraphWorkspace({
 
     setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
+    setDialogCardPosition(
+      anchorElement
+        ? resolveDialogCardPositionFromElement(anchorElement, 'create-child')
+        : resolveNodeDialogCardPosition(parentId, 'create-child'),
+    );
     setDialogState({
       kind: 'create-child',
       parentId,
@@ -902,9 +1152,9 @@ export function DraftGraphWorkspace({
       url: '',
       error: null,
     });
-  }, [snapshot.nodesById]);
+  }, [resolveDialogCardPositionFromElement, resolveNodeDialogCardPosition, snapshot.nodesById]);
 
-  const openCreateSiblingDialog = useCallback((referenceNodeId: string): void => {
+  const openCreateSiblingDialog = useCallback((referenceNodeId: string, anchorElement?: HTMLElement | null): void => {
     const referenceNode = snapshot.nodesById[referenceNodeId];
     if (!referenceNode) {
       return;
@@ -912,6 +1162,11 @@ export function DraftGraphWorkspace({
 
     setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
+    setDialogCardPosition(
+      anchorElement
+        ? resolveDialogCardPositionFromElement(anchorElement, 'create-sibling')
+        : resolveNodeDialogCardPosition(referenceNodeId, 'create-sibling'),
+    );
     setDialogState({
       kind: 'create-sibling',
       referenceNodeId,
@@ -921,11 +1176,16 @@ export function DraftGraphWorkspace({
       url: '',
       error: null,
     });
-  }, [snapshot.nodesById]);
+  }, [resolveDialogCardPositionFromElement, resolveNodeDialogCardPosition, snapshot.nodesById]);
 
-  const openDeleteConfirmDialog = useCallback((node: DraftGraphNode): void => {
+  const openDeleteConfirmDialog = useCallback((node: DraftGraphNode, anchorElement?: HTMLElement | null): void => {
     setDragMoveError(null);
     previousFocusRef.current = getCurrentActiveElement();
+    setDialogCardPosition(
+      anchorElement
+        ? resolveDialogCardPositionFromElement(anchorElement, 'delete-confirm')
+        : resolveNodeDialogCardPosition(node.internalId, 'delete-confirm'),
+    );
     setDialogState({
       kind: 'delete-confirm',
       nodeId: node.internalId,
@@ -933,24 +1193,24 @@ export function DraftGraphWorkspace({
       childCount: node.childIds.length,
       message: buildDeleteConfirmationMessage(node),
     });
-  }, []);
+  }, [resolveDialogCardPositionFromElement, resolveNodeDialogCardPosition]);
 
   const commitDelete = useCallback(async (nodeId: string): Promise<void> => {
     const result = deleteDraftNodeSubtree(snapshot, nodeId);
     if (!result.ok) {
       return;
     }
-    await commitSnapshot(result.snapshot);
-  }, [commitSnapshot, snapshot]);
+    await commitDraftMutation(result.snapshot, 'delete-subtree', result.deletedNodeIds);
+  }, [commitDraftMutation, snapshot]);
 
-  const handleDelete = useCallback(async (nodeId: string): Promise<void> => {
+  const handleDelete = useCallback(async (nodeId: string, anchorElement?: HTMLElement | null): Promise<void> => {
     const targetNode = snapshot.nodesById[nodeId];
     if (!targetNode) {
       return;
     }
 
     if (targetNode.nodeType === 'folder' && targetNode.childIds.length > 1) {
-      openDeleteConfirmDialog(targetNode);
+      openDeleteConfirmDialog(targetNode, anchorElement);
       return;
     }
 
@@ -958,6 +1218,7 @@ export function DraftGraphWorkspace({
   }, [commitDelete, openDeleteConfirmDialog, snapshot.nodesById]);
 
   const closeDialog = useCallback((): void => {
+    setDialogCardPosition(null);
     setDialogState(null);
   }, []);
 
@@ -1031,8 +1292,8 @@ export function DraftGraphWorkspace({
     }
 
     setDragMoveError(null);
-    await commitSnapshot(moveResult.snapshot);
-  }, [commitSnapshot, snapshot]);
+    await commitDraftMutation(moveResult.snapshot, 'move-node', [nodeId]);
+  }, [commitDraftMutation, snapshot]);
 
   const promoteNodeOneLevel = useCallback(async (nodeId: string): Promise<void> => {
     const promoteTarget = resolveKeyboardPromoteTarget(snapshot, nodeId);
@@ -1051,8 +1312,8 @@ export function DraftGraphWorkspace({
     }
 
     setDragMoveError(null);
-    await commitSnapshot(moveResult.snapshot);
-  }, [commitSnapshot, snapshot]);
+    await commitDraftMutation(moveResult.snapshot, 'move-node', [nodeId]);
+  }, [commitDraftMutation, snapshot]);
 
   const handleNodeKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>, nodeId: string): void => {
     if (isDialogOpen) {
@@ -1063,7 +1324,7 @@ export function DraftGraphWorkspace({
     if (event.key === 'Enter') {
       if (event.shiftKey) {
         event.preventDefault();
-        openCreateSiblingDialog(nodeId);
+        openCreateSiblingDialog(nodeId, event.currentTarget);
         return;
       }
 
@@ -1072,13 +1333,13 @@ export function DraftGraphWorkspace({
         return;
       }
       event.preventDefault();
-      openCreateChildDialog(nodeId);
+      openCreateChildDialog(nodeId, event.currentTarget);
       return;
     }
 
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
-      void handleDelete(nodeId);
+      void handleDelete(nodeId, event.currentTarget);
       return;
     }
 
@@ -1245,8 +1506,8 @@ export function DraftGraphWorkspace({
     }
 
     setDragMoveError(null);
-    await commitSnapshot(moveResult.snapshot);
-  }, [commitSnapshot, dragPreviewState, draggedNodeId, layoutByNodeId, snapshot]);
+    await commitDraftMutation(moveResult.snapshot, 'move-node', [sourceNodeId]);
+  }, [commitDraftMutation, dragPreviewState, draggedNodeId, layoutByNodeId, snapshot]);
 
   const submitEditDialog = useCallback(async (): Promise<void> => {
     if (dialogState?.kind !== 'edit') {
@@ -1267,9 +1528,13 @@ export function DraftGraphWorkspace({
       return;
     }
 
-    await commitSnapshot(result.snapshot);
+    await commitDraftMutation(
+      result.snapshot,
+      resolveEditUndoMutationType(snapshot, result.snapshot, dialogState.nodeId),
+      [dialogState.nodeId],
+    );
     setDialogState(null);
-  }, [commitSnapshot, dialogState, snapshot]);
+  }, [commitDraftMutation, dialogState, snapshot]);
 
   const submitCreateChildDialog = useCallback(async (): Promise<void> => {
     if (dialogState?.kind !== 'create-child') {
@@ -1291,9 +1556,9 @@ export function DraftGraphWorkspace({
       return;
     }
 
-    await commitSnapshot(result.snapshot);
+    await commitDraftMutation(result.snapshot, 'create-node', [result.createdNodeId]);
     setDialogState(null);
-  }, [commitSnapshot, dialogState, snapshot]);
+  }, [commitDraftMutation, dialogState, snapshot]);
 
   const submitCreateSiblingDialog = useCallback(async (): Promise<void> => {
     if (dialogState?.kind !== 'create-sibling') {
@@ -1315,9 +1580,9 @@ export function DraftGraphWorkspace({
       return;
     }
 
-    await commitSnapshot(result.snapshot);
+    await commitDraftMutation(result.snapshot, 'create-node', [result.createdNodeId]);
     setDialogState(null);
-  }, [commitSnapshot, dialogState, snapshot]);
+  }, [commitDraftMutation, dialogState, snapshot]);
 
   const handleNodeButtonClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>): void => {
     const nodeId = event.currentTarget.dataset.nodeId;
@@ -1332,7 +1597,7 @@ export function DraftGraphWorkspace({
     if (!nodeId) {
       return;
     }
-    openEditDialog(nodeId);
+    openEditDialog(nodeId, event.currentTarget);
   }, [openEditDialog]);
 
   const handleNodeButtonKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>): void => {
@@ -1484,6 +1749,9 @@ export function DraftGraphWorkspace({
           data-node-id={node.internalId}
           disabled={isDialogOpen}
           draggable={!isDialogOpen}
+          ref={(element) => {
+            setNodeButtonRef(node.internalId, element);
+          }}
           onClick={handleNodeButtonClick}
           onDragEnd={handleNodeButtonDragEnd}
           onDragLeave={handleNodeButtonDragLeave}
@@ -1538,6 +1806,7 @@ export function DraftGraphWorkspace({
     isDialogOpen,
     snapshot.nodesById,
     snapshot.selectedNodeId,
+    setNodeButtonRef,
     visibleMindmap.nodes,
   ]);
 
@@ -1587,6 +1856,21 @@ export function DraftGraphWorkspace({
       </div>
     );
   }, [hoverState, layoutByNodeId, mindmapLayout, snapshot.nodesById]);
+
+  const dialogCardStyle = useMemo(() => {
+    if (!dialogCardPosition) {
+      return undefined;
+    }
+
+    return {
+      left: `${dialogCardPosition.left}px`,
+      top: `${dialogCardPosition.top}px`,
+    } satisfies CSSProperties;
+  }, [dialogCardPosition]);
+  const dialogPortalTarget = typeof document !== 'undefined' ? document.body : null;
+  const renderDialogOverlay = useCallback((overlay: ReactNode): ReactNode => {
+    return dialogPortalTarget ? createPortal(overlay, dialogPortalTarget) : overlay;
+  }, [dialogPortalTarget]);
 
   return (
     <div className={`draft-graph-workspace${isLargeGraph ? ' is-large-graph' : ''}`}>
@@ -1652,7 +1936,7 @@ export function DraftGraphWorkspace({
         )}
       </section>
 
-      {dialogState?.kind === 'edit' ? (
+      {dialogState?.kind === 'edit' ? renderDialogOverlay(
         <div
           aria-modal="true"
           className="draft-dialog-backdrop"
@@ -1660,7 +1944,11 @@ export function DraftGraphWorkspace({
           ref={dialogBackdropRef}
           role="dialog"
         >
-          <div className="draft-dialog-card">
+          <div
+            className={`draft-dialog-card${dialogCardStyle ? ' is-anchored' : ''}`}
+            data-anchor-node-id={dialogState.nodeId}
+            style={dialogCardStyle}
+          >
             <h3>{draftGraphWorkspaceCopy.editorDialogTitle}</h3>
             <p>{`${draftGraphWorkspaceCopy.pathPrefix}：${snapshot.nodesById[dialogState.nodeId]?.pathTokens.join(' / ') ?? ''}`}</p>
             <label className="draft-field">
@@ -1702,10 +1990,10 @@ export function DraftGraphWorkspace({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       ) : null}
 
-      {dialogState?.kind === 'create-child' || dialogState?.kind === 'create-sibling' ? (
+      {dialogState?.kind === 'create-child' || dialogState?.kind === 'create-sibling' ? renderDialogOverlay(
         <div
           aria-modal="true"
           className="draft-dialog-backdrop"
@@ -1713,7 +2001,11 @@ export function DraftGraphWorkspace({
           ref={dialogBackdropRef}
           role="dialog"
         >
-          <div className="draft-dialog-card">
+          <div
+            className={`draft-dialog-card${dialogCardStyle ? ' is-anchored' : ''}`}
+            data-anchor-node-id={dialogState.kind === 'create-child' ? dialogState.parentId : dialogState.referenceNodeId}
+            style={dialogCardStyle}
+          >
             <h3>
               {dialogState.kind === 'create-child'
                 ? draftGraphWorkspaceCopy.createChildDialogTitle
@@ -1819,10 +2111,10 @@ export function DraftGraphWorkspace({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       ) : null}
 
-      {dialogState?.kind === 'delete-confirm' ? (
+      {dialogState?.kind === 'delete-confirm' ? renderDialogOverlay(
         <div
           aria-modal="true"
           className="draft-dialog-backdrop"
@@ -1830,7 +2122,11 @@ export function DraftGraphWorkspace({
           ref={dialogBackdropRef}
           role="dialog"
         >
-          <div className="draft-dialog-card">
+          <div
+            className={`draft-dialog-card${dialogCardStyle ? ' is-anchored' : ''}`}
+            data-anchor-node-id={dialogState.nodeId}
+            style={dialogCardStyle}
+          >
             <h3>{draftGraphWorkspaceCopy.deleteDialogTitle}</h3>
             <p>{`${draftGraphWorkspaceCopy.parentPrefix}：${dialogState.title || '（无标题）'}`}</p>
             <p className="draft-dialog-warning">{dialogState.message}</p>
@@ -1849,7 +2145,7 @@ export function DraftGraphWorkspace({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       ) : null}
     </div>
   );

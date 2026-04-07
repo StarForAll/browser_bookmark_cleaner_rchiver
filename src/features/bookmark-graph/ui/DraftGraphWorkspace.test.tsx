@@ -170,6 +170,100 @@ describe('T06 draft graph workspace interaction gate', () => {
     ]);
   });
 
+  test('prefers placing anchored dialogs beside the triggering node and falls back within the viewport', async () => {
+    const { resolveDialogCardPosition } = await import('./DraftGraphWorkspace');
+
+    expect(
+      resolveDialogCardPosition({
+        anchorRect: {
+          left: 320,
+          right: 540,
+          top: 280,
+          height: 46,
+        },
+        dialogKind: 'edit',
+        viewportWidth: 1280,
+        viewportHeight: 900,
+      }),
+    ).toEqual({
+      left: 560,
+      top: 143,
+    });
+
+    expect(
+      resolveDialogCardPosition({
+        anchorRect: {
+          left: 940,
+          right: 1160,
+          top: 820,
+          height: 40,
+        },
+        dialogKind: 'create-child',
+        viewportWidth: 1280,
+        viewportHeight: 900,
+      }),
+    ).toEqual({
+      left: 460,
+      top: 464,
+    });
+  });
+
+  test('anchors the edit dialog to the triggering node instead of centering the canvas', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    const anchoredRect = {
+      x: 320,
+      y: 280,
+      left: 320,
+      right: 540,
+      top: 280,
+      bottom: 326,
+      width: 220,
+      height: 46,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const defaultRect = {
+      x: 0,
+      y: 0,
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function mockRect(this: HTMLElement) {
+      if (this.dataset.nodeId === 'folder-root') {
+        return anchoredRect;
+      }
+
+      return defaultRect;
+    });
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const folderNode = screen.getByRole('button', { name: '目录节点：工作资料' });
+
+    fireEvent.doubleClick(folderNode);
+
+    const workspaceRoot = screen.getByRole('region', { name: '当前草稿节点列表' }).closest('.draft-graph-workspace');
+    const dialogCard = screen.getByRole('dialog').querySelector('.draft-dialog-card') as HTMLElement | null;
+
+    expect(dialogCard).toBeInTheDocument();
+    expect(workspaceRoot?.contains(screen.getByRole('dialog'))).toBe(false);
+    expect(dialogCard).toHaveClass('is-anchored');
+    expect(dialogCard).toHaveAttribute('data-anchor-node-id', 'folder-root');
+    expect(dialogCard?.style.left).not.toBe('');
+    expect(dialogCard?.style.top).not.toBe('');
+  });
+
   test('double click opens the draft-only node editor and never writes browser bookmarks directly', async () => {
     const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
     const persistDraftSession = vi.fn(async () => undefined);

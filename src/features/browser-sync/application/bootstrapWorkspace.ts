@@ -29,6 +29,7 @@ export type WorkspaceStartupStatusKey =
 export type WorkspaceBootstrapResult = {
   policy: StartupImportPolicy;
   draftSnapshot: DraftGraphSnapshot | null;
+  draftSession?: PersistedDraftSession | null;
   statusKey: WorkspaceStartupStatusKey;
   occurredAt: string;
   errorDetail?: string;
@@ -63,6 +64,7 @@ export async function bootstrapWorkspace(
         reason: 'persisted-draft-corrupted',
       },
       draftSnapshot: null,
+      draftSession: null,
       statusKey: 'restore-error',
       occurredAt,
       errorDetail: persistedDraftSession.error,
@@ -87,6 +89,7 @@ export async function bootstrapWorkspace(
     return {
       policy,
       draftSnapshot: persistedDraftSession.session.draftSnapshot,
+      draftSession: persistedDraftSession.session,
       statusKey: 'restored-local-draft',
       occurredAt,
     };
@@ -111,6 +114,7 @@ export async function bootstrapWorkspace(
       return {
         policy,
         draftSnapshot,
+        draftSession: null,
         statusKey: 'imported-browser-tree-unsaved',
         occurredAt,
         errorDetail:
@@ -123,6 +127,14 @@ export async function bootstrapWorkspace(
     return {
       policy,
       draftSnapshot,
+      draftSession: {
+        schemaVersion: LOCAL_PERSISTENCE_SCHEMA_VERSION,
+        draftSnapshot,
+        expandedStateById: {},
+        nodePositionsById: {},
+        undoHistory: [],
+        checkpoints: [],
+      },
       statusKey: 'imported-browser-tree',
       occurredAt,
     };
@@ -135,6 +147,7 @@ export async function bootstrapWorkspace(
         reason: 'browser-bookmark-read-failed',
       },
       draftSnapshot: null,
+      draftSession: null,
       statusKey: 'browser-read-error',
       occurredAt,
       errorDetail: browserTreeResult.error,
@@ -144,6 +157,7 @@ export async function bootstrapWorkspace(
   return {
     policy,
     draftSnapshot: null,
+    draftSession: null,
     statusKey: 'await-browser-import',
     occurredAt,
   };

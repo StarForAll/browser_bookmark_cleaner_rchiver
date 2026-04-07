@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   appShellCopy,
   getStartupStatusCopy,
@@ -37,6 +38,102 @@ type PersistedStatusEntry = {
   result: string;
   detail: string;
 };
+
+type CanvasOverlayPosition = {
+  left: number;
+  top: number;
+};
+
+function resolveCanvasOverlayMargin(viewportWidth: number): number {
+  if (viewportWidth <= 720) {
+    return 16;
+  }
+
+  if (viewportWidth <= 1024) {
+    return 18;
+  }
+
+  return 24;
+}
+
+function resolveCanvasOverlayLeft(input: {
+  stageRight: number;
+  overlayWidth: number;
+  viewportWidth: number;
+}): number {
+  const margin = resolveCanvasOverlayMargin(input.viewportWidth);
+
+  return Math.max(
+    margin,
+    Math.min(
+      input.stageRight - input.overlayWidth - margin,
+      input.viewportWidth - input.overlayWidth - margin,
+    ),
+  );
+}
+
+export function resolveHintOverlayPosition(input: {
+  stageRect: Pick<DOMRect, 'top' | 'right' | 'bottom'>;
+  overlayWidth: number;
+  overlayHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}): CanvasOverlayPosition | null {
+  const margin = resolveCanvasOverlayMargin(input.viewportWidth);
+
+  if (input.stageRect.bottom <= margin || input.stageRect.top >= input.viewportHeight - margin) {
+    return null;
+  }
+
+  const left = resolveCanvasOverlayLeft({
+    stageRight: input.stageRect.right,
+    overlayWidth: input.overlayWidth,
+    viewportWidth: input.viewportWidth,
+  });
+  const preferredTop = Math.max(margin, input.stageRect.top + margin);
+  const maxTop = Math.max(
+    margin,
+    Math.min(
+      input.viewportHeight - input.overlayHeight - margin,
+      input.stageRect.bottom - input.overlayHeight - margin,
+    ),
+  );
+
+  return {
+    left,
+    top: Math.min(preferredTop, maxTop),
+  };
+}
+
+export function resolveStatusOverlayPosition(input: {
+  stageRect: Pick<DOMRect, 'top' | 'right' | 'bottom'>;
+  overlayWidth: number;
+  overlayHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}): CanvasOverlayPosition | null {
+  const margin = resolveCanvasOverlayMargin(input.viewportWidth);
+
+  if (input.stageRect.bottom <= margin || input.stageRect.top >= input.viewportHeight - margin) {
+    return null;
+  }
+
+  const left = resolveCanvasOverlayLeft({
+    stageRight: input.stageRect.right,
+    overlayWidth: input.overlayWidth,
+    viewportWidth: input.viewportWidth,
+  });
+  const minTop = Math.max(margin, input.stageRect.top + margin);
+  const preferredTop = Math.min(
+    input.stageRect.bottom - input.overlayHeight - margin,
+    input.viewportHeight - input.overlayHeight - margin,
+  );
+
+  return {
+    left,
+    top: Math.max(minTop, preferredTop),
+  };
+}
 
 function resolveStorageArea(): ChromeStorageArea | null {
   return (globalThis as typeof globalThis & { chrome?: ChromeRuntime }).chrome?.storage?.local ?? null;
@@ -130,6 +227,11 @@ export function App({
   const [statusPopoverReady, setStatusPopoverReady] = useState(resolveStorageArea() === null);
   const [persistedStatusEntry, setPersistedStatusEntry] = useState<PersistedStatusEntry | null>(null);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
+  const [hintOverlayPosition, setHintOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
+  const [statusOverlayPosition, setStatusOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
+  const canvasStageRef = useRef<HTMLElement | null>(null);
+  const hintOverlayRef = useRef<HTMLElement | null>(null);
+  const statusOverlayRef = useRef<HTMLElement | null>(null);
   const undoActionLabel = appShellCopy.actionLabels[appShellCopy.actionLabels.length - 1];
   const startupStatusCopy = getStartupStatusCopy(
     startupResult
@@ -180,6 +282,119 @@ export function App({
           result: startupStatusCopy.result,
           detail: startupStatusCopy.detail,
         };
+  const hintOverlayStyle = useMemo(() => {
+    if (!hintOverlayPosition) {
+      return {
+        visibility: 'hidden',
+      } as const;
+    }
+
+    return {
+      left: `${hintOverlayPosition.left}px`,
+      top: `${hintOverlayPosition.top}px`,
+    } as const;
+  }, [hintOverlayPosition]);
+  const statusOverlayStyle = useMemo(() => {
+    if (!statusOverlayPosition) {
+      return {
+        visibility: 'hidden',
+      } as const;
+    }
+
+    return {
+      left: `${statusOverlayPosition.left}px`,
+      top: `${statusOverlayPosition.top}px`,
+    } as const;
+  }, [statusOverlayPosition]);
+  const hintOverlay = (
+    <aside
+      aria-label={appShellCopy.hintLabel}
+      className="hint-overlay"
+      ref={hintOverlayRef}
+      role="complementary"
+      style={hintOverlayStyle}
+    >
+      <div className="section-heading">
+        <h3>{appShellCopy.hintLabel}</h3>
+        <p>{appShellCopy.hintSummary}</p>
+      </div>
+      <ul>
+        {appShellCopy.hintItems.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </aside>
+  );
+  const statusOverlay = isStatusOpen ? (
+    <aside
+      aria-label={appShellCopy.statusLabel}
+      className="status-popover"
+      ref={(node) => {
+        statusOverlayRef.current = node;
+      }}
+      role="complementary"
+      style={statusOverlayStyle}
+    >
+      <div className="status-popover-header">
+        <div className="section-heading">
+          <h3>{appShellCopy.statusPopupTitle}</h3>
+          <p>{appShellCopy.statusSummary}</p>
+        </div>
+        <button
+          aria-label="关闭状态弹窗"
+          className="status-close"
+          onClick={() => {
+            setIsStatusOpen(false);
+            void writeStatusPopoverOpen(false);
+          }}
+          type="button"
+        >
+          关闭
+        </button>
+      </div>
+      <div className="status-entry">
+        <strong>{displayStatusEntry.action}</strong>
+        <dl className="status-meta">
+          <div>
+            <dt>操作时间</dt>
+            <dd>{displayStatusEntry.time}</dd>
+          </div>
+          <div>
+            <dt>操作结果</dt>
+            <dd>{displayStatusEntry.result}</dd>
+          </div>
+        </dl>
+        <p>{displayStatusEntry.detail}</p>
+      </div>
+      <div className="status-retained">
+        <strong>{appShellCopy.statusRetainedTitle}</strong>
+        <ul className="status-history-list">
+          <li key={`${displayStatusEntry.action}-${displayStatusEntry.time}`}>
+            <span>{displayStatusEntry.action}</span>
+            <span>{displayStatusEntry.time}</span>
+            <span>{displayStatusEntry.result}</span>
+          </li>
+        </ul>
+      </div>
+    </aside>
+  ) : !isStatusOpen && statusPopoverReady ? (
+    <button
+      aria-label={appShellCopy.statusAnchorAriaLabel}
+      className="status-anchor"
+      onClick={() => {
+        setIsStatusOpen(true);
+        void writeStatusPopoverOpen(true);
+      }}
+      ref={(node) => {
+        statusOverlayRef.current = node;
+      }}
+      style={statusOverlayStyle}
+      type="button"
+    >
+      <strong>{appShellCopy.statusAnchorLabel}</strong>
+      <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
+    </button>
+  ) : null;
 
   useEffect(() => {
     let isMounted = true;
@@ -233,6 +448,103 @@ export function App({
       isMounted = false;
     };
   }, [bootstrapWorkspace, enableStartupBootstrap]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateOverlayPositions = (): void => {
+      frameId = 0;
+
+      const canvasStage = canvasStageRef.current;
+      if (!canvasStage) {
+        setHintOverlayPosition(null);
+        setStatusOverlayPosition(null);
+        return;
+      }
+
+      const stageRect = canvasStage.getBoundingClientRect();
+      const margin = resolveCanvasOverlayMargin(window.innerWidth);
+      const hintOverlayElement = hintOverlayRef.current;
+      const statusOverlayElement = statusOverlayRef.current;
+
+      if (hintOverlayElement) {
+        const overlayWidth = hintOverlayElement.offsetWidth || Math.min(320, window.innerWidth - margin * 2);
+        const overlayHeight = hintOverlayElement.offsetHeight;
+
+        setHintOverlayPosition(
+          resolveHintOverlayPosition({
+            stageRect,
+            overlayWidth,
+            overlayHeight,
+            viewportWidth: window.innerWidth,
+            viewportHeight: window.innerHeight,
+          }),
+        );
+      } else {
+        setHintOverlayPosition(null);
+      }
+
+      if (statusOverlayElement) {
+        const overlayWidth = statusOverlayElement.offsetWidth || Math.min(360, window.innerWidth - margin * 2);
+        const overlayHeight = statusOverlayElement.offsetHeight;
+
+        setStatusOverlayPosition(
+          resolveStatusOverlayPosition({
+            stageRect,
+            overlayWidth,
+            overlayHeight,
+            viewportWidth: window.innerWidth,
+            viewportHeight: window.innerHeight,
+          }),
+        );
+      } else {
+        setStatusOverlayPosition(null);
+      }
+    };
+
+    const scheduleOverlayPositionUpdate = (): void => {
+      if (frameId !== 0) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(updateOverlayPositions);
+    };
+
+    scheduleOverlayPositionUpdate();
+    window.addEventListener('scroll', scheduleOverlayPositionUpdate, { passive: true });
+    window.addEventListener('resize', scheduleOverlayPositionUpdate);
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            scheduleOverlayPositionUpdate();
+          })
+        : null;
+
+    if (resizeObserver && canvasStageRef.current) {
+      resizeObserver.observe(canvasStageRef.current);
+    }
+    if (resizeObserver && hintOverlayRef.current) {
+      resizeObserver.observe(hintOverlayRef.current);
+    }
+    if (resizeObserver && statusOverlayRef.current) {
+      resizeObserver.observe(statusOverlayRef.current);
+    }
+
+    return () => {
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      window.removeEventListener('scroll', scheduleOverlayPositionUpdate);
+      window.removeEventListener('resize', scheduleOverlayPositionUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [isStatusOpen, statusPopoverReady]);
 
   return (
     <div className="workspace-shell">
@@ -295,7 +607,7 @@ export function App({
           </div>
         </section>
 
-        <section aria-label={appShellCopy.canvasLabel} className="shell-card canvas-stage" role="region">
+        <section aria-label={appShellCopy.canvasLabel} className="shell-card canvas-stage" ref={canvasStageRef} role="region">
           <div className="canvas-stage-header">
             <div className="section-heading">
               <h2>{appShellCopy.canvasLabel}</h2>
@@ -308,6 +620,8 @@ export function App({
               {editableDraftSnapshot ? (
                 <DraftGraphWorkspace
                   initialSnapshot={editableDraftSnapshot}
+                  initialUndoHistory={startupResult?.draftSession?.undoHistory}
+                  initialCheckpoints={startupResult?.draftSession?.checkpoints}
                   onPersistDraftSession={writePersistedDraftSession}
                 />
               ) : (
@@ -340,86 +654,11 @@ export function App({
                 </div>
               )}
             </div>
-
-            <div className="canvas-side-rail">
-              <aside aria-label={appShellCopy.hintLabel} className="hint-overlay" role="complementary">
-                <div className="section-heading">
-                  <h3>{appShellCopy.hintLabel}</h3>
-                  <p>{appShellCopy.hintSummary}</p>
-                </div>
-                <ul>
-                  {appShellCopy.hintItems.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </aside>
-
-              <div className="status-layer">
-                {isStatusOpen ? (
-                  <aside aria-label={appShellCopy.statusLabel} className="status-popover" role="complementary">
-                    <div className="status-popover-header">
-                      <div className="section-heading">
-                        <h3>{appShellCopy.statusPopupTitle}</h3>
-                        <p>{appShellCopy.statusSummary}</p>
-                      </div>
-                      <button
-                        aria-label="关闭状态弹窗"
-                        className="status-close"
-                        onClick={() => {
-                          setIsStatusOpen(false);
-                          void writeStatusPopoverOpen(false);
-                        }}
-                        type="button"
-                      >
-                        关闭
-                      </button>
-                    </div>
-                    <div className="status-entry">
-                      <strong>{displayStatusEntry.action}</strong>
-                      <dl className="status-meta">
-                        <div>
-                          <dt>操作时间</dt>
-                          <dd>{displayStatusEntry.time}</dd>
-                        </div>
-                        <div>
-                          <dt>操作结果</dt>
-                          <dd>{displayStatusEntry.result}</dd>
-                        </div>
-                      </dl>
-                      <p>{displayStatusEntry.detail}</p>
-                    </div>
-                    <div className="status-retained">
-                      <strong>{appShellCopy.statusRetainedTitle}</strong>
-                      <ul className="status-history-list">
-                        <li key={`${displayStatusEntry.action}-${displayStatusEntry.time}`}>
-                          <span>{displayStatusEntry.action}</span>
-                          <span>{displayStatusEntry.time}</span>
-                          <span>{displayStatusEntry.result}</span>
-                        </li>
-                      </ul>
-                    </div>
-                  </aside>
-                ) : null}
-
-                {!isStatusOpen && statusPopoverReady ? (
-                  <button
-                    aria-label={appShellCopy.statusAnchorAriaLabel}
-                    className="status-anchor"
-                    onClick={() => {
-                      setIsStatusOpen(true);
-                      void writeStatusPopoverOpen(true);
-                    }}
-                    type="button"
-                  >
-                    <strong>{appShellCopy.statusAnchorLabel}</strong>
-                    <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
-                  </button>
-                ) : null}
-              </div>
-            </div>
           </div>
         </section>
       </main>
+      {typeof document !== 'undefined' ? createPortal(hintOverlay, document.body) : hintOverlay}
+      {typeof document !== 'undefined' ? createPortal(statusOverlay, document.body) : statusOverlay}
     </div>
   );
 }

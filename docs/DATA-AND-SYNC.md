@@ -91,7 +91,7 @@
   - `rename-node`
   - `delete-subtree`
   - `edit-bookmark-url`
-- 这些 contract 已存在并受校验保护，但当前运行时尚未接入 `Ctrl+Z` 执行链路
+- 这些 contract 已存在并受校验保护，当前运行时已接入 draft-only `Ctrl+Z` 执行链路
 
 ## 5. 当前本地持久化实现
 
@@ -128,10 +128,13 @@
   - `draft-checkpoints`
 - `writePersistedDraftSession()` 会把当前会话写回上述 key
 - 当前 `DraftGraphWorkspace` 在每次成功的草稿变更后会持久化整份 `PersistedDraftSession`
-- 由于展开态、坐标、undo 执行链路、checkpoint 生成尚未接入，当前运行时写入的是：
+- 当前已落地的撤销相关行为：
+  - 草稿内容变更会追加 patch-based `undoHistory`
+  - `Ctrl+Z` 会消费最新一条 undo entry 并恢复上一版 draft 内容
+  - 启动恢复本地 draft session 时，会把已有 `undoHistory` / `checkpoints` 一起带回工作区
+- 目前仍未接入的部分：
   - `expandedStateById = {}`
   - `nodePositionsById = {}`
-  - `undoHistory = []`
   - `checkpoints = []`
 
 当前仅冻结 contract、尚未接入执行流的保留位：
@@ -143,7 +146,7 @@
 
 ## 6. 草稿撤销模型
 
-说明：当前代码已经冻结了 undo patch contract，但尚未把 `Ctrl+Z` 接入运行时执行流。
+说明：当前代码已经冻结 undo patch contract，并已把 `Ctrl+Z` 接入 draft-only 运行时执行流。
 
 ### 6.1 基本规则
 
@@ -185,7 +188,7 @@ patch 应采用语义化动作表达，例如：
 当前状态：
 
 - 这些 patch 语义已经在 contract 中冻结并受校验保护
-- 当前图谱编辑、删除、拖拽等运行时变更还不会真正生成可回放的 undo patch
+- 当前图谱编辑、删除、拖拽等运行时变更已经会生成可回放的 patch-based undo entry，并随草稿会话一起持久化
 
 ## 7. 当前启动恢复 / 导入链路
 

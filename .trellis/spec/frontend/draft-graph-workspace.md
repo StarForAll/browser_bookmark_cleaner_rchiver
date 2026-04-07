@@ -56,13 +56,18 @@ Verification commands:
     - `draftSnapshot: <latest normalized snapshot>`
     - `expandedStateById: {}`
     - `nodePositionsById: {}`
-    - `undoHistory: []`
-    - `checkpoints: []`
+    - `undoHistory: <latest patch-based draft undo entries>`
+    - `checkpoints: <latest checkpoint metadata, empty until checkpoint policy is wired>`
 - selection-only changes do not call `onPersistDraftSession`
 
 #### Draft-only mutation boundary
 
 - double click opens node edit dialog
+  - when viewport width allows and the trigger node is mounted, the dialog card opens beside that node instead of centering the canvas
+- `Ctrl+Z`
+  - reverts only the latest draft content mutation
+  - persists the restored draft snapshot together with the consumed undo history
+  - becomes a no-op when undo history is empty
 - `Enter` opens create-child only for selected folder nodes
 - `Shift + Enter` opens create-sibling for the selected node, including top-level roots
 - `Delete / Backspace`
@@ -119,6 +124,7 @@ Verification commands:
 
 - routine draft edits, create-child, create-sibling, delete, keyboard reorder, keyboard promote, and drag-drop do not write status-history entries
 - these interactions remain draft-only and persistence-only until explicit external actions are implemented later
+- draft-only content mutations do append patch-based undo history entries
 
 ### 4. Validation & Error Matrix
 
@@ -129,6 +135,7 @@ Verification commands:
 | create-child | parent is bookmark | `ok: false` + validation error | dialog does not open |
 | create-child / sibling | bookmark type without URL | `ok: false` + validation error | dialog stays open with inline error |
 | delete | folder with more than one direct child | confirmation required | draft stays unchanged until confirm |
+| Ctrl+Z | undo history empty | no-op | no persistence write |
 | keyboard reorder | selected node already at first / last position | no-op | no persistence write |
 | keyboard promote | selected node already top-level | no-op | no persistence write |
 | drag move | non-folder target requested as nesting parent | `ok: false` | inline drag-move error or ignored preview |
@@ -177,6 +184,9 @@ Required automated tests:
   - assert hover details
   - assert large-graph viewport subset behavior
   - assert drag-drop reorder and nesting rules
+- `src/features/bookmark-graph/ui/DraftGraphWorkspace.undo.test.tsx`
+  - assert draft-only undo history persistence
+  - assert `Ctrl+Z` restore behavior
 
 Manual assertions:
 

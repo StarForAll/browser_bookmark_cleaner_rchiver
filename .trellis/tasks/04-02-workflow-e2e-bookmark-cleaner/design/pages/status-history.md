@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the canvas-side result popup and retained history entry pattern.
+Define the canvas-aware bottom-right result popup and retained history entry pattern.
 
 Current implementation snapshot:
 
@@ -13,6 +13,7 @@ Current implementation snapshot:
 ## Layout
 
 1. Latest-result popup
+   - floats against the visible canvas bottom-right corner
    - action description
    - action time
    - result
@@ -24,6 +25,7 @@ Current implementation snapshot:
    - newest first
 
 3. Reopen anchor
+   - stays at the same bottom-right canvas anchor after the popup closes
    - visible after popup close
    - reopens the retained history popup
 

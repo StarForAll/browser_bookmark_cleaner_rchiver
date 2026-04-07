@@ -3,7 +3,7 @@
   "name": "undo-history-ctrl-z",
   "title": "Implement Undo History And Ctrl Z",
   "description": "Implement draft undo history and Ctrl+Z semantics without expanding into browser or cloud restore behavior.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 4,
   "next_action": [
     {
       "phase": 1,
@@ -47,6 +47,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "Created from parent task split strategy during pure plan stage. T07B has completed test-first, implementation, multi-review check, and a human-reported real extension walkthrough for the draft-only Ctrl+Z flow. The truthful current state is finish-phase in progress: task-local T07B verification is complete, but full-repo pnpm test and pnpm typecheck are still blocked by active T08A red gates (src/app/App.searchFocus.test.tsx, src/features/bookmark-graph/ui/DraftGraphWorkspace.test.tsx, and src/features/bookmark-graph/state/searchAndFocus.test.ts), so workspace-level finish/archive is not yet truthful in the mixed worktree.",
   "meta": {}
 }

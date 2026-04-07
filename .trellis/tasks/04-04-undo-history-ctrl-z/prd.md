@@ -34,14 +34,28 @@ Implement draft-only undo history and keyboard undo semantics for local editing 
 - Undo storage must align with the frozen hybrid checkpoint strategy
 
 ## Acceptance Criteria
-- [ ] Ctrl+Z restores prior draft states consistently
-- [ ] Undo does not cross the boundary into browser or cloud state
+- [x] Ctrl+Z restores prior draft states consistently
+- [x] Undo does not cross the boundary into browser or cloud state
 
 ## Verification Plan
-- `not run` in pure plan stage
-- Later execution commands:
-  - history reducer tests
-  - keyboard interaction tests
+- Task-local green gates:
+  - `pnpm exec vitest run src/app/App.undoHistory.test.tsx src/features/bookmark-graph/state/draftUndo.test.ts src/features/bookmark-graph/ui/DraftGraphWorkspace.undo.test.tsx src/app/App.startup.test.tsx` -> `pass`
+  - `pnpm lint` -> `pass`
+  - `pnpm build` -> `pass`
+- Repo-level closeout blockers:
+  - `pnpm test` -> `fail`
+  - `pnpm typecheck` -> `fail`
+  - current remaining blockers are active `T08A` red gates in:
+    - `src/app/App.searchFocus.test.tsx`
+    - `src/features/bookmark-graph/ui/DraftGraphWorkspace.test.tsx`
+    - `src/features/bookmark-graph/state/searchAndFocus.test.ts`
+- Manual closeout status:
+  - real extension draft edit / `Ctrl+Z` walkthrough -> `pass` (`human-reported` on `2026-04-07`)
+
+## Current Closeout Status
+
+- `T07B` scope implementation and manual walkthrough are complete enough to enter `finish`
+- current closeout wording must stay explicit: repository-level `pnpm test` / `pnpm typecheck` are still blocked by `T08A`, so `T07B` cannot yet be described as workspace-level globally green or ready to archive from the mixed worktree
 
 ## Technical Notes
 - Keep undo semantics separate from overwrite or restore semantics

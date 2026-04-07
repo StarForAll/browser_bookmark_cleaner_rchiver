@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, test } from 'vitest';
 import { App } from './app/App';
 
@@ -30,25 +30,35 @@ describe('T03 extension shell and page entry', () => {
     expect(indexHtml).toContain('/src/main.tsx');
   });
 
-  test('renders the fixed workspace shell with five regions', () => {
-    const { container } = render(<App />);
+  test('renders the fixed workspace shell with five regions', async () => {
+    render(<App />);
 
     const topShell = screen.getByRole('region', { name: '顶部动作区' });
     const searchRegion = screen.getByRole('search', { name: '搜索与聚焦区' });
     const canvasRegion = screen.getByRole('region', { name: '图谱画布区' });
-    const hintRegion = screen.getByRole('complementary', { name: '操作提示区' });
-    const statusRegion = screen.getByRole('complementary', { name: '状态结果区' });
+
+    await waitFor(() => {
+      expect(document.body.querySelector('.hint-overlay')).not.toBeNull();
+      expect(document.body.querySelector('.status-popover')).not.toBeNull();
+    });
+
+    const hintRegion = document.body.querySelector('.hint-overlay') as HTMLElement | null;
+    const statusRegion = document.body.querySelector('.status-popover') as HTMLElement | null;
 
     expect(within(topShell).getByRole('heading', { level: 1, name: '书签清理与归档工作区' })).toBeInTheDocument();
     expect(within(topShell).getByRole('heading', { level: 2, name: '顶部动作区' })).toBeInTheDocument();
     expect(searchRegion).toBeInTheDocument();
     expect(canvasRegion).toBeInTheDocument();
-    expect(hintRegion).toBeInTheDocument();
-    expect(statusRegion).toBeInTheDocument();
+    expect(hintRegion).not.toBeNull();
+    expect(statusRegion).not.toBeNull();
+    expect(hintRegion).toHaveAttribute('role', 'complementary');
+    expect(hintRegion).toHaveAttribute('aria-label', '操作提示区');
+    expect(statusRegion).toHaveAttribute('role', 'complementary');
+    expect(statusRegion).toHaveAttribute('aria-label', '状态结果区');
     expect(screen.queryByText('Chrome MV3 Extension Workspace')).not.toBeInTheDocument();
-    expect(canvasRegion.contains(hintRegion)).toBe(true);
-    expect(container.querySelector('.status-popover')).not.toBeNull();
-    expect(container.querySelector('.status-anchor')).toBeNull();
+    expect((hintRegion as HTMLElement).closest('.canvas-side-rail')).toBeNull();
+    expect((statusRegion as HTMLElement).closest('.canvas-side-rail')).toBeNull();
+    expect(document.body.querySelector('.status-anchor')).toBeNull();
   });
 
   test('exposes the seven explicit top action buttons with Chinese-first copy', () => {
@@ -66,19 +76,26 @@ describe('T03 extension shell and page entry', () => {
     ).toBeInTheDocument();
   });
 
-  test('keeps the status area as a closable popup with a reopen anchor', () => {
+  test('keeps the status area as a closable popup with a reopen anchor', async () => {
     render(<App />);
 
-    const statusPopover = screen.getByRole('complementary', { name: '状态结果区' });
-    expect(statusPopover).toBeInTheDocument();
-    expect(within(statusPopover).getByText('启动初始化', { selector: '.status-entry strong' })).toBeInTheDocument();
-    expect(within(statusPopover).getByText('—', { selector: '.status-entry dd' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.body.querySelector('.status-popover')).not.toBeNull();
+    });
+
+    const statusPopover = document.body.querySelector('.status-popover') as HTMLElement | null;
+
+    expect(statusPopover).not.toBeNull();
+    expect(within(statusPopover as HTMLElement).getByText('启动初始化', { selector: '.status-entry strong' })).toBeInTheDocument();
+    expect(within(statusPopover as HTMLElement).getByText('—', { selector: '.status-entry dd' })).toBeInTheDocument();
     expect(
-      within(statusPopover).getByText('正在确认本地草稿与浏览器书签状态', { selector: '.status-entry dd' }),
+      within(statusPopover as HTMLElement).getByText('正在确认本地草稿与浏览器书签状态', { selector: '.status-entry dd' }),
     ).toBeInTheDocument();
-    expect(statusPopover.querySelector('.status-history-list li')).not.toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '关闭状态弹窗' }));
-    expect(screen.queryByRole('complementary', { name: '状态结果区' })).not.toBeInTheDocument();
+    expect((statusPopover as HTMLElement).querySelector('.status-history-list li')).not.toBeNull();
+    fireEvent.click((statusPopover as HTMLElement).querySelector('.status-close') as HTMLButtonElement);
+    await waitFor(() => {
+      expect(document.body.querySelector('.status-popover')).toBeNull();
+    });
   });
 
   test('restores the previous status popup visibility after a refresh-like remount', async () => {
@@ -98,13 +115,22 @@ describe('T03 extension shell and page entry', () => {
     };
 
     const firstRender = render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '关闭状态弹窗' }));
+
+    await waitFor(() => {
+      expect(document.body.querySelector('.status-popover')).not.toBeNull();
+    });
+    fireEvent.click(document.body.querySelector('.status-popover .status-close') as HTMLButtonElement);
     expect(storageState['workspace-status-popover-open']).toBe(false);
     firstRender.unmount();
 
     render(<App />);
 
-    expect(await screen.findByRole('button', { name: '重新打开最新结果弹窗' })).toBeInTheDocument();
-    expect(screen.queryByRole('complementary', { name: '状态结果区' })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(document.body.querySelector('.status-anchor')).not.toBeNull();
+    });
+    expect((document.body.querySelector('.status-anchor') as HTMLElement | null)?.getAttribute('aria-label')).toBe(
+      '重新打开最新结果弹窗',
+    );
+    expect(document.body.querySelector('.status-popover')).toBeNull();
   });
 });
