@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 15
-- **Last Active**: 2026-04-06
+- **Total Sessions**: 16
+- **Last Active**: 2026-04-07
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~657 | Active |
+| `journal-1.md` | ~690 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-04-07 | T07 图谱拖拽校验与键盘移动收尾 | `7d11897` | `master` |
 | 15 | 2026-04-06 | T06 图谱基础编辑与虚拟根节点收口 | `d340c23` | `master` |
 | 14 | 2026-04-06 | T06: 实现图谱基础编辑与虚拟根节点 | `426b483` | `master` |
 | 13 | 2026-04-05 | T05 Browser Import Startup Closeout | `637ac81` | `master` |

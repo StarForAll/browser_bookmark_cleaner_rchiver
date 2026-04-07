@@ -655,3 +655,36 @@ Completed T05 browser bookmark import to draft with startup restore/persistence 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: T07 图谱拖拽校验与键盘移动收尾
+
+**Date**: 2026-04-07
+**Task**: T07 图谱拖拽校验与键盘移动收尾
+**Branch**: `master`
+
+### Summary
+
+完成 T07A 图谱拖拽移动校验：收敛目录本体/尾部接收区规则，支持虚拟根顶层重排与键盘上下/左移动；补齐多轮审查后的文档与回归测试；修复顶级书签节点根层卡片底边被裁掉的问题。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7d11897` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
