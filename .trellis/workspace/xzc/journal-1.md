@@ -688,3 +688,62 @@ Completed T05 browser bookmark import to draft with startup restore/persistence 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: 全量文档同步与审查收尾
+
+**Date**: 2026-04-07
+**Task**: 全量文档同步与审查收尾
+**Branch**: `master`
+
+### Summary
+
+同步全仓库活跃文档到当前实现，完成自审、多 CLI 审查、验证矩阵与任务归档。
+
+### Main Changes
+
+## Summary
+
+完成全仓库实现对齐文档同步，并收口自审、补充审查与交付前验证。
+
+## Work Completed
+
+- 同步 `README.md`、`docs/`、活跃 `.trellis/spec/frontend/`、活跃 design/task 文档与用户可见文案，使其与当前 shipped implementation 对齐
+- 新增可执行 frontend spec：`draft-graph-workspace.md`，补齐草稿图谱编辑、拖拽、键盘移动、hover、持久化边界的 contract / matrix / cases / tests
+- 完成 `$self-review`，修正文档中的旧方位词、`Ctrl+Z` 当前状态歧义、task plan 阶段摘要歧义，以及少量用户可见 copy 漂移
+- 完成 `$check` 多 CLI 审查，汇总 `claude` 与 `opencode` 报告，采纳并修复 6 个文档/文案精度问题，写入 `summary-round-1.md` 与 `action.md`
+- 归档已完成任务：`04-07-sync-all-related-docs`
+
+## Verification
+
+- `pnpm lint`: pass
+- `pnpm typecheck`: pass
+- `pnpm test`: pass（14 files / 87 tests）
+- `pnpm build`: pass
+- `pnpm sonar`: pass
+- `git diff --check`: pass
+
+## Notes
+
+- 本次主要是文档 / spec / 设计资产 / 文案同步，没有新增业务逻辑或数据库/API 变更
+- 剩余 active tasks 保持不变，父任务 `04-02-workflow-e2e-bookmark-cleaner` 继续作为总览与后续 child task 编排入口
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4dfd6da` | (see git log) |
+| `846e783` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
