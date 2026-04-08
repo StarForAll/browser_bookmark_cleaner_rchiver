@@ -18,8 +18,8 @@ This spec covers only search, duplicate-hotspot focus, and their coexistence rul
 
 ## Outputs
 
-- search result list ordered by match priority and graph traversal order
-- graph focus target for the selected result
+- search result set ordered by match priority and graph traversal order
+- graph focus target for the active search result
 - duplicate-only filtered view state
 - duplicate-only mode status hint
 - hover duplicate detail payload for bookmark nodes with duplicate URLs
@@ -54,6 +54,13 @@ This spec covers only search, duplicate-hotspot focus, and their coexistence rul
 - focus actions center the viewport on the target node without mutating graph content
 - title matches rank ahead of URL matches
 - within the same match class, result order follows the graph's natural traversal order
+- normal search keeps the graph view instead of rendering a separate result list
+- normal search updates matches as the query changes
+- pressing `Enter` inside the normal-search input activates search-result navigation when matches exist
+- search-result navigation uses `ArrowUp` / `ArrowDown` to cycle the focused result and wraps at the first or last result
+- changing the active normal-search query while navigation is active resets focus back to the first matching result
+- search-result navigation does not change the currently selected node and does not trigger reorder mutations
+- `is-selected`, `is-search-match`, and `is-search-focus` remain visually distinct states
 - search and duplicate-only mode can coexist
 - when duplicate-only mode is enabled, search runs only inside the duplicate-node result set
 - clearing the search query does not disable duplicate-only mode
@@ -69,6 +76,11 @@ This spec covers only search, duplicate-hotspot focus, and their coexistence rul
 - typing a title keyword finds matching folder and bookmark nodes
 - typing a URL fragment finds matching bookmark nodes
 - title matches rank ahead of URL-only matches
+- normal search keeps the tree canvas and does not open a standalone result list
+- pressing `Enter` in normal search activates result navigation when matches exist
+- `ArrowUp` / `ArrowDown` cycle the focused search result with wrap-around
+- changing the query during active normal-search navigation resets focus to the first match
+- search navigation never mutates `selectedNodeId` or triggers reorder behavior
 - duplicate-only mode shows only duplicate-focused results and surfaces full duplicate paths directly
 - when duplicate-only mode is enabled, search does not return non-duplicate nodes
 - the UI always exposes whether duplicate-only mode is on or off

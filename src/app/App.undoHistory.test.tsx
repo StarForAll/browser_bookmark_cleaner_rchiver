@@ -30,6 +30,14 @@ describe('T07B app undo-history hint gate', () => {
     expect((hintRegion as HTMLElement).closest('.canvas-side-rail')).toBeNull();
   });
 
+  test('keeps the operation hint always visible instead of collapsing into a minimized anchor', () => {
+    render(<App />);
+
+    expect(document.body.querySelector('.hint-minimize')).toBeNull();
+    expect(document.body.querySelector('.hint-anchor')).toBeNull();
+    expect(document.body.querySelector('.hint-overlay')).not.toBeNull();
+  });
+
   test('renders the status popover outside the canvas side rail so it can float against the visible canvas bottom-right', () => {
     render(<App />);
 
@@ -38,6 +46,8 @@ describe('T07B app undo-history hint gate', () => {
     expect(statusRegion).not.toBeNull();
     expect((statusRegion as HTMLElement).closest('.canvas-side-rail')).toBeNull();
     expect(within(statusRegion as HTMLElement).getByText('最新结果')).toBeInTheDocument();
+    expect((statusRegion as HTMLElement).querySelector('.status-close')?.textContent).toBe('x');
+    expect((statusRegion as HTMLElement).querySelector('.status-close')).toHaveAttribute('aria-label', '关闭状态弹窗');
   });
 
   test('renders the closed status anchor outside the canvas side rail so reopen stays on the floating layer', async () => {
@@ -147,5 +157,29 @@ describe('T07B app undo-history hint gate', () => {
 
     expect(appCss).toMatch(/\.hint-overlay\s*\{[^}]*position:\s*fixed;/s);
     expect(appCss).toMatch(/\.status-popover,\s*\.status-anchor\s*\{[^}]*position:\s*fixed;/s);
+  });
+
+  test('keeps the hint overlay and minimized status anchor truly see-through so draft text can still show beneath them', () => {
+    const appCss = readFileSync(join(repoRoot, 'src/app/app.css'), 'utf8');
+
+    expect(appCss).toMatch(
+      /\.hint-overlay\s*\{[^}]*background:\s*rgba\(255,\s*252,\s*246,\s*0\.24\);/s,
+    );
+    expect(appCss).toMatch(
+      /\.hint-overlay\s*\{[^}]*backdrop-filter:\s*none;/s,
+    );
+    expect(appCss).toMatch(
+      /\.status-anchor\s*\{[^}]*background:\s*linear-gradient\(135deg,\s*rgba\(255,\s*252,\s*246,\s*0\.24\),\s*rgba\(255,\s*252,\s*246,\s*0\.08\)\);/s,
+    );
+    expect(appCss).toMatch(
+      /\.status-anchor\s*\{[^}]*backdrop-filter:\s*none;/s,
+    );
+  });
+
+  test('renders the status close control as a plain x without a framed button shell', () => {
+    const appCss = readFileSync(join(repoRoot, 'src/app/app.css'), 'utf8');
+
+    expect(appCss).toMatch(/\.status-close\s*\{[^}]*border:\s*none;/s);
+    expect(appCss).toMatch(/\.status-close\s*\{[^}]*background:\s*transparent;/s);
   });
 });

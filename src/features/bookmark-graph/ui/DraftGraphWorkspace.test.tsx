@@ -85,6 +85,77 @@ function createTopLevelBookmarkDraftGraphFixture(): DraftGraphSnapshot {
   };
 }
 
+function createDuplicateUrlDraftGraphFixture(): DraftGraphSnapshot {
+  return {
+    schemaVersion: 'draft-graph/v1',
+    snapshotVersion: 0,
+    selectedNodeId: null,
+    nodesById: {
+      'folder-root': {
+        internalId: 'folder-root',
+        sourceType: 'draft',
+        nodeType: 'folder',
+        title: '工作资料',
+        url: null,
+        parentId: null,
+        childIds: ['bookmark-dup-a', 'folder-dup-group'],
+        pathTokens: ['工作资料'],
+      },
+      'bookmark-dup-a': {
+        internalId: 'bookmark-dup-a',
+        sourceType: 'draft',
+        nodeType: 'bookmark',
+        title: '重复入口 A',
+        url: 'https://shared.example.com',
+        parentId: 'folder-root',
+        childIds: [],
+        pathTokens: ['工作资料', '重复入口 A'],
+      },
+      'folder-dup-group': {
+        internalId: 'folder-dup-group',
+        sourceType: 'draft',
+        nodeType: 'folder',
+        title: '重复目录',
+        url: null,
+        parentId: 'folder-root',
+        childIds: ['bookmark-dup-b'],
+        pathTokens: ['工作资料', '重复目录'],
+      },
+      'bookmark-dup-b': {
+        internalId: 'bookmark-dup-b',
+        sourceType: 'draft',
+        nodeType: 'bookmark',
+        title: '重复入口 B',
+        url: 'https://shared.example.com',
+        parentId: 'folder-dup-group',
+        childIds: [],
+        pathTokens: ['工作资料', '重复目录', '重复入口 B'],
+      },
+      'folder-personal': {
+        internalId: 'folder-personal',
+        sourceType: 'draft',
+        nodeType: 'folder',
+        title: '个人收藏',
+        url: null,
+        parentId: null,
+        childIds: ['bookmark-dup-c'],
+        pathTokens: ['个人收藏'],
+      },
+      'bookmark-dup-c': {
+        internalId: 'bookmark-dup-c',
+        sourceType: 'draft',
+        nodeType: 'bookmark',
+        title: '重复入口 C',
+        url: 'https://shared.example.com',
+        parentId: 'folder-personal',
+        childIds: [],
+        pathTokens: ['个人收藏', '重复入口 C'],
+      },
+    },
+    rootIds: ['folder-root', 'folder-personal'],
+  };
+}
+
 function parseTranslateY(transform: string): number {
   const match = transform.match(/translate\([^,]+,\s*([^)]+)\)/);
   return match ? Number.parseFloat(match[1].replace('px', '')) : 0;
@@ -1425,5 +1496,62 @@ describe('T07A draft graph drag-move interaction gate', () => {
       'bookmark-docs',
     ]);
     expect(persistedSession?.draftSnapshot.nodesById['folder-archive']?.parentId).toBe('folder-root');
+  });
+});
+
+describe('T08A duplicate hover interaction gate', () => {
+  test('groups duplicate-only view items by shared URL so repeated bookmarks stay together in one card', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        duplicateOnly
+        initialSnapshot={createDuplicateUrlDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const workspaceRegion = screen.getByRole('region', { name: '当前草稿节点列表' });
+    const duplicateCards = workspaceRegion.querySelectorAll('.duplicate-focus-card');
+
+    expect(duplicateCards).toHaveLength(1);
+    expect(within(duplicateCards[0] as HTMLElement).getByText('工作资料 / 重复入口 A')).toBeInTheDocument();
+    expect(within(duplicateCards[0] as HTMLElement).getByText('工作资料 / 重复目录 / 重复入口 B')).toBeInTheDocument();
+    expect(within(duplicateCards[0] as HTMLElement).getByText('个人收藏 / 重复入口 C')).toBeInTheDocument();
+    expect(within(duplicateCards[0] as HTMLElement).getByText('https://shared.example.com')).toBeInTheDocument();
+  });
+
+  test('shows duplicate count, default paths, and resets expanded overflow details after hover closes', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDuplicateUrlDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    const duplicateNode = screen.getByRole('button', { name: '书签节点：重复入口 B' });
+    fireEvent.mouseEnter(duplicateNode);
+
+    expect(screen.getByText('重复 URL：共 3 项')).toBeInTheDocument();
+    expect(screen.getByText('工作资料 / 重复入口 A')).toBeInTheDocument();
+    expect(screen.getByText('工作资料 / 重复目录 / 重复入口 B')).toBeInTheDocument();
+    expect(screen.queryByText('个人收藏 / 重复入口 C')).not.toBeInTheDocument();
+    expect(screen.queryByText(/bookmark-dup-/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '展开更多' }));
+
+    expect(screen.getByText('个人收藏 / 重复入口 C')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(duplicateNode);
+
+    expect(screen.queryByRole('button', { name: '展开更多' })).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(duplicateNode);
+
+    expect(screen.queryByText('个人收藏 / 重复入口 C')).not.toBeInTheDocument();
   });
 });

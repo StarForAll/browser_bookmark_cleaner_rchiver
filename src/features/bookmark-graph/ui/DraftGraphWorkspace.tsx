@@ -33,13 +33,28 @@ import {
   applyLatestDraftUndo,
   createDraftUndoEntry,
 } from '@/features/bookmark-graph/state/draftUndo';
-import { draftGraphWorkspaceCopy } from '@/shared/copy/draftGraphWorkspace';
+import {
+  deriveDuplicateFocusGroups,
+  deriveDuplicateHoverDetails,
+  deriveDuplicateNodeIds,
+  deriveSearchResults,
+} from '@/features/bookmark-graph/state/searchAndFocus';
+import {
+  draftGraphWorkspaceCopy,
+  formatDuplicateBadge,
+  formatDuplicateHoverSummary,
+} from '@/shared/copy/draftGraphWorkspace';
 
 type DraftGraphWorkspaceProps = {
+  duplicateOnly?: boolean;
   initialSnapshot: DraftGraphSnapshot;
   initialUndoHistory?: PersistedDraftSession['undoHistory'];
   initialCheckpoints?: PersistedDraftSession['checkpoints'];
   onPersistDraftSession: (session: PersistedDraftSession) => Promise<unknown>;
+  onExitSearchNavigation?: () => void;
+  searchNavigationActive?: boolean;
+  searchNavigationIndex?: number;
+  searchQuery?: string;
 };
 
 type DialogState =
@@ -888,10 +903,15 @@ export function deriveVisibleMindmapElements(
 }
 
 export function DraftGraphWorkspace({
+  duplicateOnly = false,
   initialSnapshot,
   initialUndoHistory = [],
   initialCheckpoints = [],
   onPersistDraftSession,
+  onExitSearchNavigation,
+  searchNavigationActive = false,
+  searchNavigationIndex = 0,
+  searchQuery = '',
 }: DraftGraphWorkspaceProps) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [undoHistory, setUndoHistory] = useState<PersistedDraftSession['undoHistory']>(() => [...initialUndoHistory]);
@@ -899,11 +919,13 @@ export function DraftGraphWorkspace({
   const [dialogState, setDialogState] = useState<DialogState>(null);
   const [dialogCardPosition, setDialogCardPosition] = useState<DialogCardPosition | null>(null);
   const [hoverState, setHoverState] = useState<HoverState>(null);
+  const [isDuplicateHoverExpanded, setIsDuplicateHoverExpanded] = useState(false);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [dragPreviewState, setDragPreviewState] = useState<DragPreviewState>(null);
   const [dragMoveError, setDragMoveError] = useState<string | null>(null);
   const treeContainerRef = useRef<HTMLElement | null>(null);
   const dialogBackdropRef = useRef<HTMLDivElement | null>(null);
+  const hoverCardRef = useRef<HTMLDivElement | null>(null);
   const nodeButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const [canvasViewport, setCanvasViewport] = useState<CanvasViewport | null>(null);
@@ -912,6 +934,32 @@ export function DraftGraphWorkspace({
   const nodeCount = useMemo(() => Object.keys(snapshot.nodesById).length, [snapshot.nodesById]);
   const isLargeGraph = nodeCount >= LARGE_GRAPH_NODE_THRESHOLD;
   const isDialogOpen = dialogState !== null;
+  const normalizedSearchQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
+  const duplicateNodeIds = useMemo(() => deriveDuplicateNodeIds(snapshot), [snapshot]);
+  const searchResults = useMemo(
+    () => deriveSearchResults(snapshot, { searchQuery, duplicateOnly }),
+    [duplicateOnly, searchQuery, snapshot],
+  );
+  const duplicateFocusGroups = useMemo(
+    () => deriveDuplicateFocusGroups(snapshot, { searchQuery, duplicateOnly }),
+    [duplicateOnly, searchQuery, snapshot],
+  );
+  const searchResultIds = useMemo(
+    () => new Set(searchResults.map((result) => result.nodeId)),
+    [searchResults],
+  );
+  const focusedSearchNodeId = useMemo(() => {
+    if (duplicateOnly || normalizedSearchQuery === '') {
+      return null;
+    }
+
+    if (!searchNavigationActive) {
+      return null;
+    }
+
+    // Keep focus stable on the first result if the active result index goes out of bounds while matches shrink.
+    return searchResults[searchNavigationIndex]?.nodeId ?? searchResults[0]?.nodeId ?? null;
+  }, [duplicateOnly, normalizedSearchQuery, searchNavigationActive, searchNavigationIndex, searchResults]);
   const mindmapLayout = useMemo(
     () => buildMindmapLayout(snapshot),
     [snapshot.nodesById, snapshot.rootIds],
@@ -928,6 +976,59 @@ export function DraftGraphWorkspace({
       Object.fromEntries(mindmapLayout.nodes.map((node) => [node.nodeId, node])),
     [mindmapLayout.nodes],
   );
+
+  useEffect(() => {
+    if (!duplicateOnly) {
+      return;
+    }
+
+    setHoverState(null);
+  }, [duplicateOnly]);
+
+  useEffect(() => {
+    setIsDuplicateHoverExpanded(false);
+  }, [hoverState?.nodeId]);
+
+  useEffect(() => {
+    if (!focusedSearchNodeId || duplicateOnly) {
+      return;
+    }
+
+    const focusedNodeButton = nodeButtonRefs.current.get(focusedSearchNodeId);
+    if (focusedNodeButton && typeof focusedNodeButton.scrollIntoView === 'function') {
+      focusedNodeButton.scrollIntoView({
+        block: 'center',
+        inline: 'center',
+      });
+      return;
+    }
+
+    const layoutNode = layoutByNodeId[focusedSearchNodeId];
+    const treeContainer = treeContainerRef.current;
+    if (!layoutNode || !treeContainer) {
+      return;
+    }
+
+    const maxScrollLeft = Math.max(0, treeContainer.scrollWidth - treeContainer.clientWidth);
+    const maxScrollTop = Math.max(0, treeContainer.scrollHeight - treeContainer.clientHeight);
+    const nextScrollLeft = Math.max(
+      0,
+      Math.min(
+        layoutNode.x - (treeContainer.clientWidth - MINDMAP_NODE_WIDTH) / 2,
+        maxScrollLeft,
+      ),
+    );
+    const nextScrollTop = Math.max(
+      0,
+      Math.min(
+        layoutNode.y - (treeContainer.clientHeight - layoutNode.height) / 2,
+        maxScrollTop,
+      ),
+    );
+
+    treeContainer.scrollLeft = nextScrollLeft;
+    treeContainer.scrollTop = nextScrollTop;
+  }, [duplicateOnly, focusedSearchNodeId, layoutByNodeId, searchNavigationActive, searchNavigationIndex]);
 
   useEffect(() => {
     if (!isLargeGraph) {
@@ -1368,15 +1469,22 @@ export function DraftGraphWorkspace({
     setHoverState({ nodeId });
   }, []);
 
-  const handleNodeMouseLeave = useCallback((): void => {
+  const handleNodeMouseLeave = useCallback((event: ReactMouseEvent<HTMLButtonElement>): void => {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && hoverCardRef.current?.contains(nextTarget)) {
+      return;
+    }
+
     setHoverState(null);
   }, []);
 
   const handleNodeSelect = useCallback((nodeId: string): void => {
     setDragMoveError(null);
+    // Node clicks should always exit search navigation, even if the input blur path does not run first.
+    onExitSearchNavigation?.();
     setSnapshot((current) => selectDraftNode(current, nodeId));
     setHoverState(null);
-  }, []);
+  }, [onExitSearchNavigation]);
 
   const handleNodeDragStart = useCallback((event: ReactDragEvent<HTMLElement>): void => {
     if (isDialogOpen) {
@@ -1745,6 +1853,10 @@ export function DraftGraphWorkspace({
             draggedNodeId === node.internalId ? ' is-dragging' : ''
           }${
             dragPreviewState?.highlightNodeId === node.internalId ? ' is-drop-target' : ''
+          }${
+            !duplicateOnly && normalizedSearchQuery !== '' && searchResultIds.has(node.internalId) ? ' is-search-match' : ''
+          }${
+            !duplicateOnly && focusedSearchNodeId === node.internalId ? ' is-search-focus' : ''
           }`}
           data-node-id={node.internalId}
           disabled={isDialogOpen}
@@ -1791,6 +1903,7 @@ export function DraftGraphWorkspace({
       </div>
     );
   }), [
+    duplicateOnly,
     handleNodeButtonClick,
     handleNodeButtonDragEnd,
     handleNodeButtonDragLeave,
@@ -1803,7 +1916,10 @@ export function DraftGraphWorkspace({
     handleNodeMouseLeave,
     dragPreviewState,
     draggedNodeId,
+    focusedSearchNodeId,
     isDialogOpen,
+    normalizedSearchQuery,
+    searchResultIds,
     snapshot.nodesById,
     snapshot.selectedNodeId,
     setNodeButtonRef,
@@ -1811,7 +1927,7 @@ export function DraftGraphWorkspace({
   ]);
 
   const hoverCardElement = useMemo(() => {
-    if (!hoverState) {
+    if (!hoverState || duplicateOnly) {
       return null;
     }
 
@@ -1825,10 +1941,24 @@ export function DraftGraphWorkspace({
     }
 
     const hoverCardPosition = getHoverCardPosition(layout, mindmapLayout);
+    const duplicateHoverDetails = deriveDuplicateHoverDetails(snapshot, hoverState.nodeId);
+    const duplicatePaths = duplicateHoverDetails
+      ? (isDuplicateHoverExpanded ? duplicateHoverDetails.allPaths : duplicateHoverDetails.initialVisiblePaths)
+      : [];
 
     return (
       <div
         className="draft-hover-card"
+        onMouseLeave={(event) => {
+          const nextTarget = event.relatedTarget;
+          const hoveredNodeButton = nodeButtonRefs.current.get(hoverState.nodeId);
+          if (nextTarget instanceof Node && hoveredNodeButton?.contains(nextTarget)) {
+            return;
+          }
+
+          setHoverState(null);
+        }}
+        ref={hoverCardRef}
         style={{ left: hoverCardPosition.left, top: hoverCardPosition.top }}
       >
         <div className="draft-hover-card-header">
@@ -1848,6 +1978,31 @@ export function DraftGraphWorkspace({
             {hoveredNode.url}
           </div>
         ) : null}
+        {duplicateHoverDetails ? (
+          <div className="draft-hover-duplicates">
+            <div className="draft-hover-duplicates-summary">
+              {formatDuplicateHoverSummary(duplicateHoverDetails.duplicateCount)}
+            </div>
+            <div className="draft-hover-duplicates-list">
+              {duplicatePaths.map((pathLabel) => (
+                <div className="draft-hover-duplicates-path" key={pathLabel}>
+                  {pathLabel}
+                </div>
+              ))}
+            </div>
+            {duplicateHoverDetails.hasMore && !isDuplicateHoverExpanded ? (
+              <button
+                className="draft-hover-expand-button"
+                onClick={() => {
+                  setIsDuplicateHoverExpanded(true);
+                }}
+                type="button"
+              >
+                {draftGraphWorkspaceCopy.duplicateExpandLabel}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {hoveredNode.childIds.length > 0 ? (
           <div className="draft-hover-card-children">
             子节点：{hoveredNode.childIds.length} 个
@@ -1855,7 +2010,7 @@ export function DraftGraphWorkspace({
         ) : null}
       </div>
     );
-  }, [hoverState, layoutByNodeId, mindmapLayout, snapshot.nodesById]);
+  }, [duplicateOnly, hoverState, isDuplicateHoverExpanded, layoutByNodeId, mindmapLayout, snapshot]);
 
   const dialogCardStyle = useMemo(() => {
     if (!dialogCardPosition) {
@@ -1880,8 +2035,56 @@ export function DraftGraphWorkspace({
             {draftGraphWorkspaceCopy.dragMoveErrorPrefix}：{dragMoveError}
           </p>
         ) : null}
-        {hasRootNodes ? (
+        {duplicateOnly ? (
+          <div className="duplicate-focus-view">
+            <div className="duplicate-focus-header">
+              <strong>{draftGraphWorkspaceCopy.duplicateOnlyHeading}</strong>
+              <p>{draftGraphWorkspaceCopy.duplicateOnlySummary}</p>
+            </div>
+            {duplicateFocusGroups.length > 0 ? (
+              <div className="duplicate-focus-list">
+                {duplicateFocusGroups.map((group) => (
+                  <article className="duplicate-focus-card" key={group.url}>
+                    <div className="duplicate-focus-card-header">
+                      <strong>{draftGraphWorkspaceCopy.duplicateGroupTitle}</strong>
+                      <span className="duplicate-focus-badge">{formatDuplicateBadge(group.duplicateCount)}</span>
+                    </div>
+                    <div className="duplicate-focus-url" title={group.url}>{group.url}</div>
+                    <div className="duplicate-focus-group-list">
+                      {group.entries.map((entry) => (
+                        <section className="duplicate-focus-group-item" key={entry.nodeId}>
+                          <strong className="duplicate-focus-item-title">{entry.title || '（无标题）'}</strong>
+                          <div className="duplicate-focus-path-label">{draftGraphWorkspaceCopy.duplicatePathLabel}</div>
+                          <div className="duplicate-focus-path">{entry.pathLabel}</div>
+                        </section>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="draft-search-empty-state" role="status">
+                <strong>
+                  {duplicateNodeIds.length === 0 && normalizedSearchQuery === ''
+                    ? draftGraphWorkspaceCopy.duplicateEmptyTitle
+                    : draftGraphWorkspaceCopy.duplicateNoMatchTitle}
+                </strong>
+                <p>
+                  {duplicateNodeIds.length === 0 && normalizedSearchQuery === ''
+                    ? draftGraphWorkspaceCopy.duplicateEmptyDetail
+                    : draftGraphWorkspaceCopy.duplicateNoMatchDetail}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : hasRootNodes ? (
           <div className="xmind-canvas" style={{ height: mindmapLayout.height, width: mindmapLayout.width }}>
+            {normalizedSearchQuery !== '' && searchResults.length === 0 ? (
+              <div className="draft-search-empty-state is-overlay" role="status">
+                <strong>{draftGraphWorkspaceCopy.searchNoMatchTitle}</strong>
+                <p>{draftGraphWorkspaceCopy.searchNoMatchDetail}</p>
+              </div>
+            ) : null}
             <svg
               aria-hidden="true"
               className="xmind-branch-svg"

@@ -15,9 +15,9 @@
 - 设计包已冻结并完成 `plan` 入场确认
 - refined task graph 已完成
 - 17 个 child task 已创建完成
-- `T01` 至 `T07A` 已完成实现并归档
-- 当前仍处于 active / planning 的 child task 为 `T07B` 至 `T13`
-- 已完成 child task 的实现范围已覆盖：工程基线、扩展运行壳、本地持久化契约、浏览器读取导入、图谱基础编辑、拖拽移动
+- `T01` 至 `T07B` 已完成实现并归档
+- 当前仍处于 active / planning 的 child task 为 `T08A` 至 `T13`
+- 已完成 child task 的实现范围已覆盖：工程基线、扩展运行壳、本地持久化契约、浏览器读取导入、图谱基础编辑、拖拽移动、撤销历史与 `Ctrl+Z`
 - 后续 child task 仍需按既定串行顺序推进，不能把已完成前序任务误记为“尚未启动”
 
 ## 父 Task 边界
@@ -121,10 +121,10 @@
 ## 当前执行状态摘要
 
 - 父 task：`in_progress`
-- 已归档完成：`T01`、`T02`、`T03`、`T04`、`T05`、`T06`、`T07A`
-- 待继续推进：`T07B`、`T08A`、`T08B`、`T09A`、`T09B`、`T10`、`T11`、`T12A`、`T12B`、`T13`
-- child task：17/17 已创建；其中 7 个已归档完成，10 个仍处于 active / planning
-- 当前没有新的 active child task 正在执行；下一步若继续推进，应从剩余串行任务中显式点名
+- 已归档完成：`T01`、`T02`、`T03`、`T04`、`T05`、`T06`、`T07A`、`T07B`
+- 待继续推进：`T08A`、`T08B`、`T09A`、`T09B`、`T10`、`T11`、`T12A`、`T12B`、`T13`
+- child task：17/17 已创建；其中 8 个已完成，9 个仍处于 active / planning
+- 当前没有新的 active child task 正在执行；下一步若继续推进，应从剩余串行任务中显式点名 `T08A`
 - 剩余 child task 仍未开始各自的 `test-first` 与实现
 
 ## 后续入口

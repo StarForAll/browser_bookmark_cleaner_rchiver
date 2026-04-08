@@ -3,7 +3,7 @@
   "name": "search-duplicate-focus",
   "title": "Implement Search And Duplicate Focus",
   "description": "Implement title and URL search plus duplicate URL focus on the current draft graph.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 5,
   "next_action": [
     {
       "phase": 1,
@@ -47,6 +47,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/search-and-focus.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "Created from parent task split strategy during pure plan stage. T08A implementation is now in commit-phase after T07 closeout. The search strip is enabled against the current draft, duplicate-only mode renders a dedicated duplicate-focused view, duplicate hover cards now expose count plus default path slices with inline expand-more behavior, ordinary search only promotes a focused result after Enter, repository-level pnpm lint / pnpm typecheck / pnpm test / pnpm build / pnpm sonar are green, the real extension manual search / duplicate walkthrough has been reported complete, and the user explicitly accepted the current mixed workspace as the overall commit boundary for continued closeout.",
   "meta": {}
 }

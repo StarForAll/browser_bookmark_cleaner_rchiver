@@ -5,7 +5,7 @@
 - Task: `04-04-undo-history-ctrl-z` (`T07B`)
 - Date: `2026-04-07`
 - Reviewer: `Codex`
-- Scope reviewed: draft-only undo history, `Ctrl+Z` restore behavior, portal-based hint/status follow-up, and the current mixed worktree boundary against active `T08A`
+- Scope reviewed: draft-only undo history, `Ctrl+Z` restore behavior, portal-based hint/status follow-up, and the isolated `T07B` commit boundary against active `T08A`
 
 ## 1. Code Quality
 
@@ -122,20 +122,19 @@ Manual runtime note:
 
 ## Verdict
 
-Finish-work status: `blocked`
+Finish-work status: `pass for T07B closeout`
 
 Reasons:
 
-1. The frozen verification matrix is not globally green:
-   - `pnpm typecheck` = `fail`
-   - `pnpm test` = `fail`
-2. Those remaining failures are outside `T07B`, but they still block a truthful workspace-level “ready to commit / ready to close out” statement because the current worktree is mixed with active `T08A` red-gate files.
+1. Task-local `T07B` verification, human walkthrough, and doc/spec sync are complete.
+2. `T07B` now has its own isolated commit boundary at `08bcd38`, so the task can be truthfully closed out.
+3. Full-repo `pnpm typecheck` / `pnpm test` still fail, but those remaining failures belong to active `T08A` gates rather than this task.
 
 ## Recommended Next Steps
 
-1. Either isolate `T07B` into a clean commit boundary or finish `T08A` so the frozen matrix can go green.
+1. Continue with `T08A` if you want the frozen repository matrix to go green.
 2. If you need archive-level confidence beyond the reported walkthrough, separately record refresh / error-state / edge-case manual coverage.
-3. Re-run:
+3. Re-run before later repository-wide closeout:
    - `pnpm lint`
    - `pnpm typecheck`
    - `pnpm test`

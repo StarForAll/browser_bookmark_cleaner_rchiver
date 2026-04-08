@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 2,
+  "current_phase": 3,
   "next_action": [
     {
       "phase": 1,
@@ -46,7 +46,6 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "04-04-undo-history-ctrl-z",
     "04-04-search-duplicate-focus",
     "04-04-status-feedback-disabled-states",
     "04-04-browser-overwrite-sync-confirmation",
@@ -62,7 +61,7 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
     "tmp/workflow-e2e-issues.md"
   ],
-  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. Plan-stage restructuring is now complete: the parent task has been reduced to summary/coordination only, 17 execution child tasks have been created, and no runtime implementation has started. The human has explicitly confirmed that the next stage is test-first.",
+  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task now serves as summary/coordination only. Runtime execution has progressed through T07A and T07B in the frozen serial chain; both are archived complete, and the next serial child task remains T08A when explicitly authorized.",
   "meta": {
     "task_type": "interactive-product-implementation",
     "product_name": "browser-bookmark-cleaner-archiver",

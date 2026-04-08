@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   appShellCopy,
@@ -8,6 +8,7 @@ import {
   bootstrapWorkspace as defaultBootstrapWorkspace,
   type WorkspaceBootstrapResult,
 } from '@/features/browser-sync/application/bootstrapWorkspace';
+import { deriveSearchResults } from '@/features/bookmark-graph/state/searchAndFocus';
 import { DraftGraphWorkspace } from '@/features/bookmark-graph/ui/DraftGraphWorkspace';
 import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
 import './app.css';
@@ -227,9 +228,14 @@ export function App({
   const [statusPopoverReady, setStatusPopoverReady] = useState(resolveStorageArea() === null);
   const [persistedStatusEntry, setPersistedStatusEntry] = useState<PersistedStatusEntry | null>(null);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [duplicateOnly, setDuplicateOnly] = useState(false);
+  const [isSearchNavigationActive, setIsSearchNavigationActive] = useState(false);
+  const [searchNavigationIndex, setSearchNavigationIndex] = useState(0);
   const [hintOverlayPosition, setHintOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
   const [statusOverlayPosition, setStatusOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
   const canvasStageRef = useRef<HTMLElement | null>(null);
+  const searchNavigationActiveRef = useRef(false);
   const hintOverlayRef = useRef<HTMLElement | null>(null);
   const statusOverlayRef = useRef<HTMLElement | null>(null);
   const undoActionLabel = appShellCopy.actionLabels[appShellCopy.actionLabels.length - 1];
@@ -263,6 +269,17 @@ export function App({
       )
     : null;
   const editableDraftSnapshot = startupResult?.draftSnapshot ?? null;
+  const normalizedSearchQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
+  const normalSearchResults = useMemo(() => {
+    if (!editableDraftSnapshot) {
+      return [];
+    }
+
+    return deriveSearchResults(editableDraftSnapshot, {
+      searchQuery,
+      duplicateOnly,
+    });
+  }, [duplicateOnly, editableDraftSnapshot, searchQuery]);
   const startupStatusEntry: PersistedStatusEntry | null = startupResult
     ? {
         statusKey: startupResult.statusKey,
@@ -341,7 +358,7 @@ export function App({
           <p>{appShellCopy.statusSummary}</p>
         </div>
         <button
-          aria-label="关闭状态弹窗"
+          aria-label={appShellCopy.statusCloseAriaLabel}
           className="status-close"
           onClick={() => {
             setIsStatusOpen(false);
@@ -349,7 +366,7 @@ export function App({
           }}
           type="button"
         >
-          关闭
+          {appShellCopy.statusCloseLabel}
         </button>
       </div>
       <div className="status-entry">
@@ -395,6 +412,67 @@ export function App({
       <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
     </button>
   ) : null;
+
+  useEffect(() => {
+    searchNavigationActiveRef.current = isSearchNavigationActive;
+  }, [isSearchNavigationActive]);
+
+  useEffect(() => {
+    if (!isSearchNavigationActive) {
+      return;
+    }
+
+    if (duplicateOnly || normalizedSearchQuery === '' || normalSearchResults.length === 0) {
+      searchNavigationActiveRef.current = false;
+      setIsSearchNavigationActive(false);
+      setSearchNavigationIndex(0);
+      return;
+    }
+
+    setSearchNavigationIndex(0);
+  }, [duplicateOnly, isSearchNavigationActive, normalizedSearchQuery, normalSearchResults.length]);
+
+  const handleSearchInputKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>): void => {
+    if (duplicateOnly) {
+      return;
+    }
+
+    if (normalizedSearchQuery === '' || normalSearchResults.length === 0) {
+      if (event.key === 'Escape' && searchNavigationActiveRef.current) {
+        event.preventDefault();
+        searchNavigationActiveRef.current = false;
+        setIsSearchNavigationActive(false);
+      }
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      searchNavigationActiveRef.current = true;
+      setIsSearchNavigationActive(true);
+      setSearchNavigationIndex(0);
+      return;
+    }
+
+    if (!searchNavigationActiveRef.current) {
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      searchNavigationActiveRef.current = false;
+      setIsSearchNavigationActive(false);
+      return;
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      setSearchNavigationIndex((current) => {
+        return (current + delta + normalSearchResults.length) % normalSearchResults.length;
+      });
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -600,11 +678,33 @@ export function App({
             <p>{appShellCopy.searchSummary}</p>
           </div>
           <div className="search-placeholder">
-            <input disabled placeholder={appShellCopy.searchInputPlaceholder} />
-            <button disabled type="button">
+            <input
+              disabled={!editableDraftSnapshot}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+              }}
+              onKeyDown={handleSearchInputKeyDown}
+              onBlur={() => {
+                searchNavigationActiveRef.current = false;
+                setIsSearchNavigationActive(false);
+              }}
+              placeholder={appShellCopy.searchInputPlaceholder}
+              value={searchQuery}
+            />
+            <button
+              aria-pressed={duplicateOnly}
+              disabled={!editableDraftSnapshot}
+              onClick={() => {
+                setDuplicateOnly((current) => !current);
+              }}
+              type="button"
+            >
               {appShellCopy.searchToggleLabel}
             </button>
           </div>
+          <p className="search-status" role="status">
+            {duplicateOnly ? appShellCopy.searchModeDuplicateOnly : appShellCopy.searchModeAll}
+          </p>
         </section>
 
         <section aria-label={appShellCopy.canvasLabel} className="shell-card canvas-stage" ref={canvasStageRef} role="region">
@@ -619,10 +719,17 @@ export function App({
             <div className="canvas-main">
               {editableDraftSnapshot ? (
                 <DraftGraphWorkspace
+                  duplicateOnly={duplicateOnly}
                   initialSnapshot={editableDraftSnapshot}
                   initialUndoHistory={startupResult?.draftSession?.undoHistory}
                   initialCheckpoints={startupResult?.draftSession?.checkpoints}
                   onPersistDraftSession={writePersistedDraftSession}
+                  onExitSearchNavigation={() => {
+                    setIsSearchNavigationActive(false);
+                  }}
+                  searchNavigationActive={isSearchNavigationActive}
+                  searchNavigationIndex={searchNavigationIndex}
+                  searchQuery={searchQuery}
                 />
               ) : (
                 <div className="canvas-placeholder">

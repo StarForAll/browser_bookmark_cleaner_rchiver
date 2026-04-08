@@ -3,7 +3,7 @@
   "name": "undo-history-ctrl-z",
   "title": "Implement Undo History And Ctrl Z",
   "description": "Implement draft undo history and Ctrl+Z semantics without expanding into browser or cloud restore behavior.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "xzc",
   "assignee": "xzc",
   "createdAt": "2026-04-04",
-  "completedAt": null,
+  "completedAt": "2026-04-07",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -38,7 +38,7 @@
       "action": "create-pr"
     }
   ],
-  "commit": null,
+  "commit": "08bcd38",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -47,6 +47,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. T07B has completed test-first, implementation, multi-review check, and a human-reported real extension walkthrough for the draft-only Ctrl+Z flow. The truthful current state is finish-phase in progress: task-local T07B verification is complete, but full-repo pnpm test and pnpm typecheck are still blocked by active T08A red gates (src/app/App.searchFocus.test.tsx, src/features/bookmark-graph/ui/DraftGraphWorkspace.test.tsx, and src/features/bookmark-graph/state/searchAndFocus.test.ts), so workspace-level finish/archive is not yet truthful in the mixed worktree.",
+  "notes": "Created from parent task split strategy during pure plan stage. T07B has completed test-first, implementation, multi-review check, and a human-reported real extension walkthrough for the draft-only Ctrl+Z flow. The task now has an isolated commit boundary at 08bcd38 (feat: complete T07B draft undo history), so T07B archive is truthful even though full-repo pnpm test and pnpm typecheck remain blocked by active T08A red gates (src/app/App.searchFocus.test.tsx, src/features/bookmark-graph/ui/DraftGraphWorkspace.test.tsx, and src/features/bookmark-graph/state/searchAndFocus.test.ts).",
   "meta": {}
 }

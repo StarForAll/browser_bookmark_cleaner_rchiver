@@ -1,6 +1,6 @@
 # Draft Graph Workspace
 
-> Executable code-spec for the draft-only graph workspace, including draft mutation entry points, keyboard and drag behavior, hover details, and local persistence boundaries.
+> Executable code-spec for the draft-only graph workspace, including draft mutation entry points, keyboard and drag behavior, search / duplicate focus, hover details, and local persistence boundaries.
 
 ---
 
@@ -30,8 +30,12 @@ File paths and functions:
   - `deleteDraftNodeSubtree(snapshot, nodeId) => DeleteResult`
   - `moveDraftNode(snapshot, input) => EditResult`
 - `src/features/bookmark-graph/ui/DraftGraphWorkspace.tsx`
-  - `DraftGraphWorkspace({ initialSnapshot, onPersistDraftSession }) => JSX.Element`
+  - `DraftGraphWorkspace({ initialSnapshot, onPersistDraftSession, searchQuery, duplicateOnly }) => JSX.Element`
   - `deriveVisibleMindmapElements(layout, viewport) => { nodes; branches }`
+- `src/features/bookmark-graph/state/searchAndFocus.ts`
+  - `deriveSearchResults(snapshot, { searchQuery, duplicateOnly }) => DerivedSearchResult[]`
+  - `deriveDuplicateNodeIds(snapshot) => string[]`
+  - `deriveDuplicateHoverDetails(snapshot, nodeId) => DuplicateHoverDetails | null`
 - `src/adapters/local-persistence/contracts.ts`
   - `PersistedDraftSession`
 
@@ -59,6 +63,10 @@ Verification commands:
     - `undoHistory: <latest patch-based draft undo entries>`
     - `checkpoints: <latest checkpoint metadata, empty until checkpoint policy is wired>`
 - selection-only changes do not call `onPersistDraftSession`
+- `searchQuery` and `duplicateOnly`
+  - are workspace UI state only
+  - do not create undo entries
+  - do not call `onPersistDraftSession`
 
 #### Draft-only mutation boundary
 
@@ -109,7 +117,20 @@ Verification commands:
   - node type
   - full path
   - bookmark URL when the hovered node is a bookmark
-- current hover behavior does not show duplicate-URL metadata
+- bookmark hover cards for duplicate URLs also show:
+  - duplicate total count
+  - the first two human-readable duplicate paths by default
+  - an inline expand-more action when more than two duplicate paths exist
+- duplicate expand-more state resets after the hover card closes
+- duplicate-only mode swaps the tree canvas into a dedicated duplicate-focused list grouped by exact URL and surfaces full paths directly
+- title or URL search never matches path helper text or hidden internal IDs
+- non-duplicate search keeps the tree view and updates result highlighting as the query changes; pressing `Enter` activates result navigation and centers the viewport on the first matching result without mutating draft content
+- non-duplicate search supports keyboard navigation only while the search input is active:
+  - `Enter` activates result navigation when matches exist
+  - `ArrowUp / ArrowDown` cycle the focused result with wrap-around
+  - query changes reset active search navigation back to the first result
+  - search navigation never mutates `selectedNodeId` or draft content
+- `is-selected`, `is-search-match`, and `is-search-focus` must remain visually distinguishable, including when a node carries both selected and focused-search state
 
 #### Large-graph rendering boundary
 
@@ -141,6 +162,11 @@ Verification commands:
 | drag move | non-folder target requested as nesting parent | `ok: false` | inline drag-move error or ignored preview |
 | drag move | move would create ancestor cycle | `ok: false` | inline drag-move error |
 | hover | bookmark node | hover card includes URL | no persistence write |
+| duplicate hover | bookmark has duplicate URL peers | hover card includes count + path slice + inline expand | no persistence write |
+| duplicate-only | duplicate-only toggle enabled | workspace shows duplicate-focused list grouped by exact URL | no persistence write |
+| search | query has no matches in full graph | friendly no-match state | no persistence write |
+| search navigation | search input active + `Enter` + matches exist | focused result cycles with `ArrowUp / ArrowDown` | no persistence write |
+| search + duplicate-only | query has no matches inside duplicate set | duplicate-only no-match copy | no persistence write |
 | large graph | node count reaches threshold | viewport-scoped subset | selection and drag semantics remain unchanged |
 
 ### 5. Good / Base / Bad Cases
@@ -151,11 +177,15 @@ Verification commands:
 - `Shift + Enter` on a top-level node creates a new top-level sibling and does not reset the canvas scroll position
 - dragging a nested node onto the virtual-root drop zone promotes it to `parentId = null`
 - dragging inside the same parent reorders siblings without changing the parent relationship
+- enabling duplicate-only mode groups duplicate bookmarks by exact URL and shows their paths directly without persisting view-only state
+- search focuses the first matching bookmark node without creating undo history
+- active normal-search navigation cycles matching bookmarks without changing the current selected node
 
 #### Base
 
 - single click only changes `selectedNodeId`
 - hover only shows derived view data
+- duplicate-only and search remain view-only helpers
 - top-level nodes ignore repeated `ArrowLeft`
 
 #### Bad
@@ -180,10 +210,16 @@ Required automated tests:
   - assert create-child and create-sibling flows
   - assert delete confirmation behavior
   - assert keyboard reorder and promote behavior
+  - assert normal-search keyboard navigation and state separation
   - assert virtual-root visibility and drag-only semantics
   - assert hover details
+  - assert duplicate hover expansion behavior
   - assert large-graph viewport subset behavior
   - assert drag-drop reorder and nesting rules
+- `src/features/bookmark-graph/state/searchAndFocus.test.ts`
+  - assert title-before-URL search ranking
+  - assert duplicate-only derivation uses exact URL equality
+  - assert duplicate hover path payloads remain human-readable
 - `src/features/bookmark-graph/ui/DraftGraphWorkspace.undo.test.tsx`
   - assert draft-only undo history persistence
   - assert `Ctrl+Z` restore behavior
@@ -202,6 +238,7 @@ Manual assertions:
 - expose the virtual root as a clickable or focusable business node control
 - couple folder-body hover or drag previews to unconditional nesting behavior
 - treat routine draft edits as completed external actions in the status area
+- let search or duplicate-only toggles enter draft undo history or persistence payloads
 
 #### Correct
 
@@ -210,3 +247,4 @@ Manual assertions:
 - reserve status-history entries for explicit external actions
 - keep the virtual root as a non-business, drag-only visual anchor
 - reject invalid move targets before mutating the snapshot
+- keep search / duplicate focus as derived view state over the current draft snapshot

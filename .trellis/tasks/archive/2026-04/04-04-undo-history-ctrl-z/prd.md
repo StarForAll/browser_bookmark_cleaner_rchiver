@@ -54,8 +54,9 @@ Implement draft-only undo history and keyboard undo semantics for local editing 
 
 ## Current Closeout Status
 
-- `T07B` scope implementation and manual walkthrough are complete enough to enter `finish`
-- current closeout wording must stay explicit: repository-level `pnpm test` / `pnpm typecheck` are still blocked by `T08A`, so `T07B` cannot yet be described as workspace-level globally green or ready to archive from the mixed worktree
+- `T07B` scope implementation, targeted verification, and manual walkthrough are complete
+- the task has been isolated into commit `08bcd38` (`feat: complete T07B draft undo history`), so `T07B` itself is ready to archive
+- repository-level `pnpm test` / `pnpm typecheck` are still blocked by active `T08A`, but that remaining red status no longer blocks truthful `T07B` closeout
 
 ## Technical Notes
 - Keep undo semantics separate from overwrite or restore semantics

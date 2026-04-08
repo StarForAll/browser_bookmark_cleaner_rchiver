@@ -33,15 +33,31 @@ Enable search and duplicate URL focus flows over the current draft graph.
 - Search and duplicate filters must compose predictably
 
 ## Acceptance Criteria
-- [ ] Users can locate nodes by title or URL
-- [ ] Duplicate URL focus is clear and accurate
+- [x] Users can locate nodes by title or URL
+- [x] Duplicate URL focus is clear and accurate
 
 ## Verification Plan
-- `not run` in pure plan stage
-- Later execution commands:
-  - search state tests
-  - duplicate detection tests
-  - manual focus walkthrough
+- Task-local gates:
+  - `pnpm test -- src/app/App.searchFocus.test.tsx` -> `pass`
+  - `pnpm test -- src/features/bookmark-graph/state/searchAndFocus.test.ts` -> `pass`
+  - `pnpm test -- src/features/bookmark-graph/ui/DraftGraphWorkspace.test.tsx` -> `pass`
+- Repository-level matrix:
+  - `pnpm lint` -> `pass`
+  - `pnpm typecheck` -> `pass`
+  - `pnpm test` -> `pass`
+  - `pnpm build` -> `pass`
+  - `pnpm sonar` -> `pass`
+- Manual search / duplicate focus walkthrough in the real extension page:
+  - `pass (human-reported on 2026-04-08)`
+
+## Current Status
+
+- `T08A` implementation is active and automated verification is green
+- real extension manual search / duplicate focus walkthrough has been reported complete
+- current mixed workspace has been explicitly accepted by the user as the overall closeout boundary for commit
+- search title / URL matching now derives from the current draft graph without using path text or internal IDs
+- duplicate-only mode now composes with search and switches the workspace to a duplicate-focused presentation
+- duplicate hover cards now show duplicate count, the default two human-readable paths, and inline `展开更多`
 
 ## Technical Notes
 - This task should remain focused on discovery rather than global action feedback

@@ -39,9 +39,9 @@ Current implementation snapshot:
 
 - when startup restores or imports a draft, the graph canvas renders the real draft workspace rather than a placeholder card
 - the visual virtual root is already rendered as a view-only anchor at the left side of the draft graph
-- the operation hint area and status result area are rendered together inside the canvas side rail
-- drag, create, edit, delete, reorder, and promote interactions are implemented for the current draft
-- search / duplicate focus and duplicate-path hover expansion remain future task scope
+- the operation hint area and status result area now float against the current visible canvas instead of staying inside a fixed side rail
+- drag, create, edit, delete, reorder, promote, and `Ctrl+Z` interactions are implemented for the current draft
+- search / duplicate focus and duplicate-path hover expansion are now implemented on the current draft
 
 ## Top-Right Explicit Actions
 
@@ -84,7 +84,7 @@ Unless a line is explicitly marked as future scope, the draft-editing behaviors 
 - `ArrowUp / ArrowDown` reorder the selected node within the current level
 - `ArrowLeft` promotes the selected node by one level
 - drag moves and reorders the current draft only
-- `Ctrl+Z` remains future task scope rather than the current workspace baseline
+- `Ctrl+Z` reverts the latest draft-only content mutation
 
 ### Search and duplicate focus
 
@@ -94,8 +94,9 @@ Unless a line is explicitly marked as future scope, the draft-editing behaviors 
 
 Current implementation note:
 
-- search and duplicate-only mode are still future task scope
-- the workspace currently keeps the dedicated UI entry points visible but disabled
+- search strip is enabled once a draft graph exists
+- duplicate-only mode switches the workspace into a duplicate-focused list view grouped by exact URL
+- when normal search is active, the tree view remains visible, typing updates match highlighting, and pressing `Enter` centers on the first matching result
 
 ### Hover information
 
@@ -108,8 +109,8 @@ Current implementation note:
 
 Current implementation note:
 
-- title, node type, full path, and bookmark URL are implemented
-- duplicate-count and duplicate-path expansion remain future task scope
+- title, node type, full path, bookmark URL, duplicate count, default path slice, and inline expand-more are implemented
+- duplicate expand-more state resets after the hover card closes
 
 ## Secondary Surfaces Opened From The Workspace
 
