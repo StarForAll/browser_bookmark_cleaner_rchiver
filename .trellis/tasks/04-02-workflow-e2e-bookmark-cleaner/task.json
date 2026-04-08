@@ -46,7 +46,6 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "04-04-search-duplicate-focus",
     "04-04-status-feedback-disabled-states",
     "04-04-browser-overwrite-sync-confirmation",
     "04-04-local-backup-undo-overwrite",
@@ -61,7 +60,7 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
     "tmp/workflow-e2e-issues.md"
   ],
-  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task now serves as summary/coordination only. Runtime execution has progressed through T07A and T07B in the frozen serial chain; both are archived complete, and the next serial child task remains T08A when explicitly authorized.",
+  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task now serves as summary/coordination only. Runtime execution has progressed through T08A in the frozen serial chain; T07A, T07B, and T08A are archived complete, and the next serial child task is T08B when explicitly authorized.",
   "meta": {
     "task_type": "interactive-product-implementation",
     "product_name": "browser-bookmark-cleaner-archiver",
