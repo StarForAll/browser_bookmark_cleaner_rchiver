@@ -747,3 +747,37 @@ Completed T05 browser bookmark import to draft with startup restore/persistence 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: T08A search and duplicate focus closeout
+
+**Date**: 2026-04-08
+**Task**: T08A search and duplicate focus closeout
+**Branch**: `master`
+
+### Summary
+
+Completed T08A search and duplicate URL focus, including Enter-only normal-search navigation, duplicate-only grouped view, reviewer-driven gate hardening, final archive closeout, and committed the accepted overall workspace boundary.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a739e0` | (see git log) |
+| `714c633` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

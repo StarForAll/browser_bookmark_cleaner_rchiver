@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 17
-- **Last Active**: 2026-04-07
+- **Total Sessions**: 18
+- **Last Active**: 2026-04-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~749 | Active |
+| `journal-1.md` | ~783 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 18 | 2026-04-08 | T08A search and duplicate focus closeout | `9a739e0`, `714c633` | `master` |
 | 17 | 2026-04-07 | 全量文档同步与审查收尾 | `4dfd6da`, `846e783` | `master` |
 | 16 | 2026-04-07 | T07 图谱拖拽校验与键盘移动收尾 | `7d11897` | `master` |
 | 15 | 2026-04-06 | T06 图谱基础编辑与虚拟根节点收口 | `d340c23` | `master` |
