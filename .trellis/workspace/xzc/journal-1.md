@@ -781,3 +781,37 @@ Completed T08A search and duplicate URL focus, including Enter-only normal-searc
 ### Next Steps
 
 - None - task complete
+
+
+## Session 19: Workspace floating controls stabilization and closeout
+
+**Date**: 2026-04-09
+**Task**: Workspace floating controls stabilization and closeout
+**Branch**: `master`
+
+### Summary
+
+Fixed duplicate-only layout isolation, moved the back-to-top control to page scope, hardened floating control coexistence and keyboard focus, ran the full verification matrix including Sonar, archived the three completed 04-09 task records, and closed the session metadata.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3513708` | (see git log) |
+| `cfe4b00` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
