@@ -1,0 +1,4 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "verify regression coverage for layout-only helper boundary"}
+{"file": ".trellis/spec/frontend/draft-graph-workspace.md", "reason": "verify duplicate-only remains view-only and isolated to canvas"}

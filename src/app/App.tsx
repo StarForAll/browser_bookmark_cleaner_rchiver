@@ -45,6 +45,8 @@ type CanvasOverlayPosition = {
   top: number;
 };
 
+const PAGE_BACK_TO_TOP_SCROLL_THRESHOLD = 200;
+
 function resolveCanvasOverlayMargin(viewportWidth: number): number {
   if (viewportWidth <= 720) {
     return 16;
@@ -234,10 +236,12 @@ export function App({
   const [searchNavigationIndex, setSearchNavigationIndex] = useState(0);
   const [hintOverlayPosition, setHintOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
   const [statusOverlayPosition, setStatusOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
+  const [showPageBackToTopButton, setShowPageBackToTopButton] = useState(false);
   const canvasStageRef = useRef<HTMLElement | null>(null);
   const searchNavigationActiveRef = useRef(false);
   const hintOverlayRef = useRef<HTMLElement | null>(null);
   const statusOverlayRef = useRef<HTMLElement | null>(null);
+  const pageBackToTopFrameRef = useRef(0);
   const undoActionLabel = appShellCopy.actionLabels[appShellCopy.actionLabels.length - 1];
   const startupStatusCopy = getStartupStatusCopy(
     startupResult
@@ -412,10 +416,60 @@ export function App({
       <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
     </button>
   ) : null;
+  const pageBackToTopButton = showPageBackToTopButton ? (
+    <button
+      aria-label={appShellCopy.pageBackToTopLabel}
+      className="page-back-to-top-button"
+      onClick={() => {
+        setShowPageBackToTopButton(false);
+        window.scrollTo({
+          left: 0,
+          top: 0,
+        });
+      }}
+      title={appShellCopy.pageBackToTopLabel}
+      type="button"
+    >
+      <span aria-hidden="true" className="page-back-to-top-icon">🚀</span>
+    </button>
+  ) : null;
 
   useEffect(() => {
     searchNavigationActiveRef.current = isSearchNavigationActive;
   }, [isSearchNavigationActive]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const updatePageBackToTopVisibility = (): void => {
+      pageBackToTopFrameRef.current = 0;
+      setShowPageBackToTopButton(window.scrollY >= PAGE_BACK_TO_TOP_SCROLL_THRESHOLD);
+    };
+
+    const schedulePageBackToTopVisibilityUpdate = (): void => {
+      if (pageBackToTopFrameRef.current !== 0) {
+        return;
+      }
+
+      pageBackToTopFrameRef.current = window.requestAnimationFrame(updatePageBackToTopVisibility);
+    };
+
+    updatePageBackToTopVisibility();
+    window.addEventListener('scroll', schedulePageBackToTopVisibilityUpdate, { passive: true });
+    window.addEventListener('resize', schedulePageBackToTopVisibilityUpdate);
+
+    return () => {
+      if (pageBackToTopFrameRef.current !== 0) {
+        window.cancelAnimationFrame(pageBackToTopFrameRef.current);
+        pageBackToTopFrameRef.current = 0;
+      }
+
+      window.removeEventListener('scroll', schedulePageBackToTopVisibilityUpdate);
+      window.removeEventListener('resize', schedulePageBackToTopVisibilityUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isSearchNavigationActive) {
@@ -764,6 +818,7 @@ export function App({
           </div>
         </section>
       </main>
+      {pageBackToTopButton}
       {typeof document !== 'undefined' ? createPortal(hintOverlay, document.body) : hintOverlay}
       {typeof document !== 'undefined' ? createPortal(statusOverlay, document.body) : statusOverlay}
     </div>

@@ -12,6 +12,7 @@ export const appShellCopy = {
   searchToggleLabel: '仅看重复项',
   searchModeAll: '当前范围：全部草稿',
   searchModeDuplicateOnly: '当前范围：仅看重复项',
+  pageBackToTopLabel: '回到顶部',
   canvasPlaceholder: '当前区域承载可编辑的草稿图谱；搜索、重复聚焦与草稿撤销已经可用，后续任务会继续补同步能力。',
   canvasDraftTitle: '当前草稿画布',
   canvasDraftSummary: '这里承载当前草稿节点列表、基础编辑、拖拽、草稿撤销与基础悬浮信息；后续同步与聚焦能力会继续挂接在当前草稿之上。',

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { cleanup, render, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, test } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { App, resolveHintOverlayPosition, resolveStatusOverlayPosition } from './App';
 
 const repoRoot = process.cwd();
@@ -181,5 +181,97 @@ describe('T07B app undo-history hint gate', () => {
 
     expect(appCss).toMatch(/\.status-close\s*\{[^}]*border:\s*none;/s);
     expect(appCss).toMatch(/\.status-close\s*\{[^}]*background:\s*transparent;/s);
+  });
+
+  test('shows a page-level back-to-top button after scrolling down and scrolls the whole page to the top when clicked', async () => {
+    const originalScrollTo = window.scrollTo;
+    const scrollToSpy = vi.fn();
+
+    Object.defineProperty(window, 'scrollTo', {
+      configurable: true,
+      value: scrollToSpy,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 260,
+      writable: true,
+    });
+
+    try {
+      render(<App />);
+
+      fireEvent.scroll(window);
+
+      const backToTopButton = await screen.findByRole('button', { name: '回到顶部' });
+      fireEvent.click(backToTopButton);
+
+      expect(scrollToSpy).toHaveBeenCalledWith({
+        left: 0,
+        top: 0,
+      });
+    } finally {
+      Object.defineProperty(window, 'scrollTo', {
+        configurable: true,
+        value: originalScrollTo,
+      });
+    }
+  });
+
+  test('keeps the page-level back-to-top button hidden before the page scroll threshold is crossed', () => {
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 100,
+      writable: true,
+    });
+
+    render(<App />);
+
+    expect(screen.queryByRole('button', { name: '回到顶部' })).toBeNull();
+  });
+
+  test('hides the page-level back-to-top button immediately after it is clicked to jump to the page top', async () => {
+    const originalScrollTo = window.scrollTo;
+    const scrollToSpy = vi.fn();
+
+    Object.defineProperty(window, 'scrollTo', {
+      configurable: true,
+      value: scrollToSpy,
+    });
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      value: 260,
+      writable: true,
+    });
+
+    try {
+      render(<App />);
+
+      fireEvent.scroll(window);
+
+      const backToTopButton = await screen.findByRole('button', { name: '回到顶部' });
+      fireEvent.click(backToTopButton);
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: '回到顶部' })).toBeNull();
+      });
+      expect(scrollToSpy).toHaveBeenCalledWith({
+        left: 0,
+        top: 0,
+      });
+    } finally {
+      Object.defineProperty(window, 'scrollTo', {
+        configurable: true,
+        value: originalScrollTo,
+      });
+    }
+  });
+
+  test('keeps the page-level back-to-top control on a fixed left-bottom layer with a visible keyboard focus ring', () => {
+    const appCss = readFileSync(join(repoRoot, 'src/app/app.css'), 'utf8');
+
+    expect(appCss).toMatch(/\.page-back-to-top-button\s*\{[^}]*position:\s*fixed;/s);
+    expect(appCss).toMatch(/\.page-back-to-top-button\s*\{[^}]*left:\s*32px;/s);
+    expect(appCss).toMatch(/\.page-back-to-top-button\s*\{[^}]*bottom:\s*32px;/s);
+    expect(appCss).toMatch(/\.page-back-to-top-button:focus-visible\s*\{[^}]*box-shadow:/s);
   });
 });

@@ -197,6 +197,8 @@ input:disabled {
   position: relative;
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .canvas-placeholder {
@@ -230,7 +232,9 @@ input:disabled {
 }
 
 .draft-graph-workspace {
+  position: relative;
   height: 100%;
+  min-height: 0;
   padding: 24px;
 }
 
@@ -836,7 +840,7 @@ input:disabled {
   display: grid;
   gap: 16px;
   align-content: start;
-  min-height: 100%;
+  min-height: 0;
 }
 
 .duplicate-focus-header {
@@ -945,6 +949,46 @@ input:disabled {
   font-size: 14px;
   line-height: 1.5;
   max-width: 320px;
+}
+
+.page-back-to-top-button {
+  position: fixed;
+  left: 32px;
+  bottom: 32px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(20, 51, 58, 0.14);
+  border-radius: 26px;
+  background: rgba(255, 252, 246, 0.94);
+  box-shadow: 0 16px 30px rgba(20, 51, 58, 0.14);
+  color: #234148;
+  padding: 0;
+}
+
+.page-back-to-top-button:hover {
+  border-color: rgba(20, 51, 58, 0.24);
+  background: rgba(255, 252, 246, 0.98);
+}
+
+.page-back-to-top-button:focus-visible {
+  border-color: rgba(20, 51, 58, 0.26);
+  background: rgba(255, 252, 246, 0.98);
+  box-shadow:
+    0 0 0 3px rgba(35, 65, 72, 0.2),
+    0 16px 30px rgba(20, 51, 58, 0.14);
+  outline: none;
+}
+
+.page-back-to-top-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .draft-dialog-backdrop {
@@ -1341,6 +1385,11 @@ input:disabled {
     position: relative;
     width: min(100%, 460px);
     max-height: min(80vh, 640px);
+  }
+
+  .page-back-to-top-button {
+    left: 32px;
+    bottom: 32px;
   }
 
   .hint-overlay {

@@ -1,0 +1,4 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "page-level viewport helper must be tied to explicit user action and stay outside draft business logic"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "viewport helper change needs regression coverage for visible behavior and non-persistence side effects"}

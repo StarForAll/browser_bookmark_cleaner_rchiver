@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/draft-graph-workspace.md", "reason": "duplicate-only view must remain a view-layer canvas swap without affecting outer layout"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "graph view layout helpers must preserve viewport and avoid non-canvas side effects"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "layout-only helper changes need regression tests for visible and non-reset side-effect boundaries"}

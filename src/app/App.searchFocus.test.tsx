@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
@@ -6,6 +8,8 @@ import {
 } from '@/domain/draft-graph/contracts';
 import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
 import { App } from './App';
+
+const repoRoot = process.cwd();
 
 vi.mock('@/adapters/local-persistence/writePersistedDraftSession', () => ({
   writePersistedDraftSession: vi.fn(async () => ({ kind: 'unavailable' })),
@@ -337,5 +341,14 @@ describe('T08A app search and duplicate controls gate', () => {
 
     expect(startNode).toHaveAttribute('aria-pressed', 'true');
     expect(vi.mocked(writePersistedDraftSession)).not.toHaveBeenCalled();
+  });
+
+  test('keeps duplicate-only layout changes isolated inside the canvas scroll container', () => {
+    const appCss = readFileSync(join(repoRoot, 'src/app/app.css'), 'utf8');
+
+    expect(appCss).toMatch(/\.canvas-main\s*\{[^}]*height:\s*100%;/s);
+    expect(appCss).toMatch(/\.canvas-main\s*\{[^}]*overflow:\s*hidden;/s);
+    expect(appCss).toMatch(/\.draft-graph-workspace\s*\{[^}]*min-height:\s*0;/s);
+    expect(appCss).toMatch(/\.duplicate-focus-view\s*\{[^}]*min-height:\s*0;/s);
   });
 });

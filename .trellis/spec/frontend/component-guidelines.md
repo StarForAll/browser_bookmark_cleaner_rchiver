@@ -63,6 +63,7 @@ Keep large domain logic, layout mapping, or side-effect coordination outside the
 - store reusable copy, spacing intent, and shared visual helpers centrally rather than scattering one-off magic values
 - do not copy implementation code from `tmp/ui/`; only align with its design intent
 - when graph cards use per-depth typography or padding variants, keep the render layout height and the visible card min-height in sync; otherwise contained node shells can clip root-level bookmark cards even when nested cards still look correct
+- page-level viewport helpers such as a back-to-top control must not compete with the canvas status corner; if the status popover or status anchor occupies the lower-right viewport edge, place the helper in a different corner or add explicit collision-avoidance logic
 
 ---
 

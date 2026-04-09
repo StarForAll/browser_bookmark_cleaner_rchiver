@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "canvas viewport helpers must preserve current browsing position unless an explicit user action requests recentering"}
+{"file": ".trellis/spec/frontend/draft-graph-workspace.md", "reason": "draft canvas controls must stay view-only and scoped to the tree scroll container"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "graph view helper changes require regression coverage for visible behavior and non-interactive side effects"}

@@ -55,6 +55,7 @@ Current status:
 - React component tests use Testing Library with `jsdom`
 - new domain mutation logic should have at least one automated test
 - graph view changes that alter decorative nodes, viewport behavior, or layout-only helpers must add a component test for both the visible contract and the non-interactive / non-reset side effect boundary
+- page-level viewport helper changes must also cover coexistence with existing fixed overlays or anchors so a new floating control cannot silently block status, hint, or other shell-level affordances
 - high-risk flows still require manual verification in real Chrome extension runtime
 - backup, restore, and browser-write boundaries must not be claimed as safe without either automated evidence or explicit manual evidence
 - if Sonar scanning is part of the acceptance path for a change, report it truthfully as `pass`, `fail`, or `not run` just like the other commands

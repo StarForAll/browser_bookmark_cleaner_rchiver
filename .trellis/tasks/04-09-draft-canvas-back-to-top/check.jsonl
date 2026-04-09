@@ -1,0 +1,4 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/draft-graph-workspace.md", "reason": "verify back-to-top remains a view-only helper over the canvas scroll container"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "verify automated coverage for canvas helper visibility and click behavior"}
