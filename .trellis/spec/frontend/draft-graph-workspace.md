@@ -131,6 +131,15 @@ Verification commands:
   - query changes reset active search navigation back to the first result
   - search navigation never mutates `selectedNodeId` or draft content
 - `is-selected`, `is-search-match`, and `is-search-focus` must remain visually distinguishable, including when a node carries both selected and focused-search state
+- tree-container width changes may compact horizontal node spacing and card width for deep layouts, but this remains a view-only layout adjustment
+- resize-driven layout compaction must not silently reset `scrollLeft`, `scrollTop`, selection, or drag semantics
+- when the current draft hierarchy is deep enough that the required layout width exceeds the current tree container, the workspace should show a non-blocking floating popover near the draft-tree top-left corner telling the user to enlarge the page display window for complete deep-node visibility
+- the deep-hierarchy viewport popover:
+  - is rendered as a viewport-fixed overlay instead of tree content so page scrolling does not move it away from the visible draft area
+  - stays visually anchored near the draft-tree top-left corner while the tree content or page scrolls
+  - can be dismissed manually
+  - does not reopen just because of rerender or scrolling
+  - reappears only after the tree width shrinks again while the deep-hierarchy visibility risk still exists
 
 #### Large-graph rendering boundary
 
@@ -211,6 +220,9 @@ Required automated tests:
   - assert delete confirmation behavior
   - assert keyboard reorder and promote behavior
   - assert normal-search keyboard navigation and state separation
+  - assert resize-adaptive horizontal compaction for deep layouts without viewport reset side effects
+  - assert deep-hierarchy viewport popover appears only when the current tree width is insufficient
+  - assert the popover can be dismissed and only reopens after a later shrink
   - assert virtual-root visibility and drag-only semantics
   - assert hover details
   - assert duplicate hover expansion behavior

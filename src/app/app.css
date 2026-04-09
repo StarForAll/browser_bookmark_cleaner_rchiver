@@ -272,6 +272,9 @@ input:disabled {
 }
 
 .xmind-canvas {
+  --mindmap-drop-zone-width: 72px;
+  --mindmap-node-width: 220px;
+  --mindmap-shell-width: 292px;
   position: relative;
   min-height: 100%;
   min-width: max-content;
@@ -293,11 +296,11 @@ input:disabled {
   position: absolute;
   top: 0;
   left: 0;
-  width: 292px;
+  width: var(--mindmap-shell-width);
   animation: xmind-node-fade-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
   contain: layout paint style;
   content-visibility: auto;
-  contain-intrinsic-size: 292px 56px;
+  contain-intrinsic-size: var(--mindmap-shell-width) 56px;
   pointer-events: none;
 }
 
@@ -315,7 +318,7 @@ input:disabled {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  width: 220px;
+  width: var(--mindmap-node-width);
   gap: 4px;
   border: 1px solid color-mix(in srgb, var(--branch-color, rgba(45, 74, 80, 0.16)) 18%, rgba(255, 255, 255, 0.92));
   border-radius: 14px;
@@ -341,8 +344,8 @@ input:disabled {
 .draft-node-drop-zone {
   position: absolute;
   top: 0;
-  left: 220px;
-  width: 72px;
+  left: var(--mindmap-node-width);
+  width: var(--mindmap-drop-zone-width);
   height: 100%;
   pointer-events: auto;
   border-radius: 0 18px 18px 0;
@@ -815,6 +818,64 @@ input:disabled {
   background: rgba(255, 252, 246, 0.92);
   color: #37555b;
   padding: 18px 20px;
+}
+
+.draft-layout-popover {
+  position: fixed;
+  z-index: 18;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid rgba(181, 150, 119, 0.28);
+  border-radius: 20px;
+  background: rgba(255, 250, 242, 0.96);
+  box-shadow: 0 18px 34px rgba(92, 74, 57, 0.12);
+  color: #5c4a39;
+  backdrop-filter: blur(14px);
+  padding: 16px 18px;
+  pointer-events: auto;
+}
+
+.draft-layout-popover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.draft-layout-popover strong,
+.draft-layout-popover p {
+  margin: 0;
+  color: rgba(126, 136, 141, 0.86);
+  font-weight: 400;
+  text-shadow: none;
+}
+
+.draft-layout-popover p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.draft-layout-popover-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(92, 74, 57, 0.08);
+  color: #5c4a39;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.draft-layout-popover-close:hover,
+.draft-layout-popover-close:focus-visible {
+  background: rgba(92, 74, 57, 0.14);
 }
 
 .draft-search-empty-state strong,

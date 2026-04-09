@@ -2,12 +2,70 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+import type { DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
 import { App, resolveHintOverlayPosition, resolveStatusOverlayPosition } from './App';
 
 const repoRoot = process.cwd();
 
+function createDeepHierarchyDraftSnapshot(depth = 5): DraftGraphSnapshot {
+  const rootId = 'folder-root-deep';
+  const nodesById: DraftGraphSnapshot['nodesById'] = {
+    [rootId]: {
+      internalId: rootId,
+      sourceType: 'draft',
+      nodeType: 'folder',
+      title: '深层根目录',
+      url: null,
+      parentId: null,
+      childIds: ['folder-depth-1'],
+      pathTokens: ['深层根目录'],
+    },
+  };
+
+  for (let level = 1; level <= depth; level += 1) {
+    const folderId = `folder-depth-${level}`;
+    const isTerminalLevel = level === depth;
+    const childId = isTerminalLevel ? 'bookmark-depth-terminal' : `folder-depth-${level + 1}`;
+    nodesById[folderId] = {
+      internalId: folderId,
+      sourceType: 'draft',
+      nodeType: 'folder',
+      title: `第 ${level} 层目录`,
+      url: null,
+      parentId: level === 1 ? rootId : `folder-depth-${level - 1}`,
+      childIds: [childId],
+      pathTokens: ['深层根目录', ...Array.from({ length: level }, (_, index) => `第 ${index + 1} 层目录`)],
+    };
+  }
+
+  nodesById['bookmark-depth-terminal'] = {
+    internalId: 'bookmark-depth-terminal',
+    sourceType: 'draft',
+    nodeType: 'bookmark',
+    title: '最深层书签',
+    url: 'https://deep.example.com',
+    parentId: `folder-depth-${depth}`,
+    childIds: [],
+    pathTokens: [
+      '深层根目录',
+      ...Array.from({ length: depth }, (_, index) => `第 ${index + 1} 层目录`),
+      '最深层书签',
+    ],
+  };
+
+  return {
+    schemaVersion: 'draft-graph/v1',
+    snapshotVersion: 0,
+    selectedNodeId: null,
+    nodesById,
+    rootIds: [rootId],
+  };
+}
+
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
 });
 
@@ -174,6 +232,142 @@ describe('T07B app undo-history hint gate', () => {
     expect(appCss).toMatch(
       /\.status-anchor\s*\{[^}]*backdrop-filter:\s*none;/s,
     );
+  });
+
+  test('renders the draft viewport hint text with the same subdued transparent effect as the operation hint area', () => {
+    const appCss = readFileSync(join(repoRoot, 'src/app/app.css'), 'utf8');
+
+    expect(appCss).toMatch(
+      /\.draft-layout-popover\s+strong,\s*\.draft-layout-popover\s+p\s*\{[^}]*color:\s*rgba\(126,\s*136,\s*141,\s*0\.86\);/s,
+    );
+    expect(appCss).toMatch(
+      /\.draft-layout-popover\s+strong,\s*\.draft-layout-popover\s+p\s*\{[^}]*font-weight:\s*400;/s,
+    );
+    expect(appCss).toMatch(
+      /\.draft-layout-popover\s+strong,\s*\.draft-layout-popover\s+p\s*\{[^}]*text-shadow:\s*none;/s,
+    );
+  });
+
+  test('keeps the deep-hierarchy viewport popover and the operation hint on separate fixed viewport slots', async () => {
+    const stageRect = {
+      x: 80,
+      y: 180,
+      left: 80,
+      top: 180,
+      right: 1180,
+      bottom: 920,
+      width: 1100,
+      height: 740,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const treeRect = {
+      x: 120,
+      y: 180,
+      left: 120,
+      top: 180,
+      right: 1080,
+      bottom: 760,
+      width: 960,
+      height: 580,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const defaultRect = {
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function mockClientWidth(this: HTMLElement) {
+      return this.classList.contains('draft-graph-tree') ? 960 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function mockOffsetWidth(this: HTMLElement) {
+      if (this.classList.contains('hint-overlay')) {
+        return 320;
+      }
+
+      if (this.classList.contains('draft-layout-popover')) {
+        return 320;
+      }
+
+      return 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function mockOffsetHeight(this: HTMLElement) {
+      if (this.classList.contains('hint-overlay')) {
+        return 220;
+      }
+
+      if (this.classList.contains('draft-layout-popover')) {
+        return 144;
+      }
+
+      return 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function mockRect(this: HTMLElement) {
+      if (this.classList.contains('canvas-stage')) {
+        return stageRect;
+      }
+
+      if (this.classList.contains('draft-graph-tree')) {
+        return treeRect;
+      }
+
+      return defaultRect;
+    });
+    let nextFrameId = 0;
+    vi.stubGlobal('requestAnimationFrame', ((callback: FrameRequestCallback) => {
+      nextFrameId += 1;
+      const frameId = nextFrameId;
+      queueMicrotask(() => {
+        callback(0);
+      });
+      return frameId;
+    }) as typeof requestAnimationFrame);
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+
+    render(
+      <App
+        bootstrapWorkspace={async () => ({
+          policy: {
+            action: 'restore-local-draft',
+            reason: 'persisted-draft-session-exists',
+          },
+          draftSnapshot: createDeepHierarchyDraftSnapshot(),
+          statusKey: 'restored-local-draft',
+          occurredAt: '2026-04-09T11:00:00',
+        })}
+        enableStartupBootstrap
+      />,
+    );
+
+    await waitFor(() => {
+      expect(document.body.querySelector('.hint-overlay')).not.toBeNull();
+      expect(document.body.querySelector('.draft-layout-popover')).not.toBeNull();
+    });
+
+    const hintOverlay = document.body.querySelector('.hint-overlay') as HTMLElement | null;
+    const viewportHintPopover = document.body.querySelector('.draft-layout-popover') as HTMLElement | null;
+
+    expect(hintOverlay).not.toBeNull();
+    expect(viewportHintPopover).not.toBeNull();
+
+    await waitFor(() => {
+      expect(hintOverlay).toHaveStyle({
+        left: '836px',
+        top: '204px',
+      });
+      expect(viewportHintPopover).toHaveStyle({
+        left: '144px',
+        top: '204px',
+      });
+    });
   });
 
   test('renders the status close control as a plain x without a framed button shell', () => {

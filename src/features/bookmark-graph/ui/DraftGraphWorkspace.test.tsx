@@ -156,6 +156,66 @@ function createDuplicateUrlDraftGraphFixture(): DraftGraphSnapshot {
   };
 }
 
+function createDeepChainDraftGraphFixture(depth = 5): DraftGraphSnapshot {
+  const rootId = 'folder-root-deep';
+  const nodesById: DraftGraphSnapshot['nodesById'] = {
+    [rootId]: {
+      internalId: rootId,
+      sourceType: 'draft',
+      nodeType: 'folder',
+      title: '深层根目录',
+      url: null,
+      parentId: null,
+      childIds: ['folder-depth-1'],
+      pathTokens: ['深层根目录'],
+    },
+  };
+
+  for (let level = 1; level <= depth; level += 1) {
+    const folderId = `folder-depth-${level}`;
+    const isTerminalLevel = level === depth;
+    const childId = isTerminalLevel ? 'bookmark-depth-terminal' : `folder-depth-${level + 1}`;
+    nodesById[folderId] = {
+      internalId: folderId,
+      sourceType: 'draft',
+      nodeType: 'folder',
+      title: `第 ${level} 层目录`,
+      url: null,
+      parentId: level === 1 ? rootId : `folder-depth-${level - 1}`,
+      childIds: [childId],
+      pathTokens: ['深层根目录', ...Array.from({ length: level }, (_, index) => `第 ${index + 1} 层目录`)],
+    };
+  }
+
+  nodesById['bookmark-depth-terminal'] = {
+    internalId: 'bookmark-depth-terminal',
+    sourceType: 'draft',
+    nodeType: 'bookmark',
+    title: '最深层书签',
+    url: 'https://deep.example.com',
+    parentId: `folder-depth-${depth}`,
+    childIds: [],
+    pathTokens: [
+      '深层根目录',
+      ...Array.from({ length: depth }, (_, index) => `第 ${index + 1} 层目录`),
+      '最深层书签',
+    ],
+  };
+
+  return {
+    schemaVersion: 'draft-graph/v1',
+    snapshotVersion: 0,
+    selectedNodeId: null,
+    nodesById,
+    rootIds: [rootId],
+  };
+}
+
+function parseTranslateX(transform: string): number {
+  const match = transform.match(/translate\(([^,]+),/);
+  return match ? Number.parseFloat(match[1].replace('px', '')) : 0;
+}
+
 function parseTranslateY(transform: string): number {
   const match = transform.match(/translate\([^,]+,\s*([^)]+)\)/);
   return match ? Number.parseFloat(match[1].replace('px', '')) : 0;
@@ -168,6 +228,7 @@ function parsePixelValue(value: string | null | undefined): number {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
 });
 
@@ -276,6 +337,46 @@ describe('T06 draft graph workspace interaction gate', () => {
     ).toEqual({
       left: 460,
       top: 464,
+    });
+  });
+
+  test('keeps the deep-hierarchy viewport hint pinned to the tree viewport when the page scrolls', async () => {
+    const { resolveViewportHintPopoverPosition } = await import('./DraftGraphWorkspace');
+
+    expect(
+      resolveViewportHintPopoverPosition({
+        treeRect: {
+          left: 120,
+          top: 180,
+          right: 1080,
+          bottom: 760,
+        },
+        overlayWidth: 320,
+        overlayHeight: 144,
+        viewportWidth: 1280,
+        viewportHeight: 900,
+      }),
+    ).toEqual({
+      left: 144,
+      top: 204,
+    });
+
+    expect(
+      resolveViewportHintPopoverPosition({
+        treeRect: {
+          left: 120,
+          top: -80,
+          right: 1080,
+          bottom: 500,
+        },
+        overlayWidth: 320,
+        overlayHeight: 144,
+        viewportWidth: 1280,
+        viewportHeight: 900,
+      }),
+    ).toEqual({
+      left: 144,
+      top: 24,
     });
   });
 
@@ -435,6 +536,301 @@ describe('T06 draft graph workspace interaction gate', () => {
 
     expect(virtualRootCenter).toBeCloseTo(rootsMidpoint, 0);
     expect(parsePixelValue(virtualRootShell?.style.height)).toBeGreaterThan(46);
+  });
+
+  test('shows a dismissible floating viewport hint when a deep hierarchy exceeds the current tree width', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    let treeRect = {
+      x: 120,
+      y: 180,
+      left: 120,
+      top: 180,
+      right: 1080,
+      bottom: 760,
+      width: 960,
+      height: 580,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const defaultRect = {
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function mockClientWidth(this: HTMLElement) {
+      return this.classList.contains('draft-graph-tree') ? 960 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function mockOffsetWidth(this: HTMLElement) {
+      return this.classList.contains('draft-layout-popover') ? 320 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function mockOffsetHeight(this: HTMLElement) {
+      return this.classList.contains('draft-layout-popover') ? 144 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function mockRect(this: HTMLElement) {
+      if (this.classList.contains('draft-graph-tree')) {
+        return treeRect;
+      }
+
+      return defaultRect;
+    });
+    let nextFrameId = 0;
+    vi.stubGlobal('requestAnimationFrame', ((callback: FrameRequestCallback) => {
+      nextFrameId += 1;
+      const frameId = nextFrameId;
+      queueMicrotask(() => {
+        callback(0);
+      });
+      return frameId;
+    }) as typeof requestAnimationFrame);
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDeepChainDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('当前层级较深，建议增大页面显示窗口')).toBeInTheDocument();
+      expect(screen.getByText(/窗口过窄时，右侧更深层的子节点可能超出当前可视范围/)).toBeInTheDocument();
+    });
+
+    const hintPopover = screen.getByText('当前层级较深，建议增大页面显示窗口').closest('.draft-layout-popover');
+    expect(hintPopover).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '关闭窗口提示' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '当前草稿节点列表' }).contains(hintPopover as Node)).toBe(false);
+
+    await waitFor(() => {
+      expect(hintPopover).toHaveStyle({
+        left: '144px',
+        top: '204px',
+      });
+    });
+
+    treeRect = {
+      ...treeRect,
+      y: -80,
+      top: -80,
+      bottom: 500,
+    } as DOMRect;
+    window.dispatchEvent(new Event('scroll'));
+
+    await waitFor(() => {
+      expect(hintPopover).toHaveStyle({
+        left: '144px',
+        top: '24px',
+      });
+    });
+  });
+
+  test('does not show the viewport-size note for shallow graphs', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function mockClientWidth(this: HTMLElement) {
+      return this.classList.contains('draft-graph-tree') ? 960 : 0;
+    });
+
+    render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    expect(screen.queryByText('当前层级较深，建议增大页面显示窗口')).not.toBeInTheDocument();
+  });
+
+  test('keeps the floating viewport hint closed until the tree width shrinks again', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    let treeWidth = 1100;
+    const treeRect = {
+      x: 120,
+      y: 180,
+      left: 120,
+      top: 180,
+      right: 1220,
+      bottom: 760,
+      width: 1100,
+      height: 580,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const defaultRect = {
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 });
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function mockClientWidth(this: HTMLElement) {
+      return this.classList.contains('draft-graph-tree') ? treeWidth : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function mockOffsetWidth(this: HTMLElement) {
+      return this.classList.contains('draft-layout-popover') ? 320 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function mockOffsetHeight(this: HTMLElement) {
+      return this.classList.contains('draft-layout-popover') ? 144 : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function mockRect(this: HTMLElement) {
+      if (this.classList.contains('draft-graph-tree')) {
+        return treeRect;
+      }
+
+      return defaultRect;
+    });
+    let nextFrameId = 0;
+    vi.stubGlobal('requestAnimationFrame', ((callback: FrameRequestCallback) => {
+      nextFrameId += 1;
+      const frameId = nextFrameId;
+      queueMicrotask(() => {
+        callback(0);
+      });
+      return frameId;
+    }) as typeof requestAnimationFrame);
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+
+    const { rerender } = render(
+      <DraftGraphWorkspace
+        initialSnapshot={createDeepChainDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('当前层级较深，建议增大页面显示窗口')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭窗口提示' }));
+    expect(screen.queryByText('当前层级较深，建议增大页面显示窗口')).not.toBeInTheDocument();
+
+    window.dispatchEvent(new Event('resize'));
+    expect(screen.queryByText('当前层级较深，建议增大页面显示窗口')).not.toBeInTheDocument();
+
+    treeWidth = 1040;
+    rerender(
+      <DraftGraphWorkspace
+        initialSnapshot={createDeepChainDraftGraphFixture()}
+        onPersistDraftSession={persistDraftSession}
+      />,
+    );
+    window.dispatchEvent(new Event('resize'));
+
+    await waitFor(() => {
+      expect(screen.getByText('当前层级较深，建议增大页面显示窗口')).toBeInTheDocument();
+    });
+  });
+
+  test('recomputes deep-node horizontal placement when the tree container becomes narrower', async () => {
+    const { DraftGraphWorkspace } = await import('./DraftGraphWorkspace');
+    const persistDraftSession = vi.fn(async () => undefined);
+    let treeWidth = 2600;
+    const resizeCallbacks = new Set<ResizeObserverCallback>();
+
+    class ResizeObserverMock {
+      private readonly callback: ResizeObserverCallback;
+
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback;
+        resizeCallbacks.add(callback);
+      }
+
+      observe(): void {}
+
+      unobserve(): void {}
+
+      disconnect(): void {
+        resizeCallbacks.delete(this.callback);
+      }
+    }
+
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function mockClientWidth(this: HTMLElement) {
+      return this.classList.contains('draft-graph-tree') ? treeWidth : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function mockClientHeight(this: HTMLElement) {
+      return this.classList.contains('draft-graph-tree') ? 720 : 0;
+    });
+
+    const notifyResize = (element: Element): void => {
+      const contentRect = {
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 720,
+        right: treeWidth,
+        width: treeWidth,
+        height: 720,
+        toJSON: () => ({}),
+      };
+
+      for (const callback of resizeCallbacks) {
+        callback(
+          [{ target: element, contentRect } as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      }
+    };
+
+    const snapshot = createDeepChainDraftGraphFixture();
+    const { rerender } = render(
+      <div style={{ width: `${treeWidth}px` }}>
+        <DraftGraphWorkspace
+          initialSnapshot={snapshot}
+          onPersistDraftSession={persistDraftSession}
+        />
+      </div>,
+    );
+
+    const tree = screen.getByRole('region', { name: '当前草稿节点列表' });
+
+    notifyResize(tree);
+    window.dispatchEvent(new Event('resize'));
+
+    const deepestNode = screen.getByRole('button', { name: '书签节点：最深层书签' });
+    const initialX = parseTranslateX(
+      (deepestNode.closest('.xmind-node-shell') as HTMLElement | null)?.style.transform ?? '',
+    );
+
+    treeWidth = 1480;
+    rerender(
+      <div style={{ width: `${treeWidth}px` }}>
+        <DraftGraphWorkspace
+          initialSnapshot={snapshot}
+          onPersistDraftSession={persistDraftSession}
+        />
+      </div>,
+    );
+
+    notifyResize(tree);
+    window.dispatchEvent(new Event('resize'));
+
+    await waitFor(() => {
+      const resizedDeepestNode = screen.getByRole('button', { name: '书签节点：最深层书签' });
+      const resizedX = parseTranslateX(
+        (resizedDeepestNode.closest('.xmind-node-shell') as HTMLElement | null)?.style.transform ?? '',
+      );
+
+      expect(resizedX).toBeLessThan(initialX);
+    });
   });
 
   test('renders bookmark nodes taller than folder nodes so URL previews fit without bloating folders', async () => {

@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/draft-graph-workspace.md", "reason": "Draft graph workspace layout, viewport, and non-reset behavior contract"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Canvas viewport safety and component-side layout constraints"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Required test coverage for viewport and layout helper changes"}

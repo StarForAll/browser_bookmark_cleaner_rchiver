@@ -117,6 +117,17 @@ type MindmapLayoutResult = {
   branches: MindmapLayoutBranch[];
   width: number;
   height: number;
+  metrics?: MindmapLayoutMetrics;
+};
+
+type MindmapLayoutMetrics = {
+  nodeWidth: number;
+  horizontalGap: number;
+  paddingX: number;
+  paddingY: number;
+  dropZoneWidth: number;
+  shellWidth: number;
+  hoverCardWidth: number;
 };
 
 type LayoutNodeMeta = {
@@ -143,11 +154,17 @@ const ROOT_FOLDER_NODE_HEIGHT = 46;
 const FOLDER_NODE_HEIGHT = 40;
 const VIRTUAL_ROOT_NODE_HEIGHT = 46;
 const MINDMAP_HORIZONTAL_GAP = 80;
+const MIN_MINDMAP_NODE_WIDTH = 176;
+const MIN_MINDMAP_HORIZONTAL_GAP = 56;
 const MINDMAP_VERTICAL_GAP = 16;
 const MINDMAP_PADDING_X = 32;
 const MINDMAP_PADDING_Y = 32;
+const DROP_ZONE_WIDTH = 72;
+const MIN_DROP_ZONE_WIDTH = 44;
 const HOVER_CARD_WIDTH = 280;
 const HOVER_CARD_GAP = 16;
+const LAYOUT_TAIL_SLACK = 80;
+const VIEWPORT_HINT_POPOVER_MAX_WIDTH = 360;
 const DIALOG_CARD_MAX_WIDTH = 460;
 const DIALOG_CARD_GAP = 20;
 const DIALOG_CARD_VIEWPORT_MARGIN = 16;
@@ -165,6 +182,16 @@ const FOCUSABLE_DIALOG_SELECTOR = [
   'a[href]',
   '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
+
+const DEFAULT_MINDMAP_LAYOUT_METRICS: MindmapLayoutMetrics = {
+  nodeWidth: MINDMAP_NODE_WIDTH,
+  horizontalGap: MINDMAP_HORIZONTAL_GAP,
+  paddingX: MINDMAP_PADDING_X,
+  paddingY: MINDMAP_PADDING_Y,
+  dropZoneWidth: DROP_ZONE_WIDTH,
+  shellWidth: MINDMAP_NODE_WIDTH + DROP_ZONE_WIDTH,
+  hoverCardWidth: HOVER_CARD_WIDTH,
+};
 
 type HoverState = {
   nodeId: string;
@@ -187,6 +214,10 @@ type DialogCardPosition = {
 };
 
 type DialogAnchorRect = Pick<DOMRect, 'left' | 'right' | 'top' | 'height'>;
+type ViewportHintPopoverPosition = {
+  left: number;
+  top: number;
+};
 
 function buildPersistedDraftSession(
   snapshot: DraftGraphSnapshot,
@@ -221,6 +252,48 @@ function resolveEditUndoMutationType(
   }
 
   return 'rename-node';
+}
+
+function resolveViewportOverlayMargin(viewportWidth: number): number {
+  if (viewportWidth <= 720) {
+    return 16;
+  }
+
+  if (viewportWidth <= 1024) {
+    return 18;
+  }
+
+  return 24;
+}
+
+export function resolveViewportHintPopoverPosition(input: {
+  treeRect: Pick<DOMRect, 'left' | 'top' | 'right' | 'bottom'>;
+  overlayWidth: number;
+  overlayHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}): ViewportHintPopoverPosition | null {
+  const margin = resolveViewportOverlayMargin(input.viewportWidth);
+
+  if (input.treeRect.bottom <= margin || input.treeRect.top >= input.viewportHeight - margin) {
+    return null;
+  }
+
+  const preferredLeft = Math.max(margin, input.treeRect.left + margin);
+  const maxLeft = Math.max(margin, input.viewportWidth - input.overlayWidth - margin);
+  const preferredTop = Math.max(margin, input.treeRect.top + margin);
+  const maxTop = Math.max(
+    margin,
+    Math.min(
+      input.viewportHeight - input.overlayHeight - margin,
+      input.treeRect.bottom - input.overlayHeight - margin,
+    ),
+  );
+
+  return {
+    left: Math.min(preferredLeft, maxLeft),
+    top: Math.min(preferredTop, maxTop),
+  };
 }
 
 export function resolveDialogCardPosition(input: {
@@ -291,6 +364,101 @@ function getDraftNodeLayoutHeight(node: DraftGraphNode, depth: number): number {
   return depth === 0 ? ROOT_FOLDER_NODE_HEIGHT : FOLDER_NODE_HEIGHT;
 }
 
+function getMindmapLayoutMetrics(layout: Pick<MindmapLayoutResult, 'metrics'> | null | undefined): MindmapLayoutMetrics {
+  return layout?.metrics ?? DEFAULT_MINDMAP_LAYOUT_METRICS;
+}
+
+function deriveSnapshotMaxDepth(snapshot: DraftGraphSnapshot): number {
+  let maxDepth = 0;
+
+  const visitNode = (nodeId: string, depth: number): void => {
+    const node = snapshot.nodesById[nodeId];
+    if (!node) {
+      return;
+    }
+
+    maxDepth = Math.max(maxDepth, depth);
+    node.childIds.forEach((childId) => {
+      visitNode(childId, depth + 1);
+    });
+  };
+
+  snapshot.rootIds.forEach((rootId) => {
+    visitNode(rootId, 0);
+  });
+
+  return maxDepth;
+}
+
+function resolveMindmapLayoutMetrics(
+  maxDepth: number,
+  treeContainerWidth: number | null,
+): MindmapLayoutMetrics {
+  if (treeContainerWidth === null) {
+    return DEFAULT_MINDMAP_LAYOUT_METRICS;
+  }
+
+  const columnCount = maxDepth + 2;
+  const gapCount = maxDepth + 1;
+  const availableCanvasWidth = Math.max(0, treeContainerWidth - TREE_CONTENT_PADDING * 2);
+  const availableContentWidth =
+    availableCanvasWidth -
+    DEFAULT_MINDMAP_LAYOUT_METRICS.paddingX * 2 -
+    LAYOUT_TAIL_SLACK;
+
+  if (availableContentWidth <= 0) {
+    return {
+      ...DEFAULT_MINDMAP_LAYOUT_METRICS,
+      nodeWidth: MIN_MINDMAP_NODE_WIDTH,
+      horizontalGap: MIN_MINDMAP_HORIZONTAL_GAP,
+      dropZoneWidth: MIN_DROP_ZONE_WIDTH,
+      shellWidth: MIN_MINDMAP_NODE_WIDTH + MIN_DROP_ZONE_WIDTH,
+    };
+  }
+
+  const defaultRequiredWidth =
+    columnCount * DEFAULT_MINDMAP_LAYOUT_METRICS.nodeWidth +
+    gapCount * DEFAULT_MINDMAP_LAYOUT_METRICS.horizontalGap;
+  if (availableContentWidth >= defaultRequiredWidth) {
+    return DEFAULT_MINDMAP_LAYOUT_METRICS;
+  }
+
+  const minGapRequiredWidth =
+    columnCount * DEFAULT_MINDMAP_LAYOUT_METRICS.nodeWidth +
+    gapCount * MIN_MINDMAP_HORIZONTAL_GAP;
+
+  let nextNodeWidth = DEFAULT_MINDMAP_LAYOUT_METRICS.nodeWidth;
+  let nextHorizontalGap = DEFAULT_MINDMAP_LAYOUT_METRICS.horizontalGap;
+
+  if (availableContentWidth >= minGapRequiredWidth) {
+    nextHorizontalGap = Math.max(
+      MIN_MINDMAP_HORIZONTAL_GAP,
+      Math.floor(
+        (availableContentWidth - columnCount * DEFAULT_MINDMAP_LAYOUT_METRICS.nodeWidth) / gapCount,
+      ),
+    );
+  } else {
+    nextHorizontalGap = MIN_MINDMAP_HORIZONTAL_GAP;
+    nextNodeWidth = Math.max(
+      MIN_MINDMAP_NODE_WIDTH,
+      Math.floor((availableContentWidth - gapCount * nextHorizontalGap) / columnCount),
+    );
+  }
+
+  const nextDropZoneWidth = Math.max(
+    MIN_DROP_ZONE_WIDTH,
+    Math.min(DROP_ZONE_WIDTH, nextHorizontalGap - 8),
+  );
+
+  return {
+    ...DEFAULT_MINDMAP_LAYOUT_METRICS,
+    nodeWidth: nextNodeWidth,
+    horizontalGap: nextHorizontalGap,
+    dropZoneWidth: nextDropZoneWidth,
+    shellWidth: nextNodeWidth + nextDropZoneWidth,
+  };
+}
+
 const VIRTUAL_ROOT_ID = '__virtual_root__';
 const VIRTUAL_ROOT_TITLE = '书签图谱';
 
@@ -321,12 +489,16 @@ class RangeOffsetTree {
   }
 }
 
-function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
+function buildMindmapLayout(
+  snapshot: DraftGraphSnapshot,
+  treeContainerWidth: number | null,
+): MindmapLayoutResult {
   const nodes: MindmapLayoutNode[] = [];
   const branches: MindmapLayoutBranch[] = [];
   const nodeById = new Map<string, MindmapLayoutNode>();
   const layoutMetaById = new Map<string, LayoutNodeMeta>();
-  let maxDepth = 0;
+  const maxDepth = deriveSnapshotMaxDepth(snapshot);
+  const metrics = resolveMindmapLayoutMetrics(maxDepth, treeContainerWidth);
   let traversalIndex = 0;
 
   const leafStride = ROOT_BOOKMARK_NODE_HEIGHT + MINDMAP_VERTICAL_GAP;
@@ -341,13 +513,12 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
     const nodeHeight = getDraftNodeLayoutHeight(node, depth);
     const entry = traversalIndex;
     traversalIndex += 1;
-    maxDepth = Math.max(maxDepth, depth);
 
     if (node.childIds.length === 0) {
       const centerY = MINDMAP_PADDING_Y + leafIndex * leafStride + nodeHeight / 2;
       const layoutNode = {
         nodeId,
-        x: MINDMAP_PADDING_X + depth * (MINDMAP_NODE_WIDTH + MINDMAP_HORIZONTAL_GAP),
+        x: metrics.paddingX + depth * (metrics.nodeWidth + metrics.horizontalGap),
         y: centerY - nodeHeight / 2,
         height: nodeHeight,
         branchColor,
@@ -388,7 +559,7 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
     const centerY = (childCenters[0] + childCenters[childCenters.length - 1]) / 2;
     const layoutNode = {
       nodeId,
-      x: MINDMAP_PADDING_X + depth * (MINDMAP_NODE_WIDTH + MINDMAP_HORIZONTAL_GAP),
+      x: metrics.paddingX + depth * (metrics.nodeWidth + metrics.horizontalGap),
       y: centerY - nodeHeight / 2,
       height: nodeHeight,
       branchColor,
@@ -425,7 +596,7 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
   // whole root band so nested nodes can be dropped back to top level anywhere
   // along that band.
   if (snapshot.rootIds.length > 0 && rootCenters.length > 0) {
-    const virtualRootX = MINDMAP_PADDING_X;
+    const virtualRootX = metrics.paddingX;
     const rootMidpoint = (rootCenters[0] + rootCenters[rootCenters.length - 1]) / 2;
 
     const virtualRootNode = {
@@ -453,7 +624,7 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
     });
 
     // Shift all real nodes right to make room for virtual root
-    const shiftX = MINDMAP_NODE_WIDTH + MINDMAP_HORIZONTAL_GAP;
+    const shiftX = metrics.nodeWidth + metrics.horizontalGap;
     for (const n of nodes) {
       if (!n.isVirtualRoot) {
         n.x += shiftX;
@@ -503,12 +674,13 @@ function buildMindmapLayout(snapshot: DraftGraphSnapshot): MindmapLayoutResult {
   return {
     nodes,
     branches,
+    metrics,
     width:
-      MINDMAP_PADDING_X * 2 +
-      (maxDepth + 2) * MINDMAP_NODE_WIDTH +
-      (maxDepth + 1) * MINDMAP_HORIZONTAL_GAP +
-      80,
-    height: Math.max(280, maxBottom + MINDMAP_PADDING_Y),
+      metrics.paddingX * 2 +
+      (maxDepth + 2) * metrics.nodeWidth +
+      (maxDepth + 1) * metrics.horizontalGap +
+      LAYOUT_TAIL_SLACK,
+    height: Math.max(280, maxBottom + metrics.paddingY),
   };
 }
 
@@ -575,11 +747,12 @@ function buildNodeAriaLabel(node: DraftGraphNode): string {
 }
 
 function getHoverCardPosition(layout: MindmapLayoutNode, canvas: MindmapLayoutResult): HoverCardPosition {
-  const preferredLeft = layout.x + MINDMAP_NODE_WIDTH + HOVER_CARD_GAP;
-  const fallbackLeft = Math.max(MINDMAP_PADDING_X, layout.x - HOVER_CARD_WIDTH - HOVER_CARD_GAP);
-  const maxLeft = Math.max(MINDMAP_PADDING_X, canvas.width - HOVER_CARD_WIDTH - MINDMAP_PADDING_X);
-  const left = preferredLeft + HOVER_CARD_WIDTH <= canvas.width - MINDMAP_PADDING_X ? preferredLeft : fallbackLeft;
-  const clampedTop = Math.max(MINDMAP_PADDING_Y, Math.min(layout.y, canvas.height - 180));
+  const metrics = getMindmapLayoutMetrics(canvas);
+  const preferredLeft = layout.x + metrics.nodeWidth + HOVER_CARD_GAP;
+  const fallbackLeft = Math.max(metrics.paddingX, layout.x - metrics.hoverCardWidth - HOVER_CARD_GAP);
+  const maxLeft = Math.max(metrics.paddingX, canvas.width - metrics.hoverCardWidth - metrics.paddingX);
+  const left = preferredLeft + metrics.hoverCardWidth <= canvas.width - metrics.paddingX ? preferredLeft : fallbackLeft;
+  const clampedTop = Math.max(metrics.paddingY, Math.min(layout.y, canvas.height - 180));
 
   return {
     left: Math.min(left, maxLeft),
@@ -845,10 +1018,14 @@ function shouldIgnoreGlobalUndoShortcut(activeElement: HTMLElement | null): bool
   );
 }
 
-function isLayoutNodeVisible(layoutNode: MindmapLayoutNode, viewport: CanvasViewport): boolean {
+function isLayoutNodeVisible(
+  layoutNode: MindmapLayoutNode,
+  viewport: CanvasViewport,
+  nodeWidth: number,
+): boolean {
   const nodeLeft = layoutNode.x;
   const nodeTop = layoutNode.y;
-  const nodeRight = nodeLeft + MINDMAP_NODE_WIDTH;
+  const nodeRight = nodeLeft + nodeWidth;
   const nodeBottom = nodeTop + layoutNode.height;
 
   return (
@@ -866,6 +1043,7 @@ export function deriveVisibleMindmapElements(
   nodes: MindmapLayoutNode[];
   branches: MindmapLayoutBranch[];
 } {
+  const metrics = getMindmapLayoutMetrics(layout);
   if (!viewport) {
     return {
       nodes: layout.nodes,
@@ -876,7 +1054,10 @@ export function deriveVisibleMindmapElements(
   // Collect nodes that are visible in the viewport
   const visibleNodeIds = new Set(
     layout.nodes
-      .filter((layoutNode) => layoutNode.isVirtualRoot || isLayoutNodeVisible(layoutNode, viewport))
+      .filter(
+        (layoutNode) =>
+          layoutNode.isVirtualRoot || isLayoutNodeVisible(layoutNode, viewport, metrics.nodeWidth),
+      )
       .map((layoutNode) => layoutNode.nodeId),
   );
 
@@ -926,9 +1107,15 @@ export function DraftGraphWorkspace({
   const treeContainerRef = useRef<HTMLElement | null>(null);
   const dialogBackdropRef = useRef<HTMLDivElement | null>(null);
   const hoverCardRef = useRef<HTMLDivElement | null>(null);
+  const viewportHintPopoverRef = useRef<HTMLDivElement | null>(null);
   const nodeButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const previousTreeContainerWidthRef = useRef<number | null>(null);
+  const [treeContainerWidth, setTreeContainerWidth] = useState<number | null>(null);
   const [canvasViewport, setCanvasViewport] = useState<CanvasViewport | null>(null);
+  const [isViewportHintDismissed, setIsViewportHintDismissed] = useState(false);
+  const [viewportHintPopoverPosition, setViewportHintPopoverPosition] =
+    useState<ViewportHintPopoverPosition | null>(null);
 
   const hasRootNodes = snapshot.rootIds.length > 0;
   const nodeCount = useMemo(() => Object.keys(snapshot.nodesById).length, [snapshot.nodesById]);
@@ -960,10 +1147,15 @@ export function DraftGraphWorkspace({
     // Keep focus stable on the first result if the active result index goes out of bounds while matches shrink.
     return searchResults[searchNavigationIndex]?.nodeId ?? searchResults[0]?.nodeId ?? null;
   }, [duplicateOnly, normalizedSearchQuery, searchNavigationActive, searchNavigationIndex, searchResults]);
-  const mindmapLayout = useMemo(
-    () => buildMindmapLayout(snapshot),
+  const snapshotMaxDepth = useMemo(
+    () => deriveSnapshotMaxDepth(snapshot),
     [snapshot.nodesById, snapshot.rootIds],
   );
+  const mindmapLayout = useMemo(
+    () => buildMindmapLayout(snapshot, treeContainerWidth),
+    [snapshot.nodesById, snapshot.rootIds, treeContainerWidth],
+  );
+  const mindmapMetrics = useMemo(() => getMindmapLayoutMetrics(mindmapLayout), [mindmapLayout]);
   const visibleMindmap = useMemo(
     () => (isLargeGraph ? deriveVisibleMindmapElements(mindmapLayout, canvasViewport) : {
       nodes: mindmapLayout.nodes,
@@ -976,6 +1168,158 @@ export function DraftGraphWorkspace({
       Object.fromEntries(mindmapLayout.nodes.map((node) => [node.nodeId, node])),
     [mindmapLayout.nodes],
   );
+  const shouldShowViewportSizeHint =
+    !duplicateOnly &&
+    hasRootNodes &&
+    snapshotMaxDepth >= 4 &&
+    treeContainerWidth !== null &&
+    treeContainerWidth > 0 &&
+    treeContainerWidth < mindmapLayout.width;
+  const shouldRenderViewportHintPopover =
+    shouldShowViewportSizeHint && !isViewportHintDismissed;
+
+  useLayoutEffect(() => {
+    const element = treeContainerRef.current;
+    if (!element) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateTreeContainerWidth = (): void => {
+      frameId = 0;
+      const nextWidth = element.clientWidth;
+      setTreeContainerWidth((currentWidth) => (currentWidth === nextWidth ? currentWidth : nextWidth));
+    };
+
+    const scheduleTreeContainerWidthUpdate = (): void => {
+      if (frameId !== 0) {
+        return;
+      }
+
+      frameId = globalThis.requestAnimationFrame(updateTreeContainerWidth);
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            scheduleTreeContainerWidthUpdate();
+          })
+        : null;
+
+    resizeObserver?.observe(element);
+    window.addEventListener('resize', scheduleTreeContainerWidthUpdate);
+    updateTreeContainerWidth();
+
+    return () => {
+      if (frameId !== 0) {
+        globalThis.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener('resize', scheduleTreeContainerWidthUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const previousWidth = previousTreeContainerWidthRef.current;
+    previousTreeContainerWidthRef.current = treeContainerWidth;
+
+    if (
+      !isViewportHintDismissed ||
+      !shouldShowViewportSizeHint ||
+      treeContainerWidth === null ||
+      previousWidth === null
+    ) {
+      return;
+    }
+
+    if (treeContainerWidth < previousWidth) {
+      setIsViewportHintDismissed(false);
+    }
+  }, [isViewportHintDismissed, shouldShowViewportSizeHint, treeContainerWidth]);
+
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!shouldRenderViewportHintPopover) {
+      setViewportHintPopoverPosition(null);
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateViewportHintPopoverPosition = (): void => {
+      frameId = 0;
+
+      const treeContainer = treeContainerRef.current;
+      const viewportHintPopover = viewportHintPopoverRef.current;
+      if (!treeContainer || !viewportHintPopover) {
+        setViewportHintPopoverPosition(null);
+        return;
+      }
+
+      const margin = resolveViewportOverlayMargin(window.innerWidth);
+      const overlayWidth =
+        viewportHintPopover.offsetWidth || Math.min(VIEWPORT_HINT_POPOVER_MAX_WIDTH, window.innerWidth - margin * 2);
+      const overlayHeight = viewportHintPopover.offsetHeight;
+      const nextPosition = resolveViewportHintPopoverPosition({
+        treeRect: treeContainer.getBoundingClientRect(),
+        overlayWidth,
+        overlayHeight,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      });
+
+      setViewportHintPopoverPosition((currentPosition) => {
+        if (
+          currentPosition?.left === nextPosition?.left &&
+          currentPosition?.top === nextPosition?.top
+        ) {
+          return currentPosition;
+        }
+
+        return nextPosition;
+      });
+    };
+
+    const scheduleViewportHintPopoverPositionUpdate = (): void => {
+      if (frameId !== 0) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(updateViewportHintPopoverPosition);
+    };
+
+    scheduleViewportHintPopoverPositionUpdate();
+    window.addEventListener('scroll', scheduleViewportHintPopoverPositionUpdate, { passive: true });
+    window.addEventListener('resize', scheduleViewportHintPopoverPositionUpdate);
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            scheduleViewportHintPopoverPositionUpdate();
+          })
+        : null;
+
+    if (resizeObserver && treeContainerRef.current) {
+      resizeObserver.observe(treeContainerRef.current);
+    }
+    if (resizeObserver && viewportHintPopoverRef.current) {
+      resizeObserver.observe(viewportHintPopoverRef.current);
+    }
+
+    return () => {
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      window.removeEventListener('scroll', scheduleViewportHintPopoverPositionUpdate);
+      window.removeEventListener('resize', scheduleViewportHintPopoverPositionUpdate);
+      resizeObserver?.disconnect();
+    };
+  }, [shouldRenderViewportHintPopover]);
 
   useEffect(() => {
     if (!duplicateOnly) {
@@ -1014,7 +1358,7 @@ export function DraftGraphWorkspace({
     const nextScrollLeft = Math.max(
       0,
       Math.min(
-        layoutNode.x - (treeContainer.clientWidth - MINDMAP_NODE_WIDTH) / 2,
+        layoutNode.x - (treeContainer.clientWidth - mindmapMetrics.nodeWidth) / 2,
         maxScrollLeft,
       ),
     );
@@ -1028,7 +1372,14 @@ export function DraftGraphWorkspace({
 
     treeContainer.scrollLeft = nextScrollLeft;
     treeContainer.scrollTop = nextScrollTop;
-  }, [duplicateOnly, focusedSearchNodeId, layoutByNodeId, searchNavigationActive, searchNavigationIndex]);
+  }, [
+    duplicateOnly,
+    focusedSearchNodeId,
+    layoutByNodeId,
+    mindmapMetrics.nodeWidth,
+    searchNavigationActive,
+    searchNavigationIndex,
+  ]);
 
   useEffect(() => {
     if (!isLargeGraph) {
@@ -1183,7 +1534,7 @@ export function DraftGraphWorkspace({
       window.removeEventListener('resize', updateDialogCardPosition);
       treeElement?.removeEventListener('scroll', updateDialogCardPosition);
     };
-  }, [dialogState, resolveNodeDialogCardPosition]);
+  }, [dialogState, resolveNodeDialogCardPosition, treeContainerWidth]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: globalThis.KeyboardEvent): void => {
@@ -1752,11 +2103,11 @@ export function DraftGraphWorkspace({
       return null;
     }
 
-    const startX = fromNode.x + MINDMAP_NODE_WIDTH;
+    const startX = fromNode.x + mindmapMetrics.nodeWidth;
     const startY = fromNode.y + fromNode.height / 2;
     const endX = toNode.x;
     const endY = toNode.y + toNode.height / 2;
-    const curveOffset = MINDMAP_HORIZONTAL_GAP * 0.45;
+    const curveOffset = mindmapMetrics.horizontalGap * 0.45;
     const path = `M ${startX} ${startY} C ${startX + curveOffset} ${startY}, ${endX - curveOffset} ${endY}, ${endX} ${endY}`;
     const colorIndex = ROOT_BRANCH_COLORS.indexOf(branch.branchColor as typeof ROOT_BRANCH_COLORS[number]);
     const gradId = branch.depth <= 0 ? `branch-grad-root-${colorIndex}` : `branch-grad-deep-${colorIndex}`;
@@ -1782,7 +2133,7 @@ export function DraftGraphWorkspace({
         ) : null}
       </g>
     );
-  }), [isLargeGraph, layoutByNodeId, visibleMindmap.branches]);
+  }), [isLargeGraph, layoutByNodeId, mindmapMetrics.horizontalGap, mindmapMetrics.nodeWidth, visibleMindmap.branches]);
 
   const nodeElements = useMemo(() => visibleMindmap.nodes.map((layoutNode) => {
     if (layoutNode.isVirtualRoot) {
@@ -2022,10 +2373,58 @@ export function DraftGraphWorkspace({
       top: `${dialogCardPosition.top}px`,
     } satisfies CSSProperties;
   }, [dialogCardPosition]);
+  const viewportHintPopoverStyle = useMemo(() => {
+    if (!viewportHintPopoverPosition) {
+      return {
+        visibility: 'hidden',
+      } as const;
+    }
+
+    return {
+      left: `${viewportHintPopoverPosition.left}px`,
+      top: `${viewportHintPopoverPosition.top}px`,
+    } satisfies CSSProperties;
+  }, [viewportHintPopoverPosition]);
+  const canvasStyle = useMemo(() => ({
+    '--mindmap-drop-zone-width': `${mindmapMetrics.dropZoneWidth}px`,
+    '--mindmap-node-width': `${mindmapMetrics.nodeWidth}px`,
+    '--mindmap-shell-width': `${mindmapMetrics.shellWidth}px`,
+    height: mindmapLayout.height,
+    width: mindmapLayout.width,
+  }) as CSSProperties, [
+    mindmapLayout.height,
+    mindmapLayout.width,
+    mindmapMetrics.dropZoneWidth,
+    mindmapMetrics.nodeWidth,
+    mindmapMetrics.shellWidth,
+  ]);
   const dialogPortalTarget = typeof document !== 'undefined' ? document.body : null;
   const renderDialogOverlay = useCallback((overlay: ReactNode): ReactNode => {
     return dialogPortalTarget ? createPortal(overlay, dialogPortalTarget) : overlay;
   }, [dialogPortalTarget]);
+  const viewportHintPopover = shouldRenderViewportHintPopover ? (
+    <div
+      className="draft-layout-popover"
+      ref={viewportHintPopoverRef}
+      role="note"
+      style={viewportHintPopoverStyle}
+    >
+      <div className="draft-layout-popover-header">
+        <strong>{draftGraphWorkspaceCopy.deepHierarchyViewportHintTitle}</strong>
+        <button
+          aria-label={draftGraphWorkspaceCopy.dismissViewportHintLabel}
+          className="draft-layout-popover-close"
+          onClick={() => {
+            setIsViewportHintDismissed(true);
+          }}
+          type="button"
+        >
+          ×
+        </button>
+      </div>
+      <p>{draftGraphWorkspaceCopy.deepHierarchyViewportHintDetail}</p>
+    </div>
+  ) : null;
 
   return (
     <div className={`draft-graph-workspace${isLargeGraph ? ' is-large-graph' : ''}`}>
@@ -2078,7 +2477,7 @@ export function DraftGraphWorkspace({
             )}
           </div>
         ) : hasRootNodes ? (
-          <div className="xmind-canvas" style={{ height: mindmapLayout.height, width: mindmapLayout.width }}>
+          <div className="xmind-canvas" style={canvasStyle}>
             {normalizedSearchQuery !== '' && searchResults.length === 0 ? (
               <div className="draft-search-empty-state is-overlay" role="status">
                 <strong>{draftGraphWorkspaceCopy.searchNoMatchTitle}</strong>
@@ -2138,6 +2537,7 @@ export function DraftGraphWorkspace({
           </div>
         )}
       </section>
+      {viewportHintPopover ? renderDialogOverlay(viewportHintPopover) : null}
 
       {dialogState?.kind === 'edit' ? renderDialogOverlay(
         <div
