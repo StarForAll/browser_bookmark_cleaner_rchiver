@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 19
+- **Total Sessions**: 20
 - **Last Active**: 2026-04-09
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~817 | Active |
+| `journal-1.md` | ~864 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 20 | 2026-04-09 | T09 草稿区响应式布局与深层提示收尾 | `7412bc0`, `7e46125` | `master` |
 | 19 | 2026-04-09 | Workspace floating controls stabilization and closeout | `3513708`, `cfe4b00` | `master` |
 | 18 | 2026-04-08 | T08A search and duplicate focus closeout | `9a739e0`, `714c633` | `master` |
 | 17 | 2026-04-07 | 全量文档同步与审查收尾 | `4dfd6da`, `846e783` | `master` |

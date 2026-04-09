@@ -815,3 +815,50 @@ Fixed duplicate-only layout isolation, moved the back-to-top control to page sco
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: T09 草稿区响应式布局与深层提示收尾
+
+**Date**: 2026-04-09
+**Task**: T09 草稿区响应式布局与深层提示收尾
+**Branch**: `master`
+
+### Summary
+
+Implemented container-aware draft graph resizing, added a dismissible viewport-fixed deep-hierarchy guidance popover that only reopens on further shrink, aligned it with the operation hint overlay, synced spec and tests, and completed automated plus manual verification.
+
+### Main Changes
+
+| Feature | Description |
+|---------|-------------|
+| Draft graph resize | Added container-aware width adaptation for deep hierarchy layout |
+| Viewport guidance | Added a left-top floating popover for narrow windows; it can be dismissed and only reopens after a further shrink |
+| Verification | Synced spec/tests and completed lint, typecheck, test, build, sonar, self-review, check gate, and manual verification |
+
+**Updated Files**:
+- `.trellis/spec/frontend/draft-graph-workspace.md`
+- `src/app/App.undoHistory.test.tsx`
+- `src/app/app.css`
+- `src/features/bookmark-graph/ui/DraftGraphWorkspace.test.tsx`
+- `src/features/bookmark-graph/ui/DraftGraphWorkspace.tsx`
+- `src/shared/copy/draftGraphWorkspace.ts`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7412bc0` | (see git log) |
+| `7e46125` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
