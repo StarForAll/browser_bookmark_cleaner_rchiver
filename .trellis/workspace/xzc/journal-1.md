@@ -862,3 +862,37 @@ Implemented container-aware draft graph resizing, added a dismissible viewport-f
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: Sync brainstorm workflow docs
+
+**Date**: 2026-04-09
+**Task**: Sync brainstorm workflow docs
+**Branch**: `master`
+
+### Summary
+
+Merged useful brainstorm guidance into shared entry files, synchronized the OpenCode brainstorm command, audited and removed reviewed .new candidates, archived the completed task, and recorded the multi-CLI review trail.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `af58762` | (see git log) |
+| `b4315f0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
