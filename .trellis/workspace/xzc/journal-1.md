@@ -896,3 +896,69 @@ Merged useful brainstorm guidance into shared entry files, synchronized the Open
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: 当前项目工作流升级
+
+**Date**: 2026-04-11
+**Task**: 当前项目工作流升级
+**Branch**: `master`
+
+### Summary
+
+升级 Trellis 工作流链路：移除 self-review，引入 review-gate，统一 check/finish-work/delivery/start/onboard 与 workflow.md、AGENTS.md、镜像命令文档，并新增 check-quality.py。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6bc646a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 23: 当前项目工作流升级
+
+**Date**: 2026-04-11
+**Task**: 当前项目工作流升级
+**Branch**: `master`
+
+### Summary
+
+升级 Trellis 工作流链路：移除 self-review，引入 review-gate，统一 check/finish-work/delivery/start/onboard 与 workflow.md、AGENTS.md、镜像命令文档，并新增 check-quality.py。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6bc646a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
