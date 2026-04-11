@@ -1,5 +1,5 @@
 {
-  "trellis_version": "0.4.0-beta.8",
+  "trellis_version": "0.4.0-beta.9",
   "installed": "2026-04-02T08:32:57.524721+00:00",
   "cli_types": [
     "claude",
@@ -12,17 +12,31 @@
     "design",
     "plan",
     "test-first",
-    "self-review",
     "check",
+    "review-gate",
     "delivery"
   ],
   "scripts": [
     "feasibility-check.py",
     "design-export.py",
     "plan-validate.py",
-    "self-review-check.py",
+    "check-quality.py",
     "delivery-control-validate.py",
     "metadata-autocommit-guard.py",
     "record-session-helper.py"
-  ]
+  ],
+  "overlay_commands": [
+    "brainstorm",
+    "check"
+  ],
+  "added_commands": [
+    "feasibility",
+    "design",
+    "plan",
+    "test-first",
+    "review-gate",
+    "delivery"
+  ],
+  "workflow_version": "1.1.19",
+  "updated": "2026-04-09T13:48:37.041141+00:00"
 }

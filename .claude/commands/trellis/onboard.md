@@ -57,7 +57,7 @@ Even after injecting guidelines, AI has limited context window. As conversation 
 
 **The Problem**: AI starts following guidelines, but as the session progresses and context fills up, it "forgets" the rules and reverts to generic patterns.
 
-**The Solution**: The `/check-*` commands re-verify code against guidelines AFTER writing, catching drift that occurred during development. The `/trellis:finish-work` command does a final holistic review.
+**The Solution**: `/trellis:check` re-verifies code against guidelines AFTER writing, catching drift that occurred during development. `/trellis:review-gate` adds multi-CLI supplementary review. `/trellis:finish-work` runs the pre-commit checklist before commit.
 
 ---
 
@@ -157,8 +157,8 @@ AI context window has limited capacity. As conversation progresses, guidelines i
 4. Identifies violations and suggests fixes
 
 **WHY THIS MATTERS**:
-- Without check-*: Context drift goes unnoticed, code quality degrades.
-- With check-*: Drift is caught and corrected before commit.
+- Without /trellis:check: Context drift goes unnoticed, code quality degrades.
+- With /trellis:check: Drift is caught and corrected before commit.
 
 ---
 
@@ -180,16 +180,16 @@ Most bugs don't come from lack of technical skill - they come from "didn't think
 
 ---
 
-### /trellis:finish-work - Holistic Pre-Commit Review
+### /trellis:finish-work - Pre-Commit Checklist
 
 **WHY IT EXISTS**:
-The `/check-*` commands focus on code quality within a single layer. But real changes often have cross-cutting concerns.
+After `/trellis:check` catches quality issues and `/trellis:review-gate` adds multi-CLI review, this step runs the pre-commit checklist to ensure everything is ready before human commit.
 
 **WHAT IT ACTUALLY DOES**:
-1. Reviews all changes holistically
-2. Checks cross-layer consistency
-3. Identifies broader impacts
-4. Checks if new patterns should be documented
+1. Runs the frozen verification matrix (or marks deferred/not run)
+2. Verifies code-spec sync and cross-layer consistency
+3. Confirms manual testing items are completed
+4. Blocks commit if any checklist item is unresolved
 
 ---
 
@@ -209,14 +209,16 @@ All the context AI built during this session will be lost when session ends. The
 
 ### Example 1: Bug Fix Session
 
-**[1/8] /trellis:start** - AI needs project context before touching code
-**[2/8] python3 ./.trellis/scripts/task.py create "Fix bug" --slug fix-bug** - Track work for future reference
-**[3/8] /trellis:before-dev** - Inject project-specific development guidelines
-**[4/8] Investigate and fix the bug** - Actual development work
-**[5/8] /trellis:check** - Re-verify code against guidelines
-**[6/8] /trellis:finish-work** - Holistic cross-layer review
-**[7/8] Human tests and commits** - Human validates before code enters repo
-**[8/8] /trellis:record-session** - Persist memory for future sessions
+**[1/10] /trellis:start** - AI needs project context before touching code
+**[2/10] python3 ./.trellis/scripts/task.py create "Fix bug" --slug fix-bug** - Track work for future reference
+**[3/10] /trellis:before-dev** - Inject project-specific development guidelines
+**[4/10] Investigate and fix the bug** - Actual development work
+**[5/10] /trellis:check** - Re-verify code against project spec and output check.md
+**[6/10] /trellis:review-gate** - Multi-CLI review gate (optional, for high-risk changes)
+**[7/10] /trellis:finish-work** - Pre-commit checklist
+**[8/10] Human tests and commits** - Human validates before code enters repo
+**[9/10] /trellis:delivery** - Acceptance testing, deliverables, changelog, knowledge capture
+**[10/10] /trellis:record-session** - Persist memory for future sessions
 
 ### Example 2: Planning Session (No Code)
 
@@ -227,29 +229,35 @@ All the context AI built during this session will be lost when session ends. The
 
 ### Example 3: Code Review Fixes
 
-**[1/6] /trellis:start** - Resume context from previous session
-**[2/6] /trellis:before-dev** - Re-inject guidelines before fixes
-**[3/6] Fix each CR issue** - Address feedback with guidelines in context
-**[4/6] /trellis:check** - Verify fixes did not introduce new issues
-**[5/6] /trellis:finish-work** - Document lessons from CR
-**[6/6] Human commits, then /trellis:record-session** - Preserve CR lessons
+**[1/8] /trellis:start** - Resume context from previous session
+**[2/8] /trellis:before-dev** - Re-inject guidelines before fixes
+**[3/8] Fix each CR issue** - Address feedback with guidelines in context
+**[4/8] /trellis:check** - Verify fixes did not introduce new issues
+**[5/8] /trellis:review-gate** - Multi-CLI review (optional)
+**[6/8] /trellis:finish-work** - Pre-commit checklist
+**[7/8] Human commits, then /trellis:delivery** - Acceptance testing and deliverables
+**[8/8] /trellis:record-session** - Preserve CR lessons
 
 ### Example 4: Large Refactoring
 
-**[1/5] /trellis:start** - Clear baseline before major changes
-**[2/5] Plan phases** - Break into verifiable chunks
-**[3/5] Execute phase by phase with /trellis:check after each** - Incremental verification
-**[4/5] /trellis:finish-work** - Check if new patterns should be documented
-**[5/5] Record with multiple commit hashes** - Link all commits to one feature
+**[1/7] /trellis:start** - Clear baseline before major changes
+**[2/7] Plan phases** - Break into verifiable chunks
+**[3/7] Execute phase by phase with /trellis:check after each** - Incremental verification
+**[4/7] /trellis:review-gate** - Multi-CLI review (optional, for major refactors)
+**[5/7] /trellis:finish-work** - Check if new patterns should be documented
+**[6/7] /trellis:delivery** - Acceptance testing and changelog for major refactor
+**[7/7] Record with multiple commit hashes** - Link all commits to one feature
 
 ### Example 5: Debug Session
 
-**[1/6] /trellis:start** - See if this bug was investigated before
-**[2/6] /trellis:before-dev** - Guidelines might document known gotchas
-**[3/6] Investigation** - Actual debugging work
-**[4/6] /trellis:check** - Verify debug changes do not break other things
-**[5/6] /trellis:finish-work** - Debug findings might need documentation
-**[6/6] Human commits, then /trellis:record-session** - Debug knowledge is valuable
+**[1/8] /trellis:start** - See if this bug was investigated before
+**[2/8] /trellis:before-dev** - Guidelines might document known gotchas
+**[3/8] Investigation** - Actual debugging work
+**[4/8] /trellis:check** - Verify debug changes do not break other things
+**[5/8] /trellis:review-gate** - Multi-CLI review (optional)
+**[6/8] /trellis:finish-work** - Debug findings might need documentation
+**[7/8] Human commits, then /trellis:delivery** - Debug knowledge capture and acceptance
+**[8/8] /trellis:record-session** - Debug knowledge is valuable
 
 ---
 
@@ -257,7 +265,7 @@ All the context AI built during this session will be lost when session ends. The
 
 1. **AI NEVER commits** - Human tests and approves. AI prepares, human validates.
 2. **Guidelines before code** - /before-dev command injects project knowledge.
-3. **Check after code** - /check-* commands catch context drift.
+3. **Check after code** - /trellis:check catches context drift, /trellis:review-gate adds multi-CLI review.
 4. **Record everything** - /trellis:record-session persists memory.
 
 ---

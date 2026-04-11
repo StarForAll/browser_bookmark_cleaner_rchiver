@@ -10,20 +10,21 @@ Before submitting or committing, use this checklist to ensure work completeness.
 
 ### 1. Code Quality
 
-```bash
-# Target matrix after PLAN-01 scaffold exists
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm sonar
-```
+<!-- finish-work-projectization-patch -->
 
-- [ ] `pnpm lint` passes with 0 errors?
-- [ ] `pnpm typecheck` passes with no type errors?
-- [ ] Tests pass?
-- [ ] `pnpm build` passes?
-- [ ] `sonar-scanner ...` passes, or is truthfully marked `not run` / `deferred`?
+Current project target matrix after `PLAN-01` scaffold exists:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm sonar`
+
+Checklist:
+
+- [ ] Project verification commands are already frozen for the current architecture?
+- [ ] The frozen verification matrix was executed and results were recorded truthfully as `pass / fail / not run`?
+- [ ] If the real engineering scaffold is not ready yet, did you explicitly record that this section is `deferred` or `not run` instead of pretending success?
 - [ ] No `console.log` statements (use logger)?
 - [ ] No non-null assertions (the `x!` operator)?
 - [ ] No `any` types?
@@ -110,16 +111,11 @@ If the change spans multiple layers:
 
 ## Quick Check Flow
 
-```bash
-# 1. Code checks
-pnpm lint && pnpm typecheck
-
-# 2. View changes
-git status
-git diff --name-only
-
-# 3. Based on changed files, check relevant items above
-```
+1. Confirm whether the project's verification commands are frozen (check `.trellis/spec/` quality guidelines).
+2. If yes, run the frozen verification matrix and record real outcomes.
+3. Review changed files with `git status` and `git diff --name-only`.
+4. Based on changed files, check the relevant items above.
+5. Report the checklist result; post-commit operations (task archive, session recording) are handled by the close-out stage, not by this command.
 
 ---
 
@@ -140,10 +136,10 @@ git diff --name-only
 
 ```
 Development Flow:
-  Write code -> Test -> /trellis:finish-work -> git commit -> /trellis:record-session
-                          |                              |
-                   Ensure completeness              Record progress
-                   
+  Write code -> Test -> /trellis:check -> /trellis:review-gate -> /trellis:finish-work -> git commit -> /trellis:delivery -> /trellis:record-session
+                         |                   |                        |                              |
+                  Quality check        Multi-CLI review        Ensure completeness           Acceptance & handoff
+
 Debug Flow:
   Hit bug -> Fix -> /trellis:break-loop -> Knowledge capture
                        |
@@ -151,6 +147,7 @@ Debug Flow:
 ```
 
 - `/trellis:finish-work` - Check work completeness (this command)
+- `/trellis:delivery` - Acceptance testing, deliverables, changelog, knowledge capture
 - `/trellis:record-session` - Record session and commits
 - `/trellis:break-loop` - Deep analysis after debugging
 

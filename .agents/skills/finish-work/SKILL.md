@@ -15,6 +15,9 @@ Before submitting or committing, use this checklist to ensure work completeness.
 
 ### 1. Code Quality
 
+<!-- finish-work-projectization-patch -->
+
+
 Current project target matrix after `PLAN-01` scaffold exists:
 
 - `pnpm lint`
@@ -123,7 +126,7 @@ If the change spans multiple layers:
 2. If yes, run the frozen verification matrix and record real outcomes.
 3. Review changed files with `git status` and `git diff --name-only`.
 4. Based on changed files, check the relevant items above.
-5. If the task is the current session's final close-out, archive the completed task and then use `record-session-helper.py`.
+5. Report the checklist result; post-commit operations (task archive、session 记录) 由 close-out 阶段处理，不属于本命令职责。
 
 ---
 
@@ -144,10 +147,10 @@ If the change spans multiple layers:
 
 ```
 Development Flow:
-  Write code -> Test -> $finish-work -> git commit -> $record-session
-                          |                              |
-                   Ensure completeness              Record progress
-                   
+  Write code -> Test -> $check -> $review-gate -> $finish-work -> git commit -> $delivery -> $record-session
+                         |            |                |                        |
+                  Quality check   Multi-CLI review  Ensure completeness   Acceptance & handoff
+
 Debug Flow:
   Hit bug -> Fix -> $break-loop -> Knowledge capture
                        |
@@ -155,6 +158,7 @@ Debug Flow:
 ```
 
 - `$finish-work` - Check work completeness (this skill)
+- `$delivery` - Acceptance testing, deliverables, changelog, knowledge capture
 - `$record-session` - Record session and commits
 - `$break-loop` - Deep analysis after debugging
 

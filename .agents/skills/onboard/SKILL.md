@@ -62,7 +62,7 @@ Even after injecting guidelines, AI has limited context window. As conversation 
 
 **The Problem**: AI starts following guidelines, but as the session progresses and context fills up, it "forgets" the rules and reverts to generic patterns.
 
-**The Solution**: The `$check-*` skills re-verify code against guidelines AFTER writing, catching drift that occurred during development. The `$finish-work` skill does a final holistic review.
+**The Solution**: The `$check` skill re-verify code against project spec AFTER writing, catching drift that occurred during development. The `$review-gate` skill provides optional multi-CLI review. The `$finish-work` skill does a final pre-commit checklist.
 
 ---
 
@@ -162,8 +162,8 @@ AI context window has limited capacity. As conversation progresses, guidelines i
 4. Identifies violations and suggests fixes
 
 **WHY THIS MATTERS**:
-- Without check-*: Context drift goes unnoticed, code quality degrades.
-- With check-*: Drift is caught and corrected before commit.
+- Without $check: Context drift goes unnoticed, code quality degrades.
+- With $check: Drift is caught and corrected before commit.
 
 ---
 
@@ -185,16 +185,16 @@ Most bugs don't come from lack of technical skill - they come from "didn't think
 
 ---
 
-### $finish-work - Holistic Pre-Commit Review
+### $finish-work - Pre-Commit Checklist
 
 **WHY IT EXISTS**:
-The `$check-*` skills focus on code quality within a single layer. But real changes often have cross-cutting concerns.
+After `$check` catches quality issues and `$review-gate` adds multi-CLI review, this step runs the pre-commit checklist to ensure everything is ready before human commit.
 
 **WHAT IT ACTUALLY DOES**:
-1. Reviews all changes holistically
-2. Checks cross-layer consistency
-3. Identifies broader impacts
-4. Checks if new patterns should be documented
+1. Runs the frozen verification matrix (or marks deferred/not run)
+2. Verifies code-spec sync and cross-layer consistency
+3. Confirms manual testing items are completed
+4. Blocks commit if any checklist item is unresolved
 
 ---
 
@@ -214,14 +214,16 @@ All the context AI built during this session will be lost when session ends. The
 
 ### Example 1: Bug Fix Session
 
-**[1/8] $start** - AI needs project context before touching code
-**[2/8] python3 ./.trellis/scripts/task.py create "Fix bug" --slug fix-bug** - Track work for future reference
-**[3/8] $before-dev** - Inject project-specific development guidelines
-**[4/8] Investigate and fix the bug** - Actual development work
-**[5/8] $check** - Re-verify code against guidelines
-**[6/8] $finish-work** - Holistic cross-layer review
-**[7/8] Human tests and commits** - Human validates before code enters repo
-**[8/8] $record-session** - Persist memory for future sessions
+**[1/10] $start** - AI needs project context before touching code
+**[2/10] python3 ./.trellis/scripts/task.py create "Fix bug" --slug fix-bug** - Track work for future reference
+**[3/10] $before-dev** - Inject project-specific development guidelines
+**[4/10] Investigate and fix the bug** - Actual development work
+**[5/10] $check** - Re-verify code against project spec and output check.md
+**[6/10] $review-gate** - Multi-CLI review gate (optional, for high-risk changes)
+**[7/10] $finish-work** - Pre-commit checklist
+**[8/10] Human tests and commits** - Human validates before code enters repo
+**[9/10] $delivery** - Acceptance testing, deliverables, changelog, knowledge capture
+**[10/10] $record-session** - Persist memory for future sessions
 
 ### Example 2: Planning Session (No Code)
 
@@ -232,29 +234,35 @@ All the context AI built during this session will be lost when session ends. The
 
 ### Example 3: Code Review Fixes
 
-**[1/6] $start** - Resume context from previous session
-**[2/6] $before-dev** - Re-inject guidelines before fixes
-**[3/6] Fix each CR issue** - Address feedback with guidelines in context
-**[4/6] $check** - Verify fixes did not introduce new issues
-**[5/6] $finish-work** - Document lessons from CR
-**[6/6] Human commits, then $record-session** - Preserve CR lessons
+**[1/8] $start** - Resume context from previous session
+**[2/8] $before-dev** - Re-inject guidelines before fixes
+**[3/8] Fix each CR issue** - Address feedback with guidelines in context
+**[4/8] $check** - Verify fixes did not introduce new issues
+**[5/8] $review-gate** - Multi-CLI review (optional)
+**[6/8] $finish-work** - Pre-commit checklist
+**[7/8] Human commits, then $delivery** - Acceptance testing and deliverables
+**[8/8] $record-session** - Preserve CR lessons
 
 ### Example 4: Large Refactoring
 
-**[1/5] $start** - Clear baseline before major changes
-**[2/5] Plan phases** - Break into verifiable chunks
-**[3/5] Execute phase by phase with $check-* after each** - Incremental verification
-**[4/5] $finish-work** - Check if new patterns should be documented
-**[5/5] Record with multiple commit hashes** - Link all commits to one feature
+**[1/7] $start** - Clear baseline before major changes
+**[2/7] Plan phases** - Break into verifiable chunks
+**[3/7] Execute phase by phase with $check after each** - Incremental verification
+**[4/7] $review-gate** - Multi-CLI review (optional, for major refactors)
+**[5/7] $finish-work** - Check if new patterns should be documented
+**[6/7] $delivery** - Acceptance testing and changelog for major refactor
+**[7/7] Record with multiple commit hashes** - Link all commits to one feature
 
 ### Example 5: Debug Session
 
-**[1/6] $start** - See if this bug was investigated before
-**[2/6] $before-dev** - Guidelines might document known gotchas
-**[3/6] Investigation** - Actual debugging work
-**[4/6] $check** - Verify debug changes do not break other things
-**[5/6] $finish-work** - Debug findings might need documentation
-**[6/6] Human commits, then $record-session** - Debug knowledge is valuable
+**[1/8] $start** - See if this bug was investigated before
+**[2/8] $before-dev** - Guidelines might document known gotchas
+**[3/8] Investigation** - Actual debugging work
+**[4/8] $check** - Verify debug changes do not break other things
+**[5/8] $review-gate** - Multi-CLI review (optional)
+**[6/8] $finish-work** - Debug findings might need documentation
+**[7/8] Human commits, then $delivery** - Debug knowledge capture and acceptance
+**[8/8] $record-session** - Debug knowledge is valuable
 
 ---
 
@@ -262,7 +270,7 @@ All the context AI built during this session will be lost when session ends. The
 
 1. **AI NEVER commits** - Human tests and approves. AI prepares, human validates.
 2. **Guidelines before code** - `$before-*-dev` skills inject project knowledge.
-3. **Check after code** - `$check-*` skills catch context drift.
+3. **Check after code** - `$check` catches context drift, `$review-gate` adds multi-CLI review.
 4. **Record everything** - $record-session persists memory.
 
 ---

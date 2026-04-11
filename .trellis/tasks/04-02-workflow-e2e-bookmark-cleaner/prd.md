@@ -248,9 +248,9 @@
   * 先前出现过的占位工程文件已经删除，不能作为技术选型或实现参考。
 * Imported workflow state:
   * 安装命令：`/ops/softwares/python/bin/python3 '/ops/projects/personal/ai-coding-toolkit/docs/workflows/新项目开发工作流/commands/install-workflow.py' --project-root /ops/projects/personal/browser_bookmark_cleaner_rchiver`
-  * 已安装阶段：`feasibility`、`brainstorm`、`design`、`plan`、`test-first`、`self-review`、`check`、`delivery`
+  * 已安装阶段：`feasibility`、`brainstorm`、`design`、`plan`、`test-first`、`check`、`review-gate`、`delivery`
   * 已增强基线：`start` Phase Router、`record-session` metadata closure、`AGENTS.md` 自然语言路由表、`todo.txt`
-  * 主链映射：`feasibility -> brainstorm -> design -> plan -> test-first -> start -> self-review -> check -> finish-work -> delivery -> record-session`
+  * 主链映射：`feasibility -> brainstorm -> design -> plan -> test-first -> start -> check -> review-gate -> finish-work -> delivery -> record-session`
   * 当前安装后的 Codex 入口为自然语言 + skills，不提供项目级 `/trellis:*`
 * Brainstorm focus now:
   * 已完成新增语言约束补充，并回到 design 继续冻结技术选型边界

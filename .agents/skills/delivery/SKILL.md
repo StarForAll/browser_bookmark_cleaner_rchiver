@@ -191,12 +191,8 @@ docs/workflows/新项目开发工作流/learn/
 - 已完成任务先显式归档；未完成任务不要误归档；非当前任务不要借本轮收尾顺手自动提交
 - 不为了补齐新规则或整理台账而批量回写旧任务、旧会话记录或已归档目录
 - 归档完成后，`.trellis/tasks` 与 `.trellis/.current-task` 必须已 clean
+- 归档后 `.trellis/.current-task` 文件变空或不存在是正常结果，因为 `task.py archive` 会清掉当前任务指针。真正需要关注的阻塞条件是 `.trellis/tasks` 仍有未提交的变更，或 staged 区混入 metadata 作用域之外的改动
 - staged 区不得混入非目标变更；若存在 staged 污染，必须先中断处理
-
-说明：
-
-- 对最终 `record-session` 而言，`.trellis/.current-task` 为空是正常结果，因为归档会清掉当前任务指针
-- 真正的阻塞条件是 `.trellis/tasks` 仍然 dirty，或者 staged 区混入 metadata 作用域之外的改动
 
 ```bash
 python3 ./.trellis/scripts/task.py archive <current-task>

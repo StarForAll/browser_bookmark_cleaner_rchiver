@@ -280,13 +280,17 @@ This helper:
 
 ### Pre-end Checklist
 
-Use `/trellis:finish-work` command to run through:
-1. [OK] Frozen verification matrix executed or truthfully marked `deferred` / `not run`
-2. [OK] Manual browser verification completed where required
-3. [OK] Human commit already exists
-4. [OK] Current completed task archived and `.trellis/tasks` metadata clean
-5. [OK] Session recorded via `record-session-helper.py`
-6. [OK] Spec docs updated if needed
+Close-out 分两阶段执行，不可混为一谈：
+
+**阶段 A — commit 前**（由 `/trellis:finish-work` 执行的 pre-commit checklist）：
+1. Frozen verification matrix executed or truthfully marked `deferred` / `not run`
+2. Manual browser verification completed where required
+3. Spec docs updated if needed
+
+**阶段 B — commit 后**（close-out 阶段，按顺序执行）：
+1. Human commit already exists
+2. Current completed task archived and `.trellis/tasks` metadata clean
+3. Session recorded via `record-session-helper.py`
 
 ---
 
@@ -370,14 +374,16 @@ python3 ./.trellis/scripts/task.py list-archive    # List archived tasks
    - For cross-layer features, use `/trellis:check-cross-layer`
    - Develop only one task at a time
    - Run lint and tests frequently
-   - When `/trellis:check` enters multi-CLI review, the coordinating CLI must both write `reviewer-commands-round-<N>.md` and print the exact copy-paste reviewer commands in the same response
-   - Unless the human explicitly requests a different reviewer set, `/trellis:check` defaults to two reviewer commands: one for `claude` and one for `opencode`
+   - Use `/trellis:check` to run quality checks against project spec and output `check.md`
+   - Use `/trellis:review-gate` for multi-CLI review: the coordinating CLI must both write `reviewer-commands-round-<N>.md` and print the exact copy-paste reviewer commands in the same response
+   - Unless the human explicitly requests a different reviewer set, `/trellis:review-gate` defaults to one reviewer command; increase via `--reviewer-count N` up to 4
 
 3. **After development complete**:
-   - Use `/trellis:finish-work` for completion checklist
-   - After fix bug, use `/trellis:break-loop` for deep analysis
+   - Use `/trellis:finish-work` for pre-commit checklist
    - Human commits after testing passes
+   - Use `/trellis:delivery` for acceptance testing, deliverables, changelog, and knowledge capture
    - Use `record-session-helper.py` for final session close-out
+   - After fix bug, use `/trellis:break-loop` for deep analysis
 
 ### [X] DON'T - Should Not Do
 
@@ -422,7 +428,11 @@ python3 ./.trellis/scripts/task.py create "<title>" # Create task
 python3 ./.trellis/scripts/task.py archive <name>   # Archive completed task
 
 # Slash commands
+/trellis:check                # Post-implementation quality check
+/trellis:review-gate          # Multi-CLI supplementary review
 /trellis:finish-work          # Pre-commit checklist
+/trellis:delivery             # Acceptance testing, deliverables, changelog
+/trellis:record-session       # Final session close-out
 /trellis:break-loop           # Post-debug analysis
 /trellis:check-cross-layer    # Cross-layer verification
 ```

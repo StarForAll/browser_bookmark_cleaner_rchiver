@@ -5,6 +5,7 @@ Initialize your AI development session and begin working on tasks.
 ---
 
 
+
 ## Phase Router `[AI]`
 
 ### 核心逻辑
@@ -17,9 +18,9 @@ python3 ./.trellis/scripts/get_context.py
 
 ### 首次嵌入后的初始化门禁
 
-如果当前项目刚完成自定义工作流嵌入，先补需求发现基础资产，再进入常规阶段路由。
+如果当前项目刚完成自定义工作流嵌入，安装器应已先通过脚本补齐需求发现基础资产，再进入常规阶段路由。
 
-默认补充 `trellis-library` 的 `pack.requirements-discovery-foundation`。
+默认由安装脚本补充 `trellis-library` 的 `pack.requirements-discovery-foundation`。`/trellis:start` 在这里负责校验是否完整，不再要求用户手工复制资产或通过自然语言提示“补装”初始 spec。
 
 最低要求至少覆盖：
 
@@ -61,21 +62,16 @@ test -f .trellis/workflow-installed.json && (
 )
 ```
 
-若目标项目已接入 `trellis-library` 组装流程，可先执行：
+若命中该门禁，说明安装不完整。优先由维护者重新执行 workflow 安装脚本；若只需修复需求发现基线，也可直接执行对应脚本：
 
 ```bash
 python3 trellis-library/cli.py assemble \
   --target <project-root> \
   --pack pack.requirements-discovery-foundation \
-  --dry-run
+  --auto
 ```
 
-确认无误后再正式执行导入，然后继续后续阶段路由。
-
-若目标项目尚未接入 `trellis-library` CLI，则使用手动降级路径：
-
-- 从 `trellis-library` 源库手动复制上述最低要求中的 `spec/`、`template/`、`checklist/` 资产到目标项目 `.trellis/` 对应目录
-- 或由维护者先完成 `trellis-library` 接入，再重新执行本门禁
+修复完成后，再继续后续阶段路由。
 
 当前仓库未定义 `skip-library-gate` 一类的跳过配置；如无上述资产基线，不建议继续进入需求发现阶段。
 
@@ -85,7 +81,7 @@ python3 trellis-library/cli.py assemble \
 get_context.py 输出
     │
     ├── `.trellis/workflow-installed.json` 存在 + `.trellis/library-lock.yaml` 缺失或缺少最低资产集
-    │   └── 先补 `pack.requirements-discovery-foundation` 或手动补齐最低要求资产；补齐后重新执行本决策树
+    │   └── 先重新执行安装脚本，或用 `trellis-library/cli.py assemble --pack pack.requirements-discovery-foundation --auto` 补齐；补齐后重新执行本决策树
     │
     ├── 无当前任务 + 用户描述新项目
     │   └── 路由 → /trellis:feasibility（可行性评估）
@@ -98,6 +94,9 @@ get_context.py 输出
     │
     ├── 有任务 + 无 PRD 或 PRD 未冻结
     │   └── 路由 → /trellis:brainstorm（需求发现）
+    │
+    ├── PRD 已冻结，但缺少 `docs/requirements/customer-facing-prd.md` 或 `docs/requirements/developer-facing-prd.md`
+    │   └── 路由 → /trellis:brainstorm（先补项目级双需求文档，再进入下一阶段）
     │
     ├── PRD 已冻结 + 用户输入命中正式变更（新增/修改/删除）
     │   └── 进入 §2.5 需求变更管理（先做影响评估、成本/工期确认与审批；完成后回到受影响的最早阶段）
@@ -122,7 +121,7 @@ get_context.py 输出
     │
     ├── 测试就绪 + 任务执行矩阵全部为 `已完成`
     │   └── 优先进入收尾链路：
-    │       - 未完成自审/提交前检查 → /trellis:self-review 或 /trellis:finish-work
+    │       - 未完成质量检查/提交前检查 → /trellis:check → /trellis:review-gate → /trellis:finish-work
     │       - 已完成提交前检查 → /trellis:delivery
     │
     ├── 测试就绪 + 任务执行矩阵中存在 `可开始` 任务
@@ -134,11 +133,11 @@ get_context.py 输出
     ├── 测试就绪 + 代码未实现
     │   └── 路由 → 实施阶段（本命令 §Task Workflow；若已有任务执行矩阵，则按矩阵优先）
     │
-    ├── 代码实现完成 + 无 self-review.md
-    │   └── 路由 → /trellis:self-review（自审）
+    ├── 代码实现完成 + 无 check.md
+    │   └── 路由 → /trellis:check（质量检查）
     │
-    ├── 自审完成
-    │   └── 路由 → /trellis:check → /trellis:finish-work
+    ├── 质量检查完成
+    │   └── 路由 → /trellis:review-gate → /trellis:finish-work
     │
     └── 用户要求继续/跳到某阶段
         └── 直接跳转到指定命令
@@ -156,8 +155,8 @@ get_context.py 输出
 | "拆一下任务" "做个工作计划" "把需求分解成小任务" | `/trellis:plan` |
 | "先写测试" "用 TDD 方式" "测试先行" | `/trellis:test-first` |
 | "开始写代码" "实现这个功能" "动手做吧" | 实施阶段（本命令 Task Workflow） |
-| "自检一下" "对照 spec 看看" "有没有偏差" | `/trellis:self-review` |
-| "补充审查一下" "让其他 CLI 看一下" "多人审查" "check 一下" | `/trellis:check` |
+| "检查一下这次改动" "对照 spec 看看" "做一轮质量检查" | `/trellis:check` |
+| "补充审查一下" "让其他 CLI 看一下" "多人审查" "进入 review-gate" | `/trellis:review-gate` |
 | "准备交付" "跑一下验收" "整理交付物" "项目收尾" | `/trellis:delivery` |
 | "这个流程有坑" "这一步老容易漏" "这个命令说明有歧义" "先把这次踩坑记一下" "这个工作流后面得优化" | 优先触发经验反馈机制：开发中先在 `tmp/` 起草反馈草稿，用户确认后移入 `learn/`；若已进入收尾链路则路由到 `/trellis:delivery` 的 Step 9 |
 | "收尾" "提交前检查" "准备 commit" | `/trellis:finish-work` |
@@ -175,7 +174,7 @@ get_context.py 输出
 
 当用户输入同时匹配多个命令时，按以下优先级排序：
 
-1. **当前阶段上下文** — 正在 §3 design，用户说"检查" → `/trellis:check-cross-layer`（而非 `/trellis:check`）
+1. **当前阶段上下文** — 正在 §3 design，用户说"检查" → `/trellis:check-cross-layer`（而非 `/trellis:review-gate`）
 2. **精确关键词** — 用户说"TDD" → `/trellis:test-first`（精确匹配优先）
 3. **阶段顺序推断** — 刚完成 brainstorm → "下一步" → `/trellis:design`
 4. **模糊语义** — 根据上下文推断最合理的命令
@@ -210,7 +209,7 @@ get_context.py 输出
 若 AI 检测到隐式踩坑信号（非用户显式表达）：
 
 - 同一命令连续失败或重试（如 finish-work 前忘 archive 报错后重跑）
-- self-review 中出现“同类错误重复出现”或上下文污染迹象
+- check 中出现“同类错误重复出现”或上下文污染迹象
 - 用户表达挫败但未明确指向流程（“算了先这样”“为什么这么麻烦”）
 
 → AI 应主动问一句：“这次踩坑是否需要记录到 learn/？”
@@ -379,10 +378,10 @@ See `/trellis:brainstorm` for the full process. Summary:
 
 ```
 From Brainstorm (Complex Task):
-  PRD confirmed → Research → Configure Context → Activate → Implement → Check → Complete
+  PRD confirmed → Research → Configure Context → Activate → Implement → Check → Review Gate → Finish Work → Complete
 
 From Simple Task:
-  Confirm → Create Task → Write PRD → Research → Configure Context → Activate → Implement → Check → Complete
+  Confirm → Create Task → Write PRD → Research → Configure Context → Activate → Implement → Check → Review Gate → Finish Work → Complete
 ```
 
 **Key principle: Research happens AFTER requirements are clear (PRD exists).**
@@ -456,33 +455,13 @@ Must-have before proceeding:
 
 **Step 5: Research the Codebase** `[AI]`
 
-Based on the confirmed PRD, call Research Agent to find relevant specs and patterns:
+Based on the confirmed PRD, use the Research Agent (via natural language routing) to find relevant specs and patterns:
 
-```
-Task(
-  subagent_type: "research",
-  prompt: "Analyze the codebase for this task:
+Ask the Research Agent to analyze the codebase and return:
 
-  Task: <goal from PRD>
-  Type: <frontend/backend/fullstack>
-
-  Please find:
-  1. Relevant code-spec files in .trellis/spec/
-  2. Existing code patterns to follow (find 2-3 examples)
-  3. Files that will likely need modification
-
-  Output:
-  ## Relevant Code-Specs
-  - <path>: <why it's relevant>
-
-  ## Code Patterns Found
-  - <pattern>: <example file path>
-
-  ## Files to Modify
-  - <path>: <what change>",
-  model: "opus"
-)
-```
+1. Relevant code-spec files in `.trellis/spec/` and why they matter
+2. Existing code patterns to follow (2-3 examples with file paths)
+3. Files that will likely need modification and what change is expected
 
 **Step 6: Configure Context** `[AI]`
 
@@ -515,41 +494,27 @@ This sets `.current-task` so hooks can inject context.
 
 **Step 8: Implement** `[AI]`
 
-Call Implement Agent (code-spec context is auto-injected by hook):
-
-```
-Task(
-  subagent_type: "implement",
-  prompt: "Implement the task described in prd.md.
-
-  Follow all code-spec files that have been injected into your context.
-  Run lint and typecheck before finishing.",
-  model: "opus"
-)
-```
+Ask the Implement Agent (via natural language routing) to implement the task described in `prd.md`. Code-spec context is auto-injected by hook. Remind it to follow all injected code-spec files and run lint/typecheck before finishing.
 
 **Step 9: Check Quality** `[AI]`
 
-Call Check Agent (code-spec context is auto-injected by hook):
+Ask the Check Agent (via natural language routing) to review all code changes against the code-spec requirements. Code-spec context is auto-injected by hook. Remind it to fix any issues found and ensure lint/typecheck pass.
 
-```
-Task(
-  subagent_type: "check",
-  prompt: "Review all code changes against the code-spec requirements.
+**Step 10: Review Gate** `[AI]`
 
-  Fix any issues you find directly.
-  Ensure lint and typecheck pass.",
-  model: "opus"
-)
-```
+After quality check passes, enter `/trellis:review-gate` to determine whether multi-CLI supplementary review is needed. If required or accepted, generate reviewer instructions; if `skip`, proceed to Step 11.
 
-**Step 10: Complete** `[AI]`
+**Step 11: Finish Work** `[AI]`
 
-1. Verify lint and typecheck pass
-2. Report what was implemented
-3. Remind user to:
+Run `/trellis:finish-work` to execute the pre-commit checklist: verify frozen verification matrix, code-spec sync, cross-layer consistency, and manual testing items.
+
+**Step 12: Complete** `[AI]`
+
+1. Report what was implemented
+2. Remind user to:
    - Test the changes
    - Commit when ready
+   - Run `/trellis:delivery` for acceptance testing, deliverables, and changelog
    - Run `/trellis:record-session` to record this session
 
 ---
@@ -574,9 +539,12 @@ If yes, resume from the appropriate step (usually Step 7 or 8).
 |---------|-------------|
 | `/trellis:start` | Begin a session (this command) |
 | `/trellis:brainstorm` | Clarify vague requirements (called from start) |
+| `/trellis:check` | Post-implementation quality check |
+| `/trellis:review-gate` | Multi-CLI supplementary review |
+| `/trellis:finish-work` | Pre-commit checklist |
+| `/trellis:delivery` | Acceptance testing, deliverables, changelog |
+| `/trellis:record-session` | Final session close-out |
 | `/trellis:parallel` | Complex tasks needing isolated worktree |
-| `/trellis:finish-work` | Before committing changes |
-| `/trellis:record-session` | After completing a task |
 
 ### AI Scripts `[AI]`
 

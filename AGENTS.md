@@ -42,8 +42,8 @@ Keep this managed block so 'trellis update' can refresh the instructions.
 | 设计、架构、架构设计、选型、接口设计、技术方案、开始设计、画架构图、设计方案 | `/trellis:design` | 描述设计阶段意图，或显式触发 `design` skill | §3 设计阶段 |
 | 拆任务、排期、计划、任务分解、做计划、工作分解、里程碑、工作计划 | `/trellis:plan` | 描述任务拆解意图，或显式触发 `plan` skill | §4 任务拆解 |
 | 写测试、TDD、测试驱动、先写测试、测试用例、验收测试 | `/trellis:test-first` | 描述测试先行意图，或显式触发 `test-first` skill | §4.3 测试先行 |
-| 自审、自检、自查、审查一下、有没有偏差、对照 spec、对照规范、检查偏差 | `/trellis:self-review` | 描述自审意图，或显式触发 `self-review` skill | §5.1.x 自审 |
-| 代码审查、review、质量检查、检查代码质量、补充审查、多人审查、check 一下、让其他 CLI 看一下 | `/trellis:check` | 描述补充审查意图，或显式触发 `check` skill | §5.1.y 补充审查 |
+| 检查一下、质量检查、对照 spec、对照规范、自检、有没有偏差 | `/trellis:check` | 描述质量检查意图，或显式触发 `check` skill | §5.1.x 质量检查 |
+| 补充审查、多 CLI 审查、多人审查、让其他 CLI 看一下、review-gate、审查门禁 | `/trellis:review-gate` | 描述补充审查意图，或显式触发 `review-gate` skill | §5.1.y 补充审查 |
 | 提交前检查、准备提交、commit 前、收尾 | `/trellis:finish-work` | 描述提交前检查意图，或显式触发 `finish-work` skill | §6 提交检查 |
 | 交付、部署、上线、发布、准备交付、跑验收、整理交付物、项目收尾 | `/trellis:delivery` | 描述交付收尾意图，或显式触发 `delivery` skill | §6+§7 测试交付 |
 | 记录、保存进度、收工 | `/trellis:record-session` | 描述会话收尾意图，或显式触发 `record-session` skill | §7 会话记录 |
