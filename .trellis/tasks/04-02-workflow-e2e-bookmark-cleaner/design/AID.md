@@ -102,7 +102,7 @@ Secondary components:
 - Dragging onto the virtual-root drop zone: promote the node into the top layer or reorder existing top-level nodes inside `rootIds`
 - Delete/Backspace: delete selected node and subtree; folders with multiple direct child nodes require a shared delete-confirm dialog first
 - Main graph workspace always represents the current draft only
-- `Ctrl+Z` still remains later-task scope and is not exposed yet
+- `Ctrl+Z` reverts the latest draft-only content mutation and never reverts completed browser or WebDAV writes
 - The seven top-right action buttons must be understandable from button text alone
 - Sync current draft to browser bookmarks: always requires explicit warning/confirm step
 - Overwrite current draft from browser bookmarks: always requires explicit warning/confirm step

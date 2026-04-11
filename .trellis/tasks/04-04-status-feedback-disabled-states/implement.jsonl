@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Centralized session state must own latest action result, newest-three history, and external-action running flags."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Top action UI may display state and intent, but disabled-reason rules and side-effect eligibility must stay outside button components."}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "T08B must add real Vitest/Testing Library evidence for status history retention and disabled-state feedback."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "AID freezes the bottom-right status popup, newest-three history, and visible disabled-state behavior for system actions."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "ODD freezes failure policy, serial external actions, and the rule that completed failures enter bottom-right status history."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/status-history.md", "reason": "Status-history page defines latest-result popup, reopen anchor, and retained newest-three entries."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/system-states.md", "reason": "System-states page defines empty-data, cloud-unavailable, and undo-unavailable presentation rules for disabled actions and result history."}

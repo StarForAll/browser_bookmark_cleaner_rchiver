@@ -20,6 +20,7 @@ type AppProps = {
 
 const STATUS_POPOVER_OPEN_KEY = 'workspace-status-popover-open';
 const STATUS_LATEST_ENTRY_KEY = 'workspace-latest-status-entry';
+const STATUS_HISTORY_KEY = 'workspace-status-history';
 
 type ChromeStorageArea = {
   get: (keys: string[]) => Promise<Record<string, unknown>>;
@@ -38,6 +39,20 @@ type PersistedStatusEntry = {
   time: string;
   result: string;
   detail: string;
+};
+
+type SystemActionItem =
+  | (typeof appShellCopy.primaryActionItems)[number]
+  | (typeof appShellCopy.secondaryActionItems)[number];
+
+type DisabledActionSummary = {
+  id: string;
+  labels: string[];
+  reason: string;
+};
+
+type SystemActionWithState = SystemActionItem & {
+  disabledReason: string;
 };
 
 type CanvasOverlayPosition = {
@@ -172,18 +187,27 @@ function isPersistedStatusEntry(value: unknown): value is PersistedStatusEntry {
   );
 }
 
-async function readLatestStatusEntry(): Promise<PersistedStatusEntry | null> {
+function isPersistedStatusHistory(value: unknown): value is PersistedStatusEntry[] {
+  return Array.isArray(value) && value.every((entry) => isPersistedStatusEntry(entry));
+}
+
+async function readStatusHistory(): Promise<PersistedStatusEntry[]> {
   const storageArea = resolveStorageArea();
   if (!storageArea?.get) {
-    return null;
+    return [];
   }
 
   try {
-    const persisted = await storageArea.get([STATUS_LATEST_ENTRY_KEY]);
-    const value = persisted[STATUS_LATEST_ENTRY_KEY];
-    return isPersistedStatusEntry(value) ? value : null;
+    const persisted = await storageArea.get([STATUS_HISTORY_KEY, STATUS_LATEST_ENTRY_KEY]);
+    const historyValue = persisted[STATUS_HISTORY_KEY];
+    if (isPersistedStatusHistory(historyValue)) {
+      return historyValue.slice(0, 3);
+    }
+
+    const latestEntry = persisted[STATUS_LATEST_ENTRY_KEY];
+    return isPersistedStatusEntry(latestEntry) ? [latestEntry] : [];
   } catch {
-    return null;
+    return [];
   }
 }
 
@@ -200,14 +224,17 @@ async function writeStatusPopoverOpen(nextValue: boolean): Promise<void> {
   }
 }
 
-async function writeLatestStatusEntry(entry: PersistedStatusEntry): Promise<void> {
+async function writeStatusHistory(entries: PersistedStatusEntry[]): Promise<void> {
   const storageArea = resolveStorageArea();
   if (!storageArea?.set) {
     return;
   }
 
   try {
-    await storageArea.set({ [STATUS_LATEST_ENTRY_KEY]: entry });
+    await storageArea.set({
+      [STATUS_HISTORY_KEY]: entries,
+      [STATUS_LATEST_ENTRY_KEY]: entries[0] ?? null,
+    });
   } catch {
     // Keep UI responsive even when local persistence is unavailable.
   }
@@ -222,13 +249,87 @@ function hasSameStatusMeaning(left: PersistedStatusEntry, right: PersistedStatus
   );
 }
 
+function areStatusHistoriesEqual(left: PersistedStatusEntry[], right: PersistedStatusEntry[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((entry, index) => {
+      const rightEntry = right[index];
+      return rightEntry !== undefined && hasSameStatusMeaning(entry, rightEntry) && entry.time === rightEntry.time;
+    })
+  );
+}
+
+function appendStatusHistory(current: PersistedStatusEntry[], nextEntry: PersistedStatusEntry): PersistedStatusEntry[] {
+  if (current[0] && hasSameStatusMeaning(current[0], nextEntry)) {
+    return current.slice(0, 3);
+  }
+
+  return [nextEntry, ...current.filter((entry) => !hasSameStatusMeaning(entry, nextEntry))].slice(0, 3);
+}
+
+function resolvePrimaryActionDisabledReason(
+  actionKey: (typeof appShellCopy.primaryActionItems)[number]['key'],
+  input: { hasEditableDraft: boolean },
+): string {
+  switch (actionKey) {
+    case 'overwrite-draft-from-browser':
+      return appShellCopy.overwriteDraftUnavailableReason;
+    case 'sync-draft-to-browser':
+      return input.hasEditableDraft ? appShellCopy.syncUnavailableReason : appShellCopy.syncWithoutDraftReason;
+    case 'upload-draft-to-webdav':
+      return input.hasEditableDraft ? appShellCopy.webdavUnavailableReason : appShellCopy.syncWithoutDraftReason;
+    case 'upload-browser-to-webdav':
+    case 'restore-webdav-draft':
+    case 'restore-webdav-browser':
+      return appShellCopy.webdavUnavailableReason;
+    case 'undo-overwrite':
+      return appShellCopy.undoUnavailableReason;
+    default:
+      return appShellCopy.webdavUnavailableReason;
+  }
+}
+
+function resolveSecondaryActionDisabledReason(
+  actionKey: (typeof appShellCopy.secondaryActionItems)[number]['key'],
+  input: { hasEditableDraft: boolean },
+): string {
+  switch (actionKey) {
+    case 'relayout':
+      return input.hasEditableDraft ? appShellCopy.relayoutUnavailableReason : appShellCopy.relayoutWithoutDraftReason;
+    case 'webdav-settings':
+      return appShellCopy.webdavSettingsUnavailableReason;
+    default:
+      return appShellCopy.webdavSettingsUnavailableReason;
+  }
+}
+
+function buildDisabledActionSummaries(actions: SystemActionWithState[]): DisabledActionSummary[] {
+  const summaryByReason = new Map<string, DisabledActionSummary>();
+
+  actions.forEach((action) => {
+    const existing = summaryByReason.get(action.disabledReason);
+    if (existing) {
+      existing.labels.push(action.label);
+      return;
+    }
+
+    summaryByReason.set(action.disabledReason, {
+      id: 'disabled-action-summary-' + (summaryByReason.size + 1),
+      labels: [action.label],
+      reason: action.disabledReason,
+    });
+  });
+
+  return Array.from(summaryByReason.values());
+}
+
 export function App({
   enableStartupBootstrap = false,
   bootstrapWorkspace = defaultBootstrapWorkspace,
 }: AppProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [statusPopoverReady, setStatusPopoverReady] = useState(resolveStorageArea() === null);
-  const [persistedStatusEntry, setPersistedStatusEntry] = useState<PersistedStatusEntry | null>(null);
+  const [persistedStatusHistory, setPersistedStatusHistory] = useState<PersistedStatusEntry[]>([]);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicateOnly, setDuplicateOnly] = useState(false);
@@ -242,7 +343,6 @@ export function App({
   const hintOverlayRef = useRef<HTMLElement | null>(null);
   const statusOverlayRef = useRef<HTMLElement | null>(null);
   const pageBackToTopFrameRef = useRef(0);
-  const undoActionLabel = appShellCopy.actionLabels[appShellCopy.actionLabels.length - 1];
   const startupStatusCopy = getStartupStatusCopy(
     startupResult
       ? {
@@ -273,6 +373,7 @@ export function App({
       )
     : null;
   const editableDraftSnapshot = startupResult?.draftSnapshot ?? null;
+  const hasEditableDraft = editableDraftSnapshot !== null;
   const normalizedSearchQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
   const normalSearchResults = useMemo(() => {
     if (!editableDraftSnapshot) {
@@ -284,6 +385,24 @@ export function App({
       duplicateOnly,
     });
   }, [duplicateOnly, editableDraftSnapshot, searchQuery]);
+  const primarySystemActions = useMemo<SystemActionWithState[]>(() => {
+    return appShellCopy.primaryActionItems.map((action) => ({
+      ...action,
+      disabledReason: resolvePrimaryActionDisabledReason(action.key, { hasEditableDraft }),
+    }));
+  }, [hasEditableDraft]);
+  const secondarySystemActions = useMemo<SystemActionWithState[]>(() => {
+    return appShellCopy.secondaryActionItems.map((action) => ({
+      ...action,
+      disabledReason: resolveSecondaryActionDisabledReason(action.key, { hasEditableDraft }),
+    }));
+  }, [hasEditableDraft]);
+  const disabledActionSummaries = useMemo(() => {
+    return buildDisabledActionSummaries([...primarySystemActions, ...secondarySystemActions]);
+  }, [primarySystemActions, secondarySystemActions]);
+  const disabledSummaryIdByReason = useMemo(() => {
+    return new Map(disabledActionSummaries.map((summary) => [summary.reason, summary.id]));
+  }, [disabledActionSummaries]);
   const startupStatusEntry: PersistedStatusEntry | null = startupResult
     ? {
         statusKey: startupResult.statusKey,
@@ -293,16 +412,17 @@ export function App({
         detail: startupStatusCopy.detail,
       }
     : null;
-  const displayStatusEntry: PersistedStatusEntry =
-    startupStatusEntry && persistedStatusEntry && hasSameStatusMeaning(persistedStatusEntry, startupStatusEntry)
-      ? persistedStatusEntry
-      : startupStatusEntry ?? persistedStatusEntry ?? {
-          statusKey: 'pending',
-          action: startupStatusCopy.action,
-          time: startupStatusCopy.time,
-          result: startupStatusCopy.result,
-          detail: startupStatusCopy.detail,
-        };
+  const displayStatusHistory = useMemo(() => {
+    return startupStatusEntry ? appendStatusHistory(persistedStatusHistory, startupStatusEntry) : persistedStatusHistory;
+  }, [persistedStatusHistory, startupStatusEntry]);
+  const displayStatusEntry: PersistedStatusEntry = displayStatusHistory[0] ?? {
+    statusKey: 'pending',
+    action: startupStatusCopy.action,
+    time: startupStatusCopy.time,
+    result: startupStatusCopy.result,
+    detail: startupStatusCopy.detail,
+  };
+  const retainedStatusHistory = displayStatusHistory.length > 0 ? displayStatusHistory : [displayStatusEntry];
   const hintOverlayStyle = useMemo(() => {
     if (!hintOverlayPosition) {
       return {
@@ -390,11 +510,14 @@ export function App({
       <div className="status-retained">
         <strong>{appShellCopy.statusRetainedTitle}</strong>
         <ul className="status-history-list">
-          <li key={`${displayStatusEntry.action}-${displayStatusEntry.time}`}>
-            <span>{displayStatusEntry.action}</span>
-            <span>{displayStatusEntry.time}</span>
-            <span>{displayStatusEntry.result}</span>
-          </li>
+          {retainedStatusHistory.map((entry) => (
+            <li key={`${entry.action}-${entry.time}-${entry.result}`}>
+              <span className="status-history-action">{entry.action}</span>
+              <span className="status-history-time">{entry.time}</span>
+              <span className="status-history-result">{entry.result}</span>
+              <p className="status-history-detail">{entry.detail}</p>
+            </li>
+          ))}
         </ul>
       </div>
     </aside>
@@ -531,7 +654,7 @@ export function App({
   useEffect(() => {
     let isMounted = true;
 
-    void Promise.all([readStatusPopoverOpen(), readLatestStatusEntry()]).then(([persistedOpenValue, latestEntry]) => {
+    void Promise.all([readStatusPopoverOpen(), readStatusHistory()]).then(([persistedOpenValue, history]) => {
       if (!isMounted) {
         return;
       }
@@ -539,9 +662,7 @@ export function App({
       if (persistedOpenValue !== null) {
         setIsStatusOpen(persistedOpenValue);
       }
-      if (latestEntry) {
-        setPersistedStatusEntry(latestEntry);
-      }
+      setPersistedStatusHistory(history);
       setStatusPopoverReady(true);
     });
 
@@ -555,13 +676,14 @@ export function App({
       return;
     }
 
-    if (persistedStatusEntry && hasSameStatusMeaning(persistedStatusEntry, startupStatusEntry)) {
+    const nextStatusHistory = appendStatusHistory(persistedStatusHistory, startupStatusEntry);
+    if (areStatusHistoriesEqual(persistedStatusHistory, nextStatusHistory)) {
       return;
     }
 
-    setPersistedStatusEntry(startupStatusEntry);
-    void writeLatestStatusEntry(startupStatusEntry);
-  }, [persistedStatusEntry, startupStatusEntry]);
+    setPersistedStatusHistory(nextStatusHistory);
+    void writeStatusHistory(nextStatusHistory);
+  }, [persistedStatusHistory, startupStatusEntry]);
 
   useEffect(() => {
     if (!enableStartupBootstrap) {
@@ -694,34 +816,41 @@ export function App({
               <p>{appShellCopy.topShellSummary}</p>
             </div>
             <div className="action-grid">
-              {appShellCopy.actionLabels.map((label) => (
-                label === undoActionLabel ? (
-                  <div className="action-with-note" key={label}>
-                    <button
-                      aria-describedby="undo-unavailable-note"
-                      disabled
-                      title={appShellCopy.undoUnavailableReason}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                    <span className="action-note" id="undo-unavailable-note" role="note">
-                      {appShellCopy.undoUnavailableReason}
-                    </span>
-                  </div>
-                ) : (
-                  <button key={label} disabled type="button">
-                    {label}
-                  </button>
-                )
+              {primarySystemActions.map((action) => (
+                <button
+                  aria-describedby={disabledSummaryIdByReason.get(action.disabledReason)}
+                  disabled
+                  key={action.key}
+                  title={action.disabledReason}
+                  type="button"
+                >
+                  {action.label}
+                </button>
               ))}
             </div>
             <div className="secondary-actions">
-              {appShellCopy.secondaryLabels.map((label) => (
-                <button key={label} disabled type="button">
-                  {label}
+              {secondarySystemActions.map((action) => (
+                <button
+                  aria-describedby={disabledSummaryIdByReason.get(action.disabledReason)}
+                  disabled
+                  key={action.key}
+                  title={action.disabledReason}
+                  type="button"
+                >
+                  {action.label}
                 </button>
               ))}
+            </div>
+            <div className="action-feedback" role="note">
+              <strong>{appShellCopy.disabledSummaryTitle}</strong>
+              <ul>
+                {disabledActionSummaries.map((summary) => (
+                  <li id={summary.id} key={summary.id}>
+                    <span>{summary.labels.join(' / ')}</span>
+                    <span>{summary.reason}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>

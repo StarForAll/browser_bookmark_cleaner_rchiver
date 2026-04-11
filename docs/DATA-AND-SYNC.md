@@ -10,8 +10,9 @@
 
 - 当前仓库已经定义真实的 `DraftGraphNode`、`DraftGraphSnapshot`、`DraftUndoEntry`、`DraftCheckpoint` 与 `PersistedDraftSession` 运行时契约
 - 当前仓库已经实现浏览器书签读取、校验、导入草稿，以及启动阶段的“本地草稿优先恢复 -> 浏览器导入 -> 首次导入本地持久化”链路
-- 当前仓库已经实现 `chrome.storage.local` 的草稿会话读写适配器
-- 当前仓库尚未实现浏览器写回、WebDAV 上传 / 恢复、真实 undo 执行、搜索 / 重复聚焦，以及本地备份生成 / 撤销覆盖流
+- 当前仓库已经实现 `chrome.storage.local` 的草稿会话读写适配器、draft-only undo 执行链路，以及搜索 / 重复聚焦衍生状态
+- 当前仓库已经实现状态历史持久化与统一禁用态说明，但相关真实外部动作仍未接入
+- 当前仓库尚未实现浏览器写回、WebDAV 上传 / 恢复，以及本地备份生成 / 撤销覆盖流
 
 ## 3. 数据真相
 

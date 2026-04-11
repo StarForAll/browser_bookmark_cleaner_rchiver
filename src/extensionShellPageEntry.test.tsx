@@ -133,4 +133,21 @@ describe('T03 extension shell and page entry', () => {
     );
     expect(document.body.querySelector('.status-popover')).toBeNull();
   });
+  test('surfaces concise disabled-state explanations for the current system actions', () => {
+    render(<App />);
+
+    const topShell = screen.getByRole('region', { name: '顶部动作区' });
+
+    expect(within(topShell).getByText('当前不可用说明')).toBeInTheDocument();
+    expect(within(topShell).getByText('当前还没有可同步的草稿内容。')).toBeInTheDocument();
+    expect(within(topShell).getByText('请先完成 WebDAV 设置与可用性检测。')).toBeInTheDocument();
+    expect(
+      within(topShell).getByText('当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '同步当前草稿到浏览器书签' })).toHaveAttribute(
+      'title',
+      '当前还没有可同步的草稿内容。',
+    );
+  });
+
 });

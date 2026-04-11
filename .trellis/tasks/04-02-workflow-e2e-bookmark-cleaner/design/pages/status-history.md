@@ -8,7 +8,8 @@ Current implementation snapshot:
 
 - popup open / close state is persisted locally
 - the latest startup result is persisted locally
-- retained multi-entry history is still future task scope; the current implementation shows the latest persisted entry only
+- retained newest-three history is persisted locally and rendered inside the popup
+- current real history producers are still startup/bootstrap completion results; later sync, restore, and upload actions remain future-task scope
 
 ## Layout
 

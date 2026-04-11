@@ -1,0 +1,4 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check gate must confirm real automated evidence for status history retention and disabled-state feedback."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/status-history.md", "reason": "Check newest-three history retention, close/reopen anchor behavior, and failure detail visibility against frozen page rules."}
