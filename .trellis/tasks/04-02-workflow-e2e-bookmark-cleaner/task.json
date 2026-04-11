@@ -46,7 +46,6 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "04-04-browser-overwrite-sync-confirmation",
     "04-04-local-backup-undo-overwrite",
     "04-04-webdav-config-permissions",
     "04-04-webdav-upload-versioning",
