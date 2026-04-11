@@ -15,7 +15,6 @@ Define the shared confirmation surface reused by all overwrite-risk actions.
 
 1. Header
    - action-specific title
-   - close action
 
 2. Source and target summary
    - source object

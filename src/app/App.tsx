@@ -2,7 +2,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEve
 import { createPortal } from 'react-dom';
 import {
   appShellCopy,
+  formatStatusTimestamp,
+  getOverwriteConfirmationCopy,
   getStartupStatusCopy,
+  type OverwriteConfirmationAction,
 } from '@/shared/copy/appShell';
 import {
   bootstrapWorkspace as defaultBootstrapWorkspace,
@@ -34,16 +37,20 @@ type ChromeRuntime = {
 };
 
 type PersistedStatusEntry = {
-  statusKey: WorkspaceBootstrapResult['statusKey'] | 'pending';
+  statusKey:
+    | WorkspaceBootstrapResult['statusKey']
+    | 'pending'
+    | 'overwrite-draft-blocked'
+    | 'sync-draft-blocked';
   action: string;
   time: string;
   result: string;
   detail: string;
 };
 
-type SystemActionItem =
-  | (typeof appShellCopy.primaryActionItems)[number]
-  | (typeof appShellCopy.secondaryActionItems)[number];
+type PrimarySystemActionItem = (typeof appShellCopy.primaryActionItems)[number];
+
+type SecondarySystemActionItem = (typeof appShellCopy.secondaryActionItems)[number];
 
 type DisabledActionSummary = {
   id: string;
@@ -51,8 +58,14 @@ type DisabledActionSummary = {
   reason: string;
 };
 
-type SystemActionWithState = SystemActionItem & {
-  disabledReason: string;
+type PrimarySystemActionWithState = PrimarySystemActionItem & {
+  disabledReason: string | null;
+  isDisabled: boolean;
+};
+
+type SecondarySystemActionWithState = SecondarySystemActionItem & {
+  disabledReason: string | null;
+  isDisabled: boolean;
 };
 
 type CanvasOverlayPosition = {
@@ -267,15 +280,21 @@ function appendStatusHistory(current: PersistedStatusEntry[], nextEntry: Persist
   return [nextEntry, ...current.filter((entry) => !hasSameStatusMeaning(entry, nextEntry))].slice(0, 3);
 }
 
+function isOverwriteConfirmationAction(
+  actionKey: PrimarySystemActionItem['key'],
+): actionKey is OverwriteConfirmationAction {
+  return actionKey === 'overwrite-draft-from-browser' || actionKey === 'sync-draft-to-browser';
+}
+
 function resolvePrimaryActionDisabledReason(
-  actionKey: (typeof appShellCopy.primaryActionItems)[number]['key'],
+  actionKey: PrimarySystemActionItem['key'],
   input: { hasEditableDraft: boolean },
-): string {
+): string | null {
   switch (actionKey) {
     case 'overwrite-draft-from-browser':
-      return appShellCopy.overwriteDraftUnavailableReason;
+      return null;
     case 'sync-draft-to-browser':
-      return input.hasEditableDraft ? appShellCopy.syncUnavailableReason : appShellCopy.syncWithoutDraftReason;
+      return input.hasEditableDraft ? null : appShellCopy.syncWithoutDraftReason;
     case 'upload-draft-to-webdav':
       return input.hasEditableDraft ? appShellCopy.webdavUnavailableReason : appShellCopy.syncWithoutDraftReason;
     case 'upload-browser-to-webdav':
@@ -290,9 +309,9 @@ function resolvePrimaryActionDisabledReason(
 }
 
 function resolveSecondaryActionDisabledReason(
-  actionKey: (typeof appShellCopy.secondaryActionItems)[number]['key'],
+  actionKey: SecondarySystemActionItem['key'],
   input: { hasEditableDraft: boolean },
-): string {
+): string | null {
   switch (actionKey) {
     case 'relayout':
       return input.hasEditableDraft ? appShellCopy.relayoutUnavailableReason : appShellCopy.relayoutWithoutDraftReason;
@@ -303,10 +322,16 @@ function resolveSecondaryActionDisabledReason(
   }
 }
 
-function buildDisabledActionSummaries(actions: SystemActionWithState[]): DisabledActionSummary[] {
+function buildDisabledActionSummaries(
+  actions: Array<PrimarySystemActionWithState | SecondarySystemActionWithState>,
+): DisabledActionSummary[] {
   const summaryByReason = new Map<string, DisabledActionSummary>();
 
   actions.forEach((action) => {
+    if (!action.disabledReason) {
+      return;
+    }
+
     const existing = summaryByReason.get(action.disabledReason);
     if (existing) {
       existing.labels.push(action.label);
@@ -330,7 +355,9 @@ export function App({
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [statusPopoverReady, setStatusPopoverReady] = useState(resolveStorageArea() === null);
   const [persistedStatusHistory, setPersistedStatusHistory] = useState<PersistedStatusEntry[]>([]);
+  const [latestActionStatusEntry, setLatestActionStatusEntry] = useState<PersistedStatusEntry | null>(null);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
+  const [overwriteConfirmationAction, setOverwriteConfirmationAction] = useState<OverwriteConfirmationAction | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicateOnly, setDuplicateOnly] = useState(false);
   const [isSearchNavigationActive, setIsSearchNavigationActive] = useState(false);
@@ -385,17 +412,25 @@ export function App({
       duplicateOnly,
     });
   }, [duplicateOnly, editableDraftSnapshot, searchQuery]);
-  const primarySystemActions = useMemo<SystemActionWithState[]>(() => {
-    return appShellCopy.primaryActionItems.map((action) => ({
-      ...action,
-      disabledReason: resolvePrimaryActionDisabledReason(action.key, { hasEditableDraft }),
-    }));
+  const primarySystemActions = useMemo<PrimarySystemActionWithState[]>(() => {
+    return appShellCopy.primaryActionItems.map((action) => {
+      const disabledReason = resolvePrimaryActionDisabledReason(action.key, { hasEditableDraft });
+      return {
+        ...action,
+        disabledReason,
+        isDisabled: disabledReason !== null,
+      };
+    });
   }, [hasEditableDraft]);
-  const secondarySystemActions = useMemo<SystemActionWithState[]>(() => {
-    return appShellCopy.secondaryActionItems.map((action) => ({
-      ...action,
-      disabledReason: resolveSecondaryActionDisabledReason(action.key, { hasEditableDraft }),
-    }));
+  const secondarySystemActions = useMemo<SecondarySystemActionWithState[]>(() => {
+    return appShellCopy.secondaryActionItems.map((action) => {
+      const disabledReason = resolveSecondaryActionDisabledReason(action.key, { hasEditableDraft });
+      return {
+        ...action,
+        disabledReason,
+        isDisabled: disabledReason !== null,
+      };
+    });
   }, [hasEditableDraft]);
   const disabledActionSummaries = useMemo(() => {
     return buildDisabledActionSummaries([...primarySystemActions, ...secondarySystemActions]);
@@ -412,17 +447,19 @@ export function App({
         detail: startupStatusCopy.detail,
       }
     : null;
+  const latestStatusEntry = latestActionStatusEntry ?? startupStatusEntry;
   const displayStatusHistory = useMemo(() => {
-    return startupStatusEntry ? appendStatusHistory(persistedStatusHistory, startupStatusEntry) : persistedStatusHistory;
-  }, [persistedStatusHistory, startupStatusEntry]);
-  const displayStatusEntry: PersistedStatusEntry = displayStatusHistory[0] ?? {
+    return latestStatusEntry ? appendStatusHistory(persistedStatusHistory, latestStatusEntry) : persistedStatusHistory;
+  }, [latestStatusEntry, persistedStatusHistory]);
+  const fallbackStatusEntry: PersistedStatusEntry = {
     statusKey: 'pending',
     action: startupStatusCopy.action,
     time: startupStatusCopy.time,
     result: startupStatusCopy.result,
     detail: startupStatusCopy.detail,
   };
-  const retainedStatusHistory = displayStatusHistory.length > 0 ? displayStatusHistory : [displayStatusEntry];
+  const displayStatusEntries = displayStatusHistory.length > 0 ? displayStatusHistory : [fallbackStatusEntry];
+  const latestDisplayedStatusEntry = displayStatusEntries[0] ?? fallbackStatusEntry;
   const hintOverlayStyle = useMemo(() => {
     if (!hintOverlayPosition) {
       return {
@@ -447,6 +484,9 @@ export function App({
       top: `${statusOverlayPosition.top}px`,
     } as const;
   }, [statusOverlayPosition]);
+  const overwriteConfirmationCopy = overwriteConfirmationAction
+    ? getOverwriteConfirmationCopy(overwriteConfirmationAction)
+    : null;
   const hintOverlay = (
     <aside
       aria-label={appShellCopy.hintLabel}
@@ -493,33 +533,24 @@ export function App({
           {appShellCopy.statusCloseLabel}
         </button>
       </div>
-      <div className="status-entry">
-        <strong>{displayStatusEntry.action}</strong>
-        <dl className="status-meta">
-          <div>
-            <dt>操作时间</dt>
-            <dd>{displayStatusEntry.time}</dd>
-          </div>
-          <div>
-            <dt>操作结果</dt>
-            <dd>{displayStatusEntry.result}</dd>
-          </div>
-        </dl>
-        <p>{displayStatusEntry.detail}</p>
-      </div>
-      <div className="status-retained">
-        <strong>{appShellCopy.statusRetainedTitle}</strong>
-        <ul className="status-history-list">
-          {retainedStatusHistory.map((entry) => (
-            <li key={`${entry.action}-${entry.time}-${entry.result}`}>
-              <span className="status-history-action">{entry.action}</span>
-              <span className="status-history-time">{entry.time}</span>
-              <span className="status-history-result">{entry.result}</span>
-              <p className="status-history-detail">{entry.detail}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <ul className="status-history-list">
+        {displayStatusEntries.map((entry) => (
+          <li key={`${entry.action}-${entry.time}-${entry.result}`}>
+            <strong>{entry.action}</strong>
+            <dl className="status-meta">
+              <div>
+                <dt>操作时间</dt>
+                <dd>{entry.time}</dd>
+              </div>
+              <div>
+                <dt>操作结果</dt>
+                <dd>{entry.result}</dd>
+              </div>
+            </dl>
+            <p className="status-history-detail">{entry.detail}</p>
+          </li>
+        ))}
+      </ul>
     </aside>
   ) : !isStatusOpen && statusPopoverReady ? (
     <button
@@ -536,8 +567,65 @@ export function App({
       type="button"
     >
       <strong>{appShellCopy.statusAnchorLabel}</strong>
-      <span>{`${displayStatusEntry.action} · ${displayStatusEntry.result}`}</span>
+      <span>{`${latestDisplayedStatusEntry.action} · ${latestDisplayedStatusEntry.result}`}</span>
     </button>
+  ) : null;
+  const overwriteConfirmationDialog = overwriteConfirmationCopy ? (
+    <div
+      aria-modal="true"
+      className="draft-dialog-backdrop"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          setOverwriteConfirmationAction(null);
+        }
+      }}
+      role="dialog"
+    >
+      <div className="draft-dialog-card overwrite-confirmation-card">
+        <h3>{overwriteConfirmationCopy.title}</h3>
+        <p>{overwriteConfirmationCopy.sourceSummary}</p>
+        <p>{overwriteConfirmationCopy.targetSummary}</p>
+        <p className="draft-dialog-warning">{overwriteConfirmationCopy.overwriteStatement}</p>
+        <p>{overwriteConfirmationCopy.replaceSummary}</p>
+        <p>{overwriteConfirmationCopy.preserveSummary}</p>
+        <p className="draft-dialog-note">{overwriteConfirmationCopy.backupReminder}</p>
+        {overwriteConfirmationCopy.caution ? (
+          <p className="draft-dialog-note overwrite-confirmation-caution">
+            {overwriteConfirmationCopy.caution}
+          </p>
+        ) : null}
+        <div className="draft-dialog-actions">
+          <button
+            className="draft-dialog-button"
+            onClick={() => {
+              setOverwriteConfirmationAction(null);
+            }}
+            type="button"
+          >
+            {appShellCopy.overwriteConfirmationCancelLabel}
+          </button>
+          <button
+            autoFocus
+            className="draft-dialog-button is-primary"
+            onClick={() => {
+              setLatestActionStatusEntry({
+                statusKey: overwriteConfirmationCopy.blockedStatusKey,
+                action: overwriteConfirmationCopy.blockedStatusAction,
+                time: formatStatusTimestamp(new Date().toISOString()),
+                result: overwriteConfirmationCopy.blockedStatusResult,
+                detail: overwriteConfirmationCopy.blockedStatusDetail,
+              });
+              setOverwriteConfirmationAction(null);
+              setIsStatusOpen(true);
+              void writeStatusPopoverOpen(true);
+            }}
+            type="button"
+          >
+            {overwriteConfirmationCopy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   ) : null;
   const pageBackToTopButton = showPageBackToTopButton ? (
     <button
@@ -672,18 +760,18 @@ export function App({
   }, []);
 
   useEffect(() => {
-    if (!startupStatusEntry) {
+    if (!latestStatusEntry) {
       return;
     }
 
-    const nextStatusHistory = appendStatusHistory(persistedStatusHistory, startupStatusEntry);
+    const nextStatusHistory = appendStatusHistory(persistedStatusHistory, latestStatusEntry);
     if (areStatusHistoriesEqual(persistedStatusHistory, nextStatusHistory)) {
       return;
     }
 
     setPersistedStatusHistory(nextStatusHistory);
     void writeStatusHistory(nextStatusHistory);
-  }, [persistedStatusHistory, startupStatusEntry]);
+  }, [latestStatusEntry, persistedStatusHistory]);
 
   useEffect(() => {
     if (!enableStartupBootstrap) {
@@ -818,10 +906,15 @@ export function App({
             <div className="action-grid">
               {primarySystemActions.map((action) => (
                 <button
-                  aria-describedby={disabledSummaryIdByReason.get(action.disabledReason)}
-                  disabled
+                  aria-describedby={action.disabledReason ? disabledSummaryIdByReason.get(action.disabledReason) : undefined}
+                  disabled={action.isDisabled}
                   key={action.key}
-                  title={action.disabledReason}
+                  onClick={() => {
+                    if (!action.isDisabled && isOverwriteConfirmationAction(action.key)) {
+                      setOverwriteConfirmationAction(action.key);
+                    }
+                  }}
+                  title={action.disabledReason ?? undefined}
                   type="button"
                 >
                   {action.label}
@@ -831,10 +924,10 @@ export function App({
             <div className="secondary-actions">
               {secondarySystemActions.map((action) => (
                 <button
-                  aria-describedby={disabledSummaryIdByReason.get(action.disabledReason)}
-                  disabled
+                  aria-describedby={action.disabledReason ? disabledSummaryIdByReason.get(action.disabledReason) : undefined}
+                  disabled={action.isDisabled}
                   key={action.key}
-                  title={action.disabledReason}
+                  title={action.disabledReason ?? undefined}
                   type="button"
                 >
                   {action.label}
@@ -948,6 +1041,9 @@ export function App({
         </section>
       </main>
       {pageBackToTopButton}
+      {overwriteConfirmationDialog && typeof document !== 'undefined'
+        ? createPortal(overwriteConfirmationDialog, document.body)
+        : overwriteConfirmationDialog}
       {typeof document !== 'undefined' ? createPortal(hintOverlay, document.body) : hintOverlay}
       {typeof document !== 'undefined' ? createPortal(statusOverlay, document.body) : statusOverlay}
     </div>

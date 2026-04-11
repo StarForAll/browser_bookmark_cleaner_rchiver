@@ -1,0 +1,9 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check T09A against the frozen frontend verification matrix and overwrite-risk confirmation rules."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Verify overwrite and sync flows preserve centralized session state and external-action serialization rules."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "Review T09A against the frozen interaction design, shared confirmation modal, and button-state rules."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Check serial execution, confirmation-before-run, and status-history expectations for T09A flows."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/draft-browser-sync.md", "reason": "Review T09A sync behavior against the frozen browser-write, rollback, and status-feedback contract."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/browser-draft-overwrite.md", "reason": "Review T09A overwrite behavior against backup-first, no-browser-mutation, and reset-state rules."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/overwrite-confirmation.md", "reason": "Check the shared confirmation dialog structure, button copy, and cancel/confirm execution rules for T09A."}

@@ -64,7 +64,7 @@ describe('T03 extension shell and page entry', () => {
   test('exposes the seven explicit top action buttons with Chinese-first copy', () => {
     render(<App />);
 
-    expect(screen.getByRole('button', { name: '从浏览器覆盖当前草稿' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '从浏览器覆盖当前草稿' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '同步当前草稿到浏览器书签' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '上传当前草稿到 WebDAV' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '上传当前浏览器书签到 WebDAV' })).toBeDisabled();
@@ -86,10 +86,10 @@ describe('T03 extension shell and page entry', () => {
     const statusPopover = document.body.querySelector('.status-popover') as HTMLElement | null;
 
     expect(statusPopover).not.toBeNull();
-    expect(within(statusPopover as HTMLElement).getByText('启动初始化', { selector: '.status-entry strong' })).toBeInTheDocument();
-    expect(within(statusPopover as HTMLElement).getByText('—', { selector: '.status-entry dd' })).toBeInTheDocument();
+    expect(within(statusPopover as HTMLElement).getByText('启动初始化', { selector: '.status-history-list li strong' })).toBeInTheDocument();
+    expect(within(statusPopover as HTMLElement).getByText('—', { selector: '.status-history-list li dd' })).toBeInTheDocument();
     expect(
-      within(statusPopover as HTMLElement).getByText('正在确认本地草稿与浏览器书签状态', { selector: '.status-entry dd' }),
+      within(statusPopover as HTMLElement).getByText('正在确认本地草稿与浏览器书签状态', { selector: '.status-history-list li dd' }),
     ).toBeInTheDocument();
     expect((statusPopover as HTMLElement).querySelector('.status-history-list li')).not.toBeNull();
     fireEvent.click((statusPopover as HTMLElement).querySelector('.status-close') as HTMLButtonElement);
@@ -129,7 +129,7 @@ describe('T03 extension shell and page entry', () => {
       expect(document.body.querySelector('.status-anchor')).not.toBeNull();
     });
     expect((document.body.querySelector('.status-anchor') as HTMLElement | null)?.getAttribute('aria-label')).toBe(
-      '重新打开最新结果弹窗',
+      '重新打开最近记录弹窗',
     );
     expect(document.body.querySelector('.status-popover')).toBeNull();
   });

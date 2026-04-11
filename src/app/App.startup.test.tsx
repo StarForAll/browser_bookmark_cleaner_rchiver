@@ -74,13 +74,13 @@ describe('T05 app startup integration', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('首次启动已从浏览器导入当前书签树', { selector: '.status-entry dd' })).toBeInTheDocument();
+      expect(screen.getByText('首次启动已从浏览器导入当前书签树', { selector: '.status-history-list li dd' })).toBeInTheDocument();
     });
 
-    expect(screen.getByText('当前草稿包含 1 个节点，已可进入后续编辑。', { selector: '.status-entry p' })).toBeInTheDocument();
+    expect(screen.getByText('当前草稿包含 1 个节点，已可进入后续编辑。', { selector: '.status-history-list li p' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '书签节点：Docs' })).toBeInTheDocument();
     expect(screen.getByText('docs.example.com')).toBeInTheDocument();
-    expect(screen.getByText('2026-04-06 16:08:09', { selector: '.status-entry dd' })).toBeInTheDocument();
+    expect(screen.getByText('2026-04-06 16:08:09', { selector: '.status-history-list li dd' })).toBeInTheDocument();
   });
 
   test('surfaces an unsaved import warning when startup import cannot be persisted locally', async () => {
@@ -118,10 +118,10 @@ describe('T05 app startup integration', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('已导入浏览器书签，但本地草稿保存失败', { selector: '.status-entry dd' })).toBeInTheDocument();
+      expect(screen.getByText('已导入浏览器书签，但本地草稿保存失败', { selector: '.status-history-list li dd' })).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Storage quota exceeded.', { selector: '.status-entry p' })).toBeInTheDocument();
+    expect(screen.getByText('Storage quota exceeded.', { selector: '.status-history-list li p' })).toBeInTheDocument();
     expect(screen.getByText('Docs')).toBeInTheDocument();
   });
 
@@ -182,10 +182,10 @@ describe('T05 app startup integration', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('首次启动已从浏览器导入当前书签树', { selector: '.status-entry dd' })).toBeInTheDocument();
+      expect(screen.getByText('首次启动已从浏览器导入当前书签树', { selector: '.status-history-list li dd' })).toBeInTheDocument();
     });
 
-    expect(screen.getByText('2026-04-06 08:00:00', { selector: '.status-entry dd' })).toBeInTheDocument();
+    expect(screen.getByText('2026-04-06 08:00:00', { selector: '.status-history-list li dd' })).toBeInTheDocument();
     expect(storageState['workspace-latest-status-entry']).toEqual({
       statusKey: 'imported-browser-tree',
       action: '浏览器书签读取',
@@ -257,7 +257,7 @@ describe('T05 app startup integration', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('已恢复上次保存的本地草稿会话', { selector: '.status-entry dd' })).toBeInTheDocument();
+      expect(screen.getByText('已恢复上次保存的本地草稿会话', { selector: '.status-history-list li dd' })).toBeInTheDocument();
     });
 
     const historyItems = Array.from(document.body.querySelectorAll('.status-history-list li'));

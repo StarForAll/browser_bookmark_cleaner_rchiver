@@ -1,0 +1,9 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frozen verification matrix and child-task test-first baseline for T09A."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "T09A must keep one external side-effect action at a time and preserve draft/browser state boundaries."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/AID.md", "reason": "T09A UI must use the shared overwrite confirmation modal and explicit top-bar action semantics."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Operational flow contracts for browser-to-draft overwrite and draft-to-browser sync in T09A."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/draft-browser-sync.md", "reason": "T09A sync flow contract: explicit confirm, browser overwrite wording, status outcomes, and backup boundary."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/browser-draft-overwrite.md", "reason": "T09A overwrite flow contract: browser-to-draft wording, backup-first rule, and draft reset boundary."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/overwrite-confirmation.md", "reason": "Shared overwrite-confirmation surface and action-specific wording rules for T09A."}

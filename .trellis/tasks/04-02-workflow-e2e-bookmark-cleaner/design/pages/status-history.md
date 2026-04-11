@@ -2,48 +2,42 @@
 
 ## Purpose
 
-Define the canvas-aware bottom-right result popup and retained history entry pattern.
+Define the canvas-aware bottom-right result popup and newest-three history pattern.
 
 Current implementation snapshot:
 
 - popup open / close state is persisted locally
-- the latest startup result is persisted locally
-- retained newest-three history is persisted locally and rendered inside the popup
+- newest-three history is persisted locally and rendered inside the popup
 - current real history producers are still startup/bootstrap completion results; later sync, restore, and upload actions remain future-task scope
 
 ## Layout
 
-1. Latest-result popup
+1. Status-history popup
    - floats against the visible canvas bottom-right corner
-   - action description
-   - action time
-   - result
-   - short failure reason when needed
-   - close action
-
-2. Retained history list
    - newest three completed entries
    - newest first
+   - each entry includes action description, action time, result, and short failure reason when needed
+   - close action
 
-3. Reopen anchor
+2. Reopen anchor
    - stays at the same bottom-right canvas anchor after the popup closes
    - visible after popup close
-   - reopens the retained history popup
+   - reopens the history popup
 
 ## Entry Rules
 
 - a new entry is created only after an action completes
 - in-progress actions do not yet create a completed entry
 - both success and failure entries are retained
-- only the newest three entries remain visible in retained history
-- routine draft editing actions do not enter this retained history
+- only the newest three entries remain visible
+- routine draft editing actions do not enter this history
 
 ## Display Rules
 
 - newest entry appears first
 - failed entries show a short failure reason
 - entries use concise, readable action descriptions
-- the popup can be dismissed without deleting retained history
+- the popup can be dismissed without deleting stored history
 
 ## Covered Actions
 

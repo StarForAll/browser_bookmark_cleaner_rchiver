@@ -103,7 +103,7 @@ describe('T07B app undo-history hint gate', () => {
 
     expect(statusRegion).not.toBeNull();
     expect((statusRegion as HTMLElement).closest('.canvas-side-rail')).toBeNull();
-    expect(within(statusRegion as HTMLElement).getByText('最新结果')).toBeInTheDocument();
+    expect(within(statusRegion as HTMLElement).getByText('最近记录')).toBeInTheDocument();
     expect((statusRegion as HTMLElement).querySelector('.status-close')?.textContent).toBe('x');
     expect((statusRegion as HTMLElement).querySelector('.status-close')).toHaveAttribute('aria-label', '关闭状态弹窗');
   });

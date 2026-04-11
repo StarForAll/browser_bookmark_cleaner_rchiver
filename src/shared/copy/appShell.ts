@@ -1,3 +1,23 @@
+export type OverwriteConfirmationAction =
+  | 'overwrite-draft-from-browser'
+  | 'sync-draft-to-browser';
+
+type OverwriteConfirmationCopy = {
+  title: string;
+  sourceSummary: string;
+  targetSummary: string;
+  overwriteStatement: string;
+  replaceSummary: string;
+  preserveSummary: string;
+  backupReminder: string;
+  caution: string | null;
+  confirmLabel: string;
+  blockedStatusKey: 'overwrite-draft-blocked' | 'sync-draft-blocked';
+  blockedStatusAction: string;
+  blockedStatusResult: string;
+  blockedStatusDetail: string;
+};
+
 export const appShellCopy = {
   title: '书签清理与归档工作区',
   subtitle: '当前草稿工作区已经接入基础编辑、拖拽、草稿撤销与搜索聚焦；后续任务继续补同步能力。',
@@ -6,7 +26,7 @@ export const appShellCopy = {
   canvasLabel: '图谱画布区',
   hintLabel: '操作提示区',
   statusLabel: '状态结果区',
-  topShellSummary: '高风险动作入口保持显式可见，真正执行逻辑会按后续任务逐步接入。',
+  topShellSummary: '高风险动作入口保持显式可见；当前已接入浏览器覆盖与同步确认门禁，真实备份与执行链路会按后续任务继续补齐。',
   searchSummary: '标题或 URL 搜索会基于当前草稿实时更新命中结果；普通搜索在按下 Enter 后才会聚焦首个结果，并可用 ↑ / ↓ 循环切换；仅看重复项会切换到重复 URL 聚焦视图。',
   searchInputPlaceholder: '搜索标题或 URL',
   searchToggleLabel: '仅看重复项',
@@ -16,24 +36,10 @@ export const appShellCopy = {
   canvasPlaceholder: '当前区域承载可编辑的草稿图谱；搜索、重复聚焦与草稿撤销已经可用，后续任务会继续补同步能力。',
   canvasDraftTitle: '当前草稿画布',
   canvasDraftSummary: '这里承载当前草稿节点列表、基础编辑、拖拽、草稿撤销与基础悬浮信息；后续同步与聚焦能力会继续挂接在当前草稿之上。',
-  statusSummary: '最新结果贴住当前可视画布右下角展示；最小化后会以半透明锚点保留在同一位置，减少对草稿内容的遮挡。',
-  statusPopupTitle: '最新结果',
-  statusLatestEntry: {
-    action: '浏览器书签读取',
-    time: '—',
-    result: '当前浏览器书签数据为空',
-    detail: '当前没有可导入的浏览器书签，但草稿编辑、节点创建和后续图谱操作仍可继续。真实动作完成后，这里会写入实际时间。',
-  },
-  statusRetainedTitle: '保留历史',
-  statusRetainedEntries: [
-    {
-      action: '浏览器书签读取',
-      time: '—',
-      result: '当前浏览器书签数据为空',
-    },
-  ],
-  statusAnchorLabel: '最新结果',
-  statusAnchorAriaLabel: '重新打开最新结果弹窗',
+  statusSummary: '最近三条操作记录按时间倒序贴住当前可视画布右下角展示；最小化后会以半透明锚点保留在同一位置，减少对草稿内容的遮挡。',
+  statusPopupTitle: '最近记录',
+  statusAnchorLabel: '最近记录',
+  statusAnchorAriaLabel: '重新打开最近记录弹窗',
   statusAnchorHint: '浏览器书签读取 · 当前浏览器书签数据为空',
   statusCloseLabel: 'x',
   statusCloseAriaLabel: '关闭状态弹窗',
@@ -61,9 +67,7 @@ export const appShellCopy = {
     { key: 'relayout', label: '重新整理布局' },
     { key: 'webdav-settings', label: 'WebDAV 设置' },
   ],
-  overwriteDraftUnavailableReason: '当前还未接入浏览器覆盖确认与执行流程。',
   syncWithoutDraftReason: '当前还没有可同步的草稿内容。',
-  syncUnavailableReason: '当前还未接入浏览器写回确认与执行流程。',
   webdavUnavailableReason: '请先完成 WebDAV 设置与可用性检测。',
   relayoutWithoutDraftReason: '当前还没有可重新整理的草稿图谱。',
   relayoutUnavailableReason: '当前自动重排能力将在后续任务接入。',
@@ -83,7 +87,47 @@ export const appShellCopy = {
   ],
   hintSummary: '操作提示贴住当前可视画布右上角，并保持半透明低干扰样式；滚动画布区域时会继续保持可见。',
   undoUnavailableReason: '当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。',
+  overwriteConfirmationCancelLabel: '取消',
 } as const;
+
+const overwriteConfirmationCopy: Record<OverwriteConfirmationAction, OverwriteConfirmationCopy> = {
+  'overwrite-draft-from-browser': {
+    title: '确认从浏览器覆盖当前草稿',
+    sourceSummary: '来源：当前浏览器书签',
+    targetSummary: '目标：当前草稿',
+    overwriteStatement: '当前浏览器书签将覆盖当前草稿。',
+    replaceSummary: '当前草稿的结构和内容将被替换，包括当前草稿相关的搜索、重复过滤和撤销上下文。',
+    preserveSummary: '保持不变：浏览器书签本身不会被这个动作修改。',
+    backupReminder: '执行前应先生成一份草稿本地备份；该备份与恢复入口将在下一任务接入。',
+    caution: null,
+    confirmLabel: '确认继续',
+    blockedStatusKey: 'overwrite-draft-blocked',
+    blockedStatusAction: '从浏览器覆盖当前草稿',
+    blockedStatusResult: '确认已记录，但当前尚未接入浏览器覆盖执行链路',
+    blockedStatusDetail: '本次只完成了覆盖确认门禁；当前草稿和浏览器书签都没有发生变化。',
+  },
+  'sync-draft-to-browser': {
+    title: '确认同步当前草稿到浏览器书签',
+    sourceSummary: '来源：当前草稿',
+    targetSummary: '目标：当前浏览器书签',
+    overwriteStatement: '当前草稿将覆盖当前浏览器书签。',
+    replaceSummary: '将替换：受管范围内的浏览器书签结构和内容。',
+    preserveSummary: '保持不变：当前草稿本身不会被这个动作清空或重建。',
+    backupReminder: '执行前应先生成一份浏览器本地备份；该备份与恢复入口将在下一任务接入。',
+    caution: '提醒：Ctrl+Z 不会撤销已经完成的浏览器写入。',
+    confirmLabel: '确认同步',
+    blockedStatusKey: 'sync-draft-blocked',
+    blockedStatusAction: '同步当前草稿到浏览器书签',
+    blockedStatusResult: '确认已记录，但当前尚未接入浏览器写回执行链路',
+    blockedStatusDetail: '本次只完成了同步确认门禁；当前草稿和浏览器书签都没有发生变化。',
+  },
+};
+
+export function getOverwriteConfirmationCopy(
+  action: OverwriteConfirmationAction,
+): OverwriteConfirmationCopy {
+  return overwriteConfirmationCopy[action];
+}
 
 type StartupStatusCopy = {
   action: string;
@@ -93,7 +137,7 @@ type StartupStatusCopy = {
   canvasSummary: string;
 };
 
-function formatStatusTimestamp(occurredAt?: string): string {
+export function formatStatusTimestamp(occurredAt?: string): string {
   if (!occurredAt) {
     return '—';
   }
