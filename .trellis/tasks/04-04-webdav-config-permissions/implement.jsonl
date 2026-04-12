@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "T10 verification matrix and cloud-disabled review rules"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Centralized session state and explicit external-action gating for WebDAV availability"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Sensitive config and boundary validation for WebDAV profile and test result contracts"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/IDD.md", "reason": "WebDAV adapter and permission contracts"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md", "reason": "Availability prerequisites for cloud actions"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/webdav-settings.md", "reason": "Settings page interaction and copy rules"}

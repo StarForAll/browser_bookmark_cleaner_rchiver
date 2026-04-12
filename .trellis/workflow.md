@@ -219,6 +219,7 @@ For workflows that split work into a parent coordination task plus child executi
 - freeze the project test-first baseline once in design/spec docs
 - select one concrete child task before entering test-first or implementation
 - completing the current child task does not automatically authorize the next child task
+- after a child task is completed or archived, update the parent coordinator records in the same round so the latest completed frontier, pending frontier, and next selectable child task stay synchronized
 - the next child task may start only after the human explicitly names or approves that task in the current round
 - create and verify the test gate for that child task only
 - complete that child task's test gate before entering its concrete implementation work
@@ -289,8 +290,9 @@ Close-out 分两阶段执行，不可混为一谈：
 
 **阶段 B — commit 后**（close-out 阶段，按顺序执行）：
 1. Human commit already exists
-2. Current completed task archived and `.trellis/tasks` metadata clean
-3. Session recorded via `record-session-helper.py`
+2. Current completed task archived; if it is a child task, the parent coordinator records are also synchronized to the new completed frontier
+3. `.trellis/tasks` metadata clean
+4. Session recorded via `record-session-helper.py`
 
 ---
 

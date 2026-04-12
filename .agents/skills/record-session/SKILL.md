@@ -26,10 +26,17 @@ python3 ./.trellis/scripts/get_context.py --mode record
 python3 ./.trellis/scripts/task.py archive <task-name>
 ```
 
+If the archived task is a child task under a parent coordinator task, sync the parent progress records before continuing:
+
+- update the parent `task_plan.md` summary to the new completed frontier and next pending child task
+- update parent `task.json` narrative metadata such as `notes` if it still points to the old frontier
+- do not treat `python3 ./.trellis/scripts/task.py list` alone as proof that the parent summary is synchronized
+
 归档后的预期状态：
 
 - `.trellis/tasks` 已 clean
 - `.trellis/.current-task` 允许为空；这表示当前任务已经完成并退出激活态
+- 若归档的是 child task，对应父 task 的进度摘要也已同步到相同 frontier
 
 ### Step 2: One-Click Add Session
 

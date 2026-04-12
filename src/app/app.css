@@ -1187,6 +1187,29 @@ input:disabled {
   gap: 12px;
 }
 
+.webdav-settings-form {
+  display: grid;
+  gap: 2px;
+}
+
+.webdav-settings-result {
+  margin: 0 0 14px;
+  border: 1px solid rgba(45, 74, 80, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 14px 16px;
+}
+
+.webdav-settings-result strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #14333a;
+}
+
+.webdav-settings-result p {
+  margin: 0;
+}
+
 .local-recovery-choice-list {
   display: grid;
   gap: 10px;

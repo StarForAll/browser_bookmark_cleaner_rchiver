@@ -75,6 +75,33 @@ Freeze these as the current project test-first baseline:
 - when execution is split into a parent coordinator task and child execution tasks, create the actual test gate one child task at a time in dependency order
 - do not claim whole-plan test coverage from the parent coordination task alone
 
+## Child Task Closeout Record Sync
+
+When execution is split into one parent coordinator task and multiple child execution tasks, a child task is not fully closed out until the parent-side progress records are updated in the same change scope.
+
+Required parent-side record sync after a child task reaches completed / archived status:
+
+- update the parent `task_plan.md` summary blocks that describe the completed frontier, pending frontier, completed-count text, and the next explicitly selectable child task
+- update the parent `task.json` narrative fields such as `notes` when they describe the latest completed child task or the next serial child task
+- update any other non-derived record that still names the previous frontier or an outdated completed-count snapshot
+
+Boundary rules:
+
+- treat `python3 ./.trellis/scripts/task.py list` as an active-children view, not as proof that parent narrative records are already synchronized
+- if the CLI summary and the parent summary intentionally describe different scopes, the parent summary must state that scope explicitly
+- do not leave parent records pointing at an older frontier after a newer child task has already been archived
+
+Validation matrix for split child-task closeout:
+
+- Good: the archived child task, parent `task_plan.md`, and parent `task.json` all name the same latest completed frontier and the same next pending child task
+- Base: derived CLI output may still count only active children, but the parent summary text clearly states the full serial progress without stale frontier references
+- Bad: a child task is archived as completed while the parent summary still says execution only progressed through an earlier child task or still names the already-finished task as the next entry
+
+Wrong vs Correct:
+
+- Wrong: archive `T09B`, but leave the parent summary saying execution only progressed through `T08A` and that `T08B` is still the next serial task
+- Correct: archive `T09B`, then update the parent summary in the same round so it says execution progressed through `T09B`, moves `T10` to the next serial task, and refreshes the completed / pending count snapshot
+
 ## PLAN-01 Scaffold Baseline
 
 The engineering scaffold baseline introduced by `T01` is defined by these concrete files and paths:

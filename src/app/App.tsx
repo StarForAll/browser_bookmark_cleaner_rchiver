@@ -7,8 +7,10 @@ import {
   getLocalRecoveryTargetCopy,
   getOverwriteConfirmationCopy,
   getStartupStatusCopy,
+  getWebdavSettingsResultCopy,
   type LocalRecoveryTarget,
   type OverwriteConfirmationAction,
+  type WebdavTestStatus,
 } from '@/shared/copy/appShell';
 import { readBrowserBookmarkTree } from '@/adapters/browser-bookmarks/readBookmarkTree';
 import { importBrowserTreeToDraftGraph } from '@/adapters/browser-bookmarks/importToDraft';
@@ -17,6 +19,8 @@ import { writeManagedBrowserTree } from '@/adapters/browser-bookmarks/writeManag
 import {
   LOCAL_PERSISTENCE_SCHEMA_VERSION,
   type PersistedDraftSession,
+  type WebdavPermissionState,
+  type WebdavProfile,
 } from '@/adapters/local-persistence/contracts';
 import {
   createBrowserLocalBackupArtifact,
@@ -29,10 +33,21 @@ import {
   type LocalBackupAvailability,
 } from '@/adapters/local-persistence/localBackupArtifacts';
 import {
+  readPersistedWebdavConfig,
+  writePersistedWebdavConfig,
+} from '@/adapters/local-persistence/webdavConfig';
+import { ensureWebdavHostPermission } from '@/adapters/webdav/requestHostPermission';
+import { testWebdavAvailability } from '@/adapters/webdav/testAvailability';
+import {
   bootstrapWorkspace as defaultBootstrapWorkspace,
   type WorkspaceBootstrapResult,
 } from '@/features/browser-sync/application/bootstrapWorkspace';
 import { deriveSearchResults } from '@/features/bookmark-graph/state/searchAndFocus';
+import {
+  deriveWebdavOriginPattern,
+  isWebdavUploadReady,
+  normalizeWebdavEndpointUrl,
+} from '@/features/webdav/application/availability';
 import { DraftGraphWorkspace } from '@/features/bookmark-graph/ui/DraftGraphWorkspace';
 import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
 import { DRAFT_GRAPH_SCHEMA_VERSION, type DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
@@ -69,6 +84,12 @@ type PersistedStatusEntry = {
 type LocalBackupState = {
   draft: LocalBackupAvailability;
   browser: LocalBackupAvailability;
+};
+
+type WebdavSettingsFormValues = {
+  endpointUrl: string;
+  username: string;
+  password: string;
 };
 
 type PrimarySystemActionItem = (typeof appShellCopy.primaryActionItems)[number];
@@ -229,6 +250,57 @@ function createEmptyLocalBackupState(): LocalBackupState {
   };
 }
 
+function createEmptyWebdavSettingsFormValues(): WebdavSettingsFormValues {
+  return {
+    endpointUrl: '',
+    username: '',
+    password: '',
+  };
+}
+
+function buildWebdavFormValidationResult(
+  values: WebdavSettingsFormValues,
+): { ok: true; endpointUrl: string; username: string; password: string; origin: string } | { ok: false; error: string } {
+  const endpointUrl = normalizeWebdavEndpointUrl(values.endpointUrl);
+  if (!endpointUrl) {
+    return {
+      ok: false,
+      error: appShellCopy.webdavSettingsValidationEndpoint,
+    };
+  }
+
+  const username = values.username.trim();
+  if (username.length === 0) {
+    return {
+      ok: false,
+      error: appShellCopy.webdavSettingsValidationUsername,
+    };
+  }
+
+  if (values.password.length === 0) {
+    return {
+      ok: false,
+      error: appShellCopy.webdavSettingsValidationPassword,
+    };
+  }
+
+  const origin = deriveWebdavOriginPattern(endpointUrl);
+  if (!origin) {
+    return {
+      ok: false,
+      error: appShellCopy.webdavSettingsValidationEndpoint,
+    };
+  }
+
+  return {
+    ok: true,
+    endpointUrl,
+    username,
+    password: values.password,
+    origin,
+  };
+}
+
 async function readStatusPopoverOpen(): Promise<boolean | null> {
   const storageArea = resolveStorageArea();
   if (!storageArea?.get) {
@@ -332,11 +404,7 @@ function areStatusHistoriesEqual(left: PersistedStatusEntry[], right: PersistedS
 }
 
 function appendStatusHistory(current: PersistedStatusEntry[], nextEntry: PersistedStatusEntry): PersistedStatusEntry[] {
-  if (current[0] && hasSameStatusMeaning(current[0], nextEntry)) {
-    return current.slice(0, 3);
-  }
-
-  return [nextEntry, ...current.filter((entry) => !hasSameStatusMeaning(entry, nextEntry))].slice(0, 3);
+  return [nextEntry, ...current].slice(0, 3);
 }
 
 function isOverwriteConfirmationAction(
@@ -347,7 +415,12 @@ function isOverwriteConfirmationAction(
 
 function resolvePrimaryActionDisabledReason(
   actionKey: PrimarySystemActionItem['key'],
-  input: { hasEditableDraft: boolean; hasUndoOverwriteTarget: boolean; hasRunningExternalAction: boolean },
+  input: {
+    hasEditableDraft: boolean;
+    hasUndoOverwriteTarget: boolean;
+    hasRunningExternalAction: boolean;
+    isWebdavUploadEnabled: boolean;
+  },
 ): string | null {
   if (input.hasRunningExternalAction) {
     return appShellCopy.externalActionRunningReason;
@@ -359,11 +432,17 @@ function resolvePrimaryActionDisabledReason(
     case 'sync-draft-to-browser':
       return input.hasEditableDraft ? null : appShellCopy.syncWithoutDraftReason;
     case 'upload-draft-to-webdav':
-      return input.hasEditableDraft ? appShellCopy.webdavUnavailableReason : appShellCopy.syncWithoutDraftReason;
+      if (!input.hasEditableDraft) {
+        return appShellCopy.syncWithoutDraftReason;
+      }
+      return input.isWebdavUploadEnabled ? null : appShellCopy.webdavUnavailableReason;
     case 'upload-browser-to-webdav':
+      return input.isWebdavUploadEnabled ? null : appShellCopy.webdavUnavailableReason;
     case 'restore-webdav-draft':
     case 'restore-webdav-browser':
-      return appShellCopy.webdavUnavailableReason;
+      return input.isWebdavUploadEnabled
+        ? appShellCopy.webdavRestoreUnavailableReason
+        : appShellCopy.webdavUnavailableReason;
     case 'undo-overwrite':
       return input.hasUndoOverwriteTarget ? null : appShellCopy.undoUnavailableReason;
     default:
@@ -379,7 +458,7 @@ function resolveSecondaryActionDisabledReason(
     case 'relayout':
       return input.hasEditableDraft ? appShellCopy.relayoutUnavailableReason : appShellCopy.relayoutWithoutDraftReason;
     case 'webdav-settings':
-      return appShellCopy.webdavSettingsUnavailableReason;
+      return null;
     default:
       return appShellCopy.webdavSettingsUnavailableReason;
   }
@@ -418,10 +497,15 @@ export function App({
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [statusPopoverReady, setStatusPopoverReady] = useState(resolveStorageArea() === null);
   const [persistedStatusHistory, setPersistedStatusHistory] = useState<PersistedStatusEntry[]>([]);
-  const [latestActionStatusEntry, setLatestActionStatusEntry] = useState<PersistedStatusEntry | null>(null);
+  const [startupStatusHandled, setStartupStatusHandled] = useState(false);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
   const [currentDraftSession, setCurrentDraftSession] = useState<PersistedDraftSession | null>(null);
   const [localBackupState, setLocalBackupState] = useState<LocalBackupState>(() => createEmptyLocalBackupState());
+  const [webdavProfile, setWebdavProfile] = useState<WebdavProfile | null>(null);
+  const [webdavPermissionState, setWebdavPermissionState] = useState<WebdavPermissionState | null>(null);
+  const [isWebdavSettingsOpen, setIsWebdavSettingsOpen] = useState(false);
+  const [webdavFormValues, setWebdavFormValues] = useState<WebdavSettingsFormValues>(() => createEmptyWebdavSettingsFormValues());
+  const [webdavFormError, setWebdavFormError] = useState<string | null>(null);
   const [overwriteConfirmationAction, setOverwriteConfirmationAction] = useState<OverwriteConfirmationAction | null>(null);
   const [isLocalRecoveryChooserOpen, setIsLocalRecoveryChooserOpen] = useState(false);
   const [selectedLocalRecoveryTarget, setSelectedLocalRecoveryTarget] = useState<LocalRecoveryTarget | null>(null);
@@ -441,6 +525,7 @@ export function App({
   const statusOverlayRef = useRef<HTMLElement | null>(null);
   const pageBackToTopFrameRef = useRef(0);
   const runningExternalActionRef = useRef<string | null>(null);
+  const persistedStatusHistoryRef = useRef<PersistedStatusEntry[]>([]);
   const startupStatusCopy = getStartupStatusCopy(
     startupResult
       ? {
@@ -475,6 +560,19 @@ export function App({
   const hasUndoOverwriteTarget =
     localBackupState.draft.availability === 'available' ||
     localBackupState.browser.availability === 'available';
+  const isWebdavUploadEnabled = useMemo(() => {
+    return isWebdavUploadReady({
+      profile: webdavProfile,
+      permissionState: webdavPermissionState,
+    });
+  }, [webdavPermissionState, webdavProfile]);
+  const webdavSettingsResultCopy = useMemo(() => {
+    return getWebdavSettingsResultCopy({
+      status: (webdavProfile?.lastTestStatus ?? 'untested') as WebdavTestStatus,
+      checkedAt: webdavProfile?.lastTestedAt ?? null,
+    });
+  }, [webdavProfile?.lastTestStatus, webdavProfile?.lastTestedAt]);
+  const isWebdavAvailabilityTestRunning = runningExternalAction === 'webdav-availability-test';
   const normalizedSearchQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
   const normalSearchResults = useMemo(() => {
     if (!editableDraftSnapshot) {
@@ -492,6 +590,7 @@ export function App({
         hasEditableDraft,
         hasUndoOverwriteTarget,
         hasRunningExternalAction: runningExternalAction !== null,
+        isWebdavUploadEnabled,
       });
       return {
         ...action,
@@ -499,7 +598,7 @@ export function App({
         isDisabled: disabledReason !== null,
       };
     });
-  }, [hasEditableDraft, hasUndoOverwriteTarget, runningExternalAction]);
+  }, [hasEditableDraft, hasUndoOverwriteTarget, isWebdavUploadEnabled, runningExternalAction]);
   const secondarySystemActions = useMemo<SecondarySystemActionWithState[]>(() => {
     return appShellCopy.secondaryActionItems.map((action) => {
       const disabledReason = resolveSecondaryActionDisabledReason(action.key, { hasEditableDraft });
@@ -525,10 +624,22 @@ export function App({
         detail: startupStatusCopy.detail,
       }
     : null;
-  const latestStatusEntry = latestActionStatusEntry ?? startupStatusEntry;
+  const hasPersistedStartupEntry = useMemo(() => {
+    if (!startupStatusEntry) {
+      return false;
+    }
+
+    return persistedStatusHistory.some((entry) => hasSameStatusMeaning(entry, startupStatusEntry));
+  }, [persistedStatusHistory, startupStatusEntry]);
+  const shouldDisplayEphemeralStartupEntry =
+    startupStatusEntry !== null && !startupStatusHandled && !hasPersistedStartupEntry;
   const displayStatusHistory = useMemo(() => {
-    return latestStatusEntry ? appendStatusHistory(persistedStatusHistory, latestStatusEntry) : persistedStatusHistory;
-  }, [latestStatusEntry, persistedStatusHistory]);
+    if (!shouldDisplayEphemeralStartupEntry || !startupStatusEntry) {
+      return persistedStatusHistory;
+    }
+
+    return appendStatusHistory(persistedStatusHistory, startupStatusEntry);
+  }, [persistedStatusHistory, shouldDisplayEphemeralStartupEntry, startupStatusEntry]);
   const fallbackStatusEntry: PersistedStatusEntry = {
     statusKey: 'pending',
     action: startupStatusCopy.action,
@@ -586,9 +697,193 @@ export function App({
     void writeStatusPopoverOpen(true);
   }, []);
   const recordStatusEntry = useCallback((entry: PersistedStatusEntry) => {
-    setLatestActionStatusEntry(entry);
+    const nextStatusHistory = appendStatusHistory(persistedStatusHistoryRef.current, entry);
+    persistedStatusHistoryRef.current = nextStatusHistory;
+    setPersistedStatusHistory(nextStatusHistory);
+    void writeStatusHistory(nextStatusHistory);
     openStatusPopover();
   }, [openStatusPopover]);
+  const openWebdavSettings = useCallback(() => {
+    setWebdavFormValues({
+      endpointUrl: webdavProfile?.endpointUrl ?? '',
+      username: webdavProfile?.username ?? '',
+      password: webdavProfile?.password ?? '',
+    });
+    setWebdavFormError(null);
+    setIsWebdavSettingsOpen(true);
+  }, [webdavProfile?.endpointUrl, webdavProfile?.password, webdavProfile?.username]);
+  const saveWebdavSettings = useCallback(async () => {
+    const validation = buildWebdavFormValidationResult(webdavFormValues);
+    if (!validation.ok) {
+      setWebdavFormError(validation.error);
+      return;
+    }
+
+    const currentOrigin = webdavProfile ? deriveWebdavOriginPattern(webdavProfile.endpointUrl) : null;
+    const isSameProfile =
+      webdavProfile !== null &&
+      webdavProfile.endpointUrl === validation.endpointUrl &&
+      webdavProfile.username === validation.username &&
+      webdavProfile.password === validation.password;
+    const nextProfile: WebdavProfile = {
+      endpointUrl: validation.endpointUrl,
+      username: validation.username,
+      password: validation.password,
+      lastTestedAt: isSameProfile ? webdavProfile.lastTestedAt : null,
+      lastTestStatus: isSameProfile ? webdavProfile.lastTestStatus : 'untested',
+    };
+    const nextPermissionState: WebdavPermissionState = currentOrigin === validation.origin && webdavPermissionState
+      ? webdavPermissionState
+      : {
+          origin: validation.origin,
+          granted: false,
+        };
+
+    const writeResult = await writePersistedWebdavConfig({
+      profile: nextProfile,
+      permissionState: nextPermissionState,
+    });
+
+    if (writeResult.kind !== 'saved') {
+      setWebdavFormError(
+        writeResult.kind === 'unavailable'
+          ? appShellCopy.webdavSettingsSaveUnavailable
+          : `${appShellCopy.webdavSettingsSaveFailed}${writeResult.kind === 'error' ? ` ${writeResult.error}` : ''}`,
+      );
+      return;
+    }
+
+    setWebdavProfile(nextProfile);
+    setWebdavPermissionState(nextPermissionState);
+    setWebdavFormValues({
+      endpointUrl: nextProfile.endpointUrl,
+      username: nextProfile.username,
+      password: nextProfile.password,
+    });
+    setWebdavFormError(null);
+  }, [webdavFormValues, webdavPermissionState, webdavProfile]);
+  const runWebdavAvailabilityCheck = useCallback(async () => {
+    const validation = buildWebdavFormValidationResult(webdavFormValues);
+    if (!validation.ok) {
+      setWebdavFormError(validation.error);
+      return;
+    }
+
+    if (!beginExternalAction('webdav-availability-test')) {
+      return;
+    }
+
+    setWebdavFormError(null);
+
+    const checkedAtIso = new Date().toISOString();
+    const checkedAtDisplay = formatStatusTimestamp(checkedAtIso);
+    const baseProfile: WebdavProfile = {
+      endpointUrl: validation.endpointUrl,
+      username: validation.username,
+      password: validation.password,
+      lastTestedAt: checkedAtIso,
+      lastTestStatus: 'error',
+    };
+
+    try {
+      const permissionResult = await ensureWebdavHostPermission(validation.endpointUrl);
+      if (permissionResult.kind !== 'granted') {
+        const nextPermissionState: WebdavPermissionState = {
+          origin: validation.origin,
+          granted: false,
+        };
+
+        await writePersistedWebdavConfig({
+          profile: baseProfile,
+          permissionState: nextPermissionState,
+        });
+        setWebdavProfile(baseProfile);
+        setWebdavPermissionState(nextPermissionState);
+        setWebdavFormValues({
+          endpointUrl: validation.endpointUrl,
+          username: validation.username,
+          password: validation.password,
+        });
+
+        recordStatusEntry({
+          statusKey:
+            permissionResult.kind === 'invalid-origin'
+              ? 'webdav-availability-invalid'
+              : permissionResult.kind === 'unavailable'
+                ? 'webdav-availability-permission-unavailable'
+                : permissionResult.kind === 'error'
+                  ? 'webdav-availability-permission-error'
+                  : 'webdav-availability-denied',
+          action: appShellCopy.webdavAvailabilityStatusAction,
+          time: checkedAtDisplay,
+          result:
+            permissionResult.kind === 'invalid-origin'
+              ? appShellCopy.webdavAvailabilityInvalidUrlResult
+              : permissionResult.kind === 'unavailable'
+                ? appShellCopy.webdavAvailabilityPermissionUnavailableResult
+                : permissionResult.kind === 'error'
+                  ? appShellCopy.webdavAvailabilityPermissionErrorResult
+                  : appShellCopy.webdavAvailabilityPermissionDeniedResult,
+          detail:
+            permissionResult.kind === 'invalid-origin'
+              ? appShellCopy.webdavAvailabilityInvalidUrlDetail
+              : permissionResult.kind === 'unavailable'
+                ? appShellCopy.webdavAvailabilityPermissionUnavailableDetail
+                : permissionResult.kind === 'error'
+                  ? permissionResult.error.includes('Only permissions specified in the manifest may be requested.')
+                    ? appShellCopy.webdavAvailabilityManifestReloadDetail
+                    : permissionResult.error
+                  : appShellCopy.webdavAvailabilityPermissionDeniedDetail,
+        });
+        return;
+      }
+
+      const availabilityResult = await testWebdavAvailability(baseProfile);
+      const nextProfile: WebdavProfile = {
+        ...baseProfile,
+        lastTestStatus: availabilityResult.kind === 'success' ? 'success' : 'error',
+      };
+      const nextPermissionState: WebdavPermissionState = {
+        origin: permissionResult.origin,
+        granted: true,
+      };
+
+      await writePersistedWebdavConfig({
+        profile: nextProfile,
+        permissionState: nextPermissionState,
+      });
+      setWebdavProfile(nextProfile);
+      setWebdavPermissionState(nextPermissionState);
+      setWebdavFormValues({
+        endpointUrl: validation.endpointUrl,
+        username: validation.username,
+        password: validation.password,
+      });
+
+      recordStatusEntry({
+        statusKey:
+          availabilityResult.kind === 'success'
+            ? 'webdav-availability-succeeded'
+            : availabilityResult.kind === 'unavailable'
+              ? 'webdav-availability-unavailable'
+              : 'webdav-availability-failed',
+        action: appShellCopy.webdavAvailabilityStatusAction,
+        time: checkedAtDisplay,
+        result:
+          availabilityResult.kind === 'success'
+            ? appShellCopy.webdavAvailabilitySuccessResult
+            : appShellCopy.webdavAvailabilityFailureResult,
+        detail:
+          availabilityResult.kind === 'success'
+            ? appShellCopy.webdavAvailabilitySuccessDetail
+            : availabilityResult.kind === 'unavailable'
+              ? appShellCopy.webdavAvailabilityPermissionUnavailableDetail
+              : availabilityResult.error,
+      });
+    } finally {
+      finishExternalAction();
+    }
+  }, [beginExternalAction, finishExternalAction, recordStatusEntry, webdavFormValues]);
   const resetDraftReplacementUi = useCallback(() => {
     setSearchQuery('');
     setDuplicateOnly(false);
@@ -964,8 +1259,8 @@ export function App({
         </button>
       </div>
       <ul className="status-history-list">
-        {displayStatusEntries.map((entry) => (
-          <li key={`${entry.action}-${entry.time}-${entry.result}`}>
+        {displayStatusEntries.map((entry, index) => (
+          <li key={`${entry.action}-${entry.time}-${entry.result}-${index}`}>
             <strong>{entry.action}</strong>
             <dl className="status-meta">
               <div>
@@ -1049,6 +1344,113 @@ export function App({
             type="button"
           >
             {overwriteConfirmationCopy.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  const webdavSettingsDialog = isWebdavSettingsOpen ? (
+    <div
+      aria-modal="true"
+      className="draft-dialog-backdrop"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          setIsWebdavSettingsOpen(false);
+        }
+      }}
+      role="dialog"
+    >
+      <div className="draft-dialog-card webdav-settings-card">
+        <h3>{appShellCopy.webdavSettingsTitle}</h3>
+        <p>{appShellCopy.webdavSettingsSummary}</p>
+        <div className="webdav-settings-form">
+          <label className="draft-field">
+            <span>{appShellCopy.webdavSettingsEndpointLabel}</span>
+            <input
+              aria-label={appShellCopy.webdavSettingsEndpointLabel}
+              onChange={(event) => {
+                setWebdavFormValues((current) => ({
+                  ...current,
+                  endpointUrl: event.target.value,
+                }));
+                setWebdavFormError(null);
+              }}
+              placeholder={appShellCopy.webdavSettingsEndpointPlaceholder}
+              type="url"
+              value={webdavFormValues.endpointUrl}
+            />
+          </label>
+          <label className="draft-field">
+            <span>{appShellCopy.webdavSettingsUsernameLabel}</span>
+            <input
+              aria-label={appShellCopy.webdavSettingsUsernameLabel}
+              onChange={(event) => {
+                setWebdavFormValues((current) => ({
+                  ...current,
+                  username: event.target.value,
+                }));
+                setWebdavFormError(null);
+              }}
+              placeholder={appShellCopy.webdavSettingsUsernamePlaceholder}
+              type="text"
+              value={webdavFormValues.username}
+            />
+          </label>
+          <label className="draft-field">
+            <span>{appShellCopy.webdavSettingsPasswordLabel}</span>
+            <input
+              aria-label={appShellCopy.webdavSettingsPasswordLabel}
+              onChange={(event) => {
+                setWebdavFormValues((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }));
+                setWebdavFormError(null);
+              }}
+              placeholder={appShellCopy.webdavSettingsPasswordPlaceholder}
+              type="password"
+              value={webdavFormValues.password}
+            />
+          </label>
+        </div>
+        {webdavFormError ? (
+          <p className="draft-dialog-warning" role="alert">
+            {webdavFormError}
+          </p>
+        ) : null}
+        <div className="webdav-settings-result" role="status">
+          <strong>{webdavSettingsResultCopy.result}</strong>
+          <p>{webdavSettingsResultCopy.detail}</p>
+        </div>
+        <p className="draft-dialog-note">{appShellCopy.webdavSettingsHelper}</p>
+        <div className="draft-dialog-actions">
+          <button
+            className="draft-dialog-button"
+            onClick={() => {
+              setIsWebdavSettingsOpen(false);
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavSettingsCloseLabel}
+          </button>
+          <button
+            className="draft-dialog-button is-primary"
+            onClick={() => {
+              void saveWebdavSettings();
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavSettingsSaveLabel}
+          </button>
+          <button
+            className="draft-dialog-button is-primary"
+            disabled={isWebdavAvailabilityTestRunning}
+            onClick={() => {
+              void runWebdavAvailabilityCheck();
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavSettingsTestLabel}
           </button>
         </div>
       </div>
@@ -1317,7 +1719,8 @@ export function App({
       readStatusPopoverOpen(),
       readStatusHistory(),
       readLocalBackupArtifacts(),
-    ]).then(([persistedOpenValue, history, localBackups]) => {
+      readPersistedWebdavConfig(),
+    ]).then(([persistedOpenValue, history, localBackups, webdavConfig]) => {
       if (!isMounted) {
         return;
       }
@@ -1332,6 +1735,10 @@ export function App({
           browser: localBackups.browser,
         });
       }
+      if (webdavConfig.kind === 'restored') {
+        setWebdavProfile(webdavConfig.state.profile);
+        setWebdavPermissionState(webdavConfig.state.permissionState);
+      }
       setStatusPopoverReady(true);
     });
 
@@ -1341,18 +1748,30 @@ export function App({
   }, []);
 
   useEffect(() => {
-    if (!latestStatusEntry) {
+    persistedStatusHistoryRef.current = persistedStatusHistory;
+  }, [persistedStatusHistory]);
+
+  useEffect(() => {
+    if (!statusPopoverReady || !startupStatusEntry || startupStatusHandled) {
       return;
     }
 
-    const nextStatusHistory = appendStatusHistory(persistedStatusHistory, latestStatusEntry);
+    if (hasPersistedStartupEntry) {
+      setStartupStatusHandled(true);
+      return;
+    }
+
+    const nextStatusHistory = appendStatusHistory(persistedStatusHistory, startupStatusEntry);
     if (areStatusHistoriesEqual(persistedStatusHistory, nextStatusHistory)) {
+      setStartupStatusHandled(true);
       return;
     }
 
+    persistedStatusHistoryRef.current = nextStatusHistory;
     setPersistedStatusHistory(nextStatusHistory);
+    setStartupStatusHandled(true);
     void writeStatusHistory(nextStatusHistory);
-  }, [latestStatusEntry, persistedStatusHistory]);
+  }, [hasPersistedStartupEntry, persistedStatusHistory, startupStatusEntry, startupStatusHandled, statusPopoverReady]);
 
   useEffect(() => {
     if (!enableStartupBootstrap) {
@@ -1536,6 +1955,15 @@ export function App({
                   aria-describedby={action.disabledReason ? disabledSummaryIdByReason.get(action.disabledReason) : undefined}
                   disabled={action.isDisabled}
                   key={action.key}
+                  onClick={() => {
+                    if (action.isDisabled) {
+                      return;
+                    }
+
+                    if (action.key === 'webdav-settings') {
+                      openWebdavSettings();
+                    }
+                  }}
                   title={action.disabledReason ?? undefined}
                   type="button"
                 >
@@ -1651,6 +2079,9 @@ export function App({
         </section>
       </main>
       {pageBackToTopButton}
+      {webdavSettingsDialog && typeof document !== 'undefined'
+        ? createPortal(webdavSettingsDialog, document.body)
+        : webdavSettingsDialog}
       {overwriteConfirmationDialog && typeof document !== 'undefined'
         ? createPortal(overwriteConfirmationDialog, document.body)
         : overwriteConfirmationDialog}

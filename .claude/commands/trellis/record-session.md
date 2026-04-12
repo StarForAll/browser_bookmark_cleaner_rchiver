@@ -21,6 +21,12 @@ python3 ./.trellis/scripts/get_context.py --mode record
 python3 ./.trellis/scripts/task.py archive <task-name>
 ```
 
+If the archived task is a child task under a parent coordinator task, sync the parent progress records before continuing:
+
+- update the parent `task_plan.md` summary to the new completed frontier and next pending child task
+- update parent `task.json` narrative metadata such as `notes` if it still points to the old frontier
+- do not treat `python3 ./.trellis/scripts/task.py list` alone as proof that the parent summary is synchronized
+
 ## Record-Session Metadata Closure `[AI]`
 
 Use `/trellis:record-session` here only for the **final close-out of the current completed task**.
@@ -36,6 +42,7 @@ python3 ./.trellis/scripts/task.py archive <current-task>
 - Verify task metadata is already closed out:
   - `.trellis/tasks` must be clean
   - `.trellis/.current-task` may already be empty after archive; this is normal for final close-out
+  - if the archived task was a child task, parent coordinator records must already reflect the same completed frontier
 
 ```bash
 git status --short .trellis/tasks .trellis/.current-task

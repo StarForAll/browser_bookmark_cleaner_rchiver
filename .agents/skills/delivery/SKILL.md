@@ -189,6 +189,7 @@ docs/workflows/新项目开发工作流/learn/
 - `/trellis:record-session` 在此只用于**当前任务完成后的最终收尾记录**
 - 当前执行任务已完成，且本轮收尾只围绕**当前任务**
 - 已完成任务先显式归档；未完成任务不要误归档；非当前任务不要借本轮收尾顺手自动提交
+- 若当前完成的是 child task，进入 `record-session` 前必须先同步父 task 的 `task_plan.md`、`task.json` 或其它非派生进度记录，使其反映新的 completed frontier 与 next task
 - 不为了补齐新规则或整理台账而批量回写旧任务、旧会话记录或已归档目录
 - 归档完成后，`.trellis/tasks` 与 `.trellis/.current-task` 必须已 clean
 - 归档后 `.trellis/.current-task` 文件变空或不存在是正常结果，因为 `task.py archive` 会清掉当前任务指针。真正需要关注的阻塞条件是 `.trellis/tasks` 仍有未提交的变更，或 staged 区混入 metadata 作用域之外的改动

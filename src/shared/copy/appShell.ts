@@ -3,6 +3,7 @@ export type OverwriteConfirmationAction =
   | 'sync-draft-to-browser';
 
 export type LocalRecoveryTarget = 'browser' | 'draft';
+export type WebdavTestStatus = 'untested' | 'success' | 'error';
 
 type OverwriteConfirmationCopy = {
   title: string;
@@ -34,6 +35,11 @@ type LocalRecoveryTargetCopy = {
   successStatusAction: string;
   successStatusResult: string;
   successStatusDetail: string;
+};
+
+type WebdavSettingsResultCopy = {
+  result: string;
+  detail: string;
 };
 
 export const appShellCopy = {
@@ -87,10 +93,42 @@ export const appShellCopy = {
   ],
   syncWithoutDraftReason: '当前还没有可同步的草稿内容。',
   webdavUnavailableReason: '请先完成 WebDAV 设置与可用性检测。',
+  webdavRestoreUnavailableReason: '当前 WebDAV 恢复列表与恢复流程将在后续任务接入。',
   relayoutWithoutDraftReason: '当前还没有可重新整理的草稿图谱。',
   relayoutUnavailableReason: '当前自动重排能力将在后续任务接入。',
-  webdavSettingsUnavailableReason: '当前设置面板将在后续任务接入。',
+  webdavSettingsUnavailableReason: null,
   externalActionRunningReason: '当前有覆盖、同步或恢复操作正在执行，请等待完成后再继续。',
+  webdavSettingsTitle: 'WebDAV 设置',
+  webdavSettingsSummary: '管理当前工作区使用的单一 WebDAV 配置。保存设置不会自动视为可用性检测成功。',
+  webdavSettingsEndpointLabel: 'WebDAV URL',
+  webdavSettingsUsernameLabel: '用户名',
+  webdavSettingsPasswordLabel: '密码',
+  webdavSettingsEndpointPlaceholder: 'https://dav.example.com/collection/',
+  webdavSettingsUsernamePlaceholder: '请输入 WebDAV 用户名',
+  webdavSettingsPasswordPlaceholder: '请输入 WebDAV 密码',
+  webdavSettingsHelper: '云端上传功能只有在配置有效、host 权限已授予、且最近一次可用性检测成功后才会启用。',
+  webdavSettingsSaveLabel: '保存设置',
+  webdavSettingsTestLabel: '测试可用性',
+  webdavSettingsCloseLabel: '关闭',
+  webdavSettingsValidationEndpoint: '请输入有效的 WebDAV URL（仅支持 http / https，且不要在 URL 中内嵌账号密码）。',
+  webdavSettingsValidationUsername: '请输入 WebDAV 用户名。',
+  webdavSettingsValidationPassword: '请输入 WebDAV 密码。',
+  webdavSettingsSaveUnavailable: '当前本地存储不可用，暂时无法保存 WebDAV 设置。',
+  webdavSettingsSaveFailed: '保存 WebDAV 设置失败，请稍后重试。',
+  webdavAvailabilityStatusAction: 'WebDAV 可用性检测',
+  webdavAvailabilitySuccessResult: 'WebDAV 可用性检测通过，云端上传已可用',
+  webdavAvailabilitySuccessDetail: '当前配置、host 权限与最近一次检测结果都满足上传前置条件。',
+  webdavAvailabilityFailureResult: 'WebDAV 可用性检测失败',
+  webdavAvailabilityPermissionErrorResult: 'WebDAV host 权限检测失败',
+  webdavAvailabilityPermissionDeniedResult: '未授予 WebDAV host 权限，云端功能继续保持禁用',
+  webdavAvailabilityPermissionDeniedDetail: '当前草稿编辑不受影响；如需云端功能，请允许访问该 WebDAV 地址。',
+  webdavAvailabilityPermissionUnavailableResult: '当前环境不支持 WebDAV host 权限检测',
+  webdavAvailabilityPermissionUnavailableDetail: '当前仍无法启用云端功能，请在支持扩展权限请求的环境中重试。',
+  webdavAvailabilityManifestReloadDetail: '当前扩展可能仍在使用旧的 manifest。请到 chrome://extensions 重新加载该扩展后，再重试 WebDAV 可用性检测。',
+  webdavAvailabilityInvalidUrlResult: 'WebDAV 地址无效，无法执行可用性检测',
+  webdavAvailabilityInvalidUrlDetail: '请先修正 WebDAV URL，再重新测试可用性。',
+  webdavAvailabilityPendingResult: '尚未执行 WebDAV 可用性检测',
+  webdavAvailabilityPendingDetail: '保存设置后，请主动执行一次“测试可用性”以解锁云端上传能力。',
   hintItems: [
     '单击：选择节点',
     '双击：编辑节点',
@@ -320,5 +358,29 @@ export function getStartupStatusCopy(input?: {
     result: '当前还不能自动读取浏览器书签',
     detail: '本地草稿为空，且当前无法读取浏览器书签。请确认扩展权限后再执行导入。',
     canvasSummary: '当前尚未导入浏览器书签；确认权限后即可读取并生成第一份草稿。',
+  };
+}
+
+export function getWebdavSettingsResultCopy(input?: {
+  status: WebdavTestStatus;
+  checkedAt: string | null;
+}): WebdavSettingsResultCopy {
+  if (!input || input.status === 'untested') {
+    return {
+      result: appShellCopy.webdavAvailabilityPendingResult,
+      detail: appShellCopy.webdavAvailabilityPendingDetail,
+    };
+  }
+
+  if (input.status === 'success') {
+    return {
+      result: `${appShellCopy.webdavAvailabilitySuccessResult}${input.checkedAt ? `（${formatStatusTimestamp(input.checkedAt)}）` : ''}`,
+      detail: appShellCopy.webdavAvailabilitySuccessDetail,
+    };
+  }
+
+  return {
+    result: `${appShellCopy.webdavAvailabilityFailureResult}${input.checkedAt ? `（${formatStatusTimestamp(input.checkedAt)}）` : ''}`,
+    detail: '最近一次可用性检测未通过，请检查地址、权限与网络状态后重试。',
   };
 }

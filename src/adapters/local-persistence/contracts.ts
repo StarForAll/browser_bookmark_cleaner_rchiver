@@ -69,6 +69,23 @@ const ALLOWED_BACKUP_SOURCE_COMBINATIONS = [
 
 type LocalBackupSourceOrigin = (typeof LOCAL_BACKUP_SOURCE_ORIGINS)[number];
 
+const WEBDAV_TEST_STATUSES = ['untested', 'success', 'error'] as const;
+
+export type WebdavTestStatus = (typeof WEBDAV_TEST_STATUSES)[number];
+
+export type WebdavProfile = {
+  endpointUrl: string;
+  username: string;
+  password: string;
+  lastTestedAt: string | null;
+  lastTestStatus: WebdavTestStatus;
+};
+
+export type WebdavPermissionState = {
+  origin: string;
+  granted: boolean;
+};
+
 type NodePosition = {
   x: number;
   y: number;
@@ -115,6 +132,23 @@ function isNodePositionRecord(value: unknown): value is Record<string, NodePosit
 
 function isLocalBackupSourceOrigin(value: unknown): value is LocalBackupSourceOrigin {
   return (LOCAL_BACKUP_SOURCE_ORIGINS as readonly string[]).includes(String(value));
+}
+
+function isWebdavTestStatus(value: unknown): value is WebdavTestStatus {
+  return (WEBDAV_TEST_STATUSES as readonly string[]).includes(String(value));
+}
+
+function isValidWebdavEndpointUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return (
+      (parsed.protocol === 'https:' || parsed.protocol === 'http:') &&
+      parsed.username.length === 0 &&
+      parsed.password.length === 0
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function validatePersistedDraftSession(value: unknown): ValidationResult<PersistedDraftSession> {
@@ -181,6 +215,71 @@ export function validatePersistedDraftSession(value: unknown): ValidationResult<
     nodePositionsById,
     undoHistory: normalizedUndoHistory,
     checkpoints: normalizedCheckpoints,
+  });
+}
+
+export function validateWebdavProfile(value: unknown): ValidationResult<WebdavProfile> {
+  if (!isRecord(value)) {
+    return validationFailure('WebDAV profile must be an object.');
+  }
+
+  const {
+    endpointUrl,
+    username,
+    password,
+    lastTestedAt,
+    lastTestStatus,
+  } = value;
+
+  if (!isNonEmptyString(endpointUrl) || !isValidWebdavEndpointUrl(endpointUrl.trim())) {
+    return validationFailure('WebDAV profile endpointUrl must be a valid http(s) URL without embedded credentials.');
+  }
+
+  if (!isNonEmptyString(username)) {
+    return validationFailure('WebDAV profile username must be non-empty.');
+  }
+
+  if (!isNonEmptyString(password)) {
+    return validationFailure('WebDAV profile password must be non-empty.');
+  }
+
+  if (!isOptionalString(lastTestedAt)) {
+    return validationFailure('WebDAV profile lastTestedAt must be a string or null.');
+  }
+
+  if (!isWebdavTestStatus(lastTestStatus)) {
+    return validationFailure('WebDAV profile lastTestStatus is invalid.');
+  }
+
+  return validationSuccess({
+    endpointUrl: endpointUrl.trim(),
+    username: username.trim(),
+    password,
+    lastTestedAt,
+    lastTestStatus,
+  });
+}
+
+export function validateWebdavPermissionState(
+  value: unknown,
+): ValidationResult<WebdavPermissionState> {
+  if (!isRecord(value)) {
+    return validationFailure('WebDAV permission state must be an object.');
+  }
+
+  const { origin, granted } = value;
+
+  if (!isNonEmptyString(origin)) {
+    return validationFailure('WebDAV permission state origin must be non-empty.');
+  }
+
+  if (typeof granted !== 'boolean') {
+    return validationFailure('WebDAV permission state granted must be a boolean.');
+  }
+
+  return validationSuccess({
+    origin,
+    granted,
   });
 }
 

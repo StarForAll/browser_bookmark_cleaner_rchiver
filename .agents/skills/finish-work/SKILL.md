@@ -71,6 +71,17 @@ Checklist:
 
 If YES -> Update the relevant code-spec doc.
 
+### 2.2. Parent / Child Task Record Sync
+
+If the current task is a child task under a parent coordinator task:
+
+- [ ] After this child task reaches completed / archived status, will the parent `task_plan.md` summary be updated in the same round?
+- [ ] If the parent `task.json` `notes` or other narrative metadata names the latest completed frontier or next serial child task, will that metadata be updated too?
+- [ ] Are you relying on `python3 ./.trellis/scripts/task.py list` only for active-child visibility, rather than treating it as proof that parent narrative records are already synchronized?
+
+**Block Rule**:
+Do not treat child-task closeout as complete if the parent coordinator records still point at an older completed frontier or still name the just-finished child task as the next task.
+
 ### 2.5. Code-Spec Hard Block (Infra/Cross-Layer)
 
 If this change touches infra or cross-layer contracts, this is a blocking checklist:
@@ -139,6 +150,7 @@ If the change spans multiple layers:
 | Migration not created | Schema out of sync | Check db/migrations/ |
 | Types not synced | Runtime errors | Check shared types |
 | Verification matrix not frozen yet but treated as complete | False confidence | Mark verification as deferred until architecture/commands are frozen |
+| Child task archived but parent summary still points to the old frontier | Workflow drift and misleading progress | Sync parent `task_plan.md` and `task.json` in the same round |
 | Console.log left in | Noisy production logs | Search for console.log |
 
 ---

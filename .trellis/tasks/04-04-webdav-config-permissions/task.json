@@ -3,7 +3,7 @@
   "name": "webdav-config-permissions",
   "title": "Implement WebDAV Configuration And Permissions",
   "description": "Implement WebDAV configuration, permission, and availability gating without adding upload or restore execution.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 4,
   "next_action": [
     {
       "phase": 1,
@@ -48,6 +48,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/webdav-settings.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "T10 implementation, task-level check, and review-gate round 1 are complete. Current remaining step is finish-work / pre-commit closeout; archive and parent-progress sync still belong to the later closeout round.",
   "meta": {}
 }

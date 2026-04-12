@@ -19,12 +19,16 @@ describe('T03 extension shell and page entry', () => {
     ) as {
       manifest_version: number;
       permissions?: string[];
+      optional_host_permissions?: string[];
       options_ui?: { page?: string; open_in_tab?: boolean };
     };
     const indexHtml = readFileSync(join(repoRoot, 'index.html'), 'utf8');
 
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.permissions).toEqual(expect.arrayContaining(['bookmarks', 'storage']));
+    expect(manifest.optional_host_permissions).toEqual(
+      expect.arrayContaining(['https://*/*', 'http://*/*']),
+    );
     expect(manifest.options_ui?.page).toBe('index.html');
     expect(manifest.options_ui?.open_in_tab).toBe(true);
     expect(indexHtml).toContain('/src/main.tsx');
@@ -65,6 +69,7 @@ describe('T03 extension shell and page entry', () => {
     render(<App />);
 
     expect(screen.getByRole('button', { name: '从浏览器覆盖当前草稿' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'WebDAV 设置' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '同步当前草稿到浏览器书签' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '上传当前草稿到 WebDAV' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '上传当前浏览器书签到 WebDAV' })).toBeDisabled();
