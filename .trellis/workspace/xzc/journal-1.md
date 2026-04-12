@@ -1098,3 +1098,37 @@ Implemented WebDAV upload/version retention, provider compatibility fixes, and r
 ### Next Steps
 
 - None - task complete
+
+
+## Session 28: T12A WebDAV Draft Restore Closeout
+
+**Date**: 2026-04-13
+**Task**: T12A WebDAV Draft Restore Closeout
+**Branch**: `master`
+
+### Summary
+
+Completed T12A WebDAV draft restore, closed review-gate, archived the child task, and advanced the parent frontier to T12B.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bbbe3f0` | (see git log) |
+| `7f01339` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
