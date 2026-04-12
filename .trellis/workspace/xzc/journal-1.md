@@ -1064,3 +1064,37 @@ Completed T10 WebDAV configuration, runtime host permission gating, delivery art
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: T11 WebDAV Upload And Version Retention
+
+**Date**: 2026-04-12
+**Task**: T11 WebDAV Upload And Version Retention
+**Branch**: `master`
+
+### Summary
+
+Implemented WebDAV upload/version retention, provider compatibility fixes, and runtime permission refresh hardening for T11, then archived the child task and synced parent progress.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `72c1793` | (see git log) |
+| `a9fce2e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
