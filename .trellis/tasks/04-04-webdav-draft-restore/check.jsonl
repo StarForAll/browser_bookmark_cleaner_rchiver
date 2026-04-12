@@ -1,0 +1,8 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Review restore gate against required frontend verification matrix and backup/restore evidence rules"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md", "reason": "Check restore-target boundary, preconditions, and index-driven version-list contract"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md", "reason": "Check mandatory draft backup generation and draft restore failure semantics"}
+{"file": "src/app/App.localBackupRecovery.test.tsx", "reason": "Check adjacent restore/backups UI pattern and status-history expectations"}
+{"file": ".trellis/tasks/04-04-webdav-draft-restore/test-first.md", "reason": "Task-local gate that defines the accepted T12A restore coverage and target verification command"}
+{"file": "src/app/App.webdavDraftRestoreFlow.test.tsx", "reason": "Task-local app interaction gate for draft-only restore picker, backup ordering, and status history"}

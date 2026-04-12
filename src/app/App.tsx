@@ -51,7 +51,12 @@ import {
   isWebdavUploadReady,
   normalizeWebdavEndpointUrl,
 } from '@/features/webdav/application/availability';
+import {
+  listRestorableVersions,
+  restoreVersionedSnapshot,
+} from '@/features/webdav/application/restoreVersionedSnapshot';
 import { uploadVersionedSnapshot } from '@/features/webdav/application/uploadVersionedSnapshot';
+import type { WebdavVersionDescriptor } from '@/features/webdav/application/uploadVersionedSnapshot';
 import { DraftGraphWorkspace } from '@/features/bookmark-graph/ui/DraftGraphWorkspace';
 import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
 import { DRAFT_GRAPH_SCHEMA_VERSION, type DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
@@ -98,6 +103,11 @@ type WebdavSettingsFormValues = {
 
 type WebdavUploadKind = 'browser' | 'draft';
 
+type DraftRestorePickerState = {
+  versions: WebdavVersionDescriptor[];
+  selectedVersionId: string | null;
+};
+
 type PrimarySystemActionItem = (typeof appShellCopy.primaryActionItems)[number];
 
 type SecondarySystemActionItem = (typeof appShellCopy.secondaryActionItems)[number];
@@ -117,6 +127,11 @@ type SecondarySystemActionWithState = SecondarySystemActionItem & {
   disabledReason: string | null;
   isDisabled: boolean;
 };
+
+type ImmediateOverwriteConfirmationAction = Extract<
+  OverwriteConfirmationAction,
+  'overwrite-draft-from-browser' | 'sync-draft-to-browser'
+>;
 
 type CanvasOverlayPosition = {
   left: number;
@@ -262,6 +277,31 @@ function createEmptyWebdavSettingsFormValues(): WebdavSettingsFormValues {
     username: '',
     password: '',
   };
+}
+
+function createEmptyDraftRestorePickerState(): DraftRestorePickerState {
+  return {
+    versions: [],
+    selectedVersionId: null,
+  };
+}
+
+function sortVersionsNewestFirst(
+  versions: WebdavVersionDescriptor[],
+): WebdavVersionDescriptor[] {
+  return [...versions]
+    .map((version, index) => ({ index, version }))
+    .sort((left, right) => {
+      const leftTime = new Date(left.version.createdAt).getTime();
+      const rightTime = new Date(right.version.createdAt).getTime();
+
+      if (Number.isNaN(leftTime) || Number.isNaN(rightTime) || leftTime === rightTime) {
+        return left.index - right.index;
+      }
+
+      return rightTime - leftTime;
+    })
+    .map((entry) => entry.version);
 }
 
 function buildWebdavFormValidationResult(
@@ -415,7 +455,7 @@ function appendStatusHistory(current: PersistedStatusEntry[], nextEntry: Persist
 
 function isOverwriteConfirmationAction(
   actionKey: PrimarySystemActionItem['key'],
-): actionKey is OverwriteConfirmationAction {
+): actionKey is ImmediateOverwriteConfirmationAction {
   return actionKey === 'overwrite-draft-from-browser' || actionKey === 'sync-draft-to-browser';
 }
 
@@ -445,9 +485,10 @@ function resolvePrimaryActionDisabledReason(
     case 'upload-browser-to-webdav':
       return input.isWebdavUploadEnabled ? null : appShellCopy.webdavUnavailableReason;
     case 'restore-webdav-draft':
+      return input.isWebdavUploadEnabled ? null : appShellCopy.webdavUnavailableReason;
     case 'restore-webdav-browser':
       return input.isWebdavUploadEnabled
-        ? appShellCopy.webdavRestoreUnavailableReason
+        ? appShellCopy.webdavBrowserRestoreUnavailableReason
         : appShellCopy.webdavUnavailableReason;
     case 'undo-overwrite':
       return input.hasUndoOverwriteTarget ? null : appShellCopy.undoUnavailableReason;
@@ -519,6 +560,10 @@ export function App({
   const [webdavFormValues, setWebdavFormValues] = useState<WebdavSettingsFormValues>(() => createEmptyWebdavSettingsFormValues());
   const [webdavFormError, setWebdavFormError] = useState<string | null>(null);
   const [overwriteConfirmationAction, setOverwriteConfirmationAction] = useState<OverwriteConfirmationAction | null>(null);
+  const [isDraftRestorePickerOpen, setIsDraftRestorePickerOpen] = useState(false);
+  const [draftRestorePickerState, setDraftRestorePickerState] = useState<DraftRestorePickerState>(
+    () => createEmptyDraftRestorePickerState(),
+  );
   const [isLocalRecoveryChooserOpen, setIsLocalRecoveryChooserOpen] = useState(false);
   const [selectedLocalRecoveryTarget, setSelectedLocalRecoveryTarget] = useState<LocalRecoveryTarget | null>(null);
   const [recoveryConfirmationTarget, setRecoveryConfirmationTarget] = useState<LocalRecoveryTarget | null>(null);
@@ -685,6 +730,17 @@ export function App({
       top: `${statusOverlayPosition.top}px`,
     } as const;
   }, [statusOverlayPosition]);
+  const selectedDraftRestoreVersion = useMemo<WebdavVersionDescriptor | null>(() => {
+    if (!draftRestorePickerState.selectedVersionId) {
+      return null;
+    }
+
+    return (
+      draftRestorePickerState.versions.find(
+        (version) => version.versionId === draftRestorePickerState.selectedVersionId,
+      ) ?? null
+    );
+  }, [draftRestorePickerState.selectedVersionId, draftRestorePickerState.versions]);
   const persistCurrentDraftSession = useCallback(async (
     nextSession: PersistedDraftSession,
   ) => {
@@ -941,6 +997,10 @@ export function App({
     setIsSearchNavigationActive(false);
     searchNavigationActiveRef.current = false;
   }, []);
+  const resetDraftRestorePicker = useCallback(() => {
+    setIsDraftRestorePickerOpen(false);
+    setDraftRestorePickerState(createEmptyDraftRestorePickerState());
+  }, []);
   const updateLocalBackupState = useCallback((artifact: LocalBackupArtifact) => {
     setLocalBackupState((current) => {
       if (artifact.artifactType === 'draft-restore-backup') {
@@ -1148,6 +1208,87 @@ export function App({
       finishExternalAction();
     }
   }, [applyInspectedWebdavPermissionState, beginExternalAction, currentDraftSession, finishExternalAction, recordStatusEntry, webdavProfile]);
+  const openWebdavDraftRestorePicker = useCallback(async () => {
+    const occurredAtDisplay = formatStatusTimestamp(new Date().toISOString());
+
+    if (!beginExternalAction('list-webdav-draft-versions')) {
+      return;
+    }
+
+    try {
+      if (!webdavProfile) {
+        recordStatusEntry({
+          statusKey: 'restore-webdav-draft-blocked',
+          action: appShellCopy.webdavDraftRestoreStatusAction,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavDraftRestoreBlockedResult,
+          detail: appShellCopy.webdavDraftRestoreBlockedDetail,
+        });
+        return;
+      }
+
+      const permissionResult = await inspectWebdavHostPermission(webdavProfile.endpointUrl);
+      await applyInspectedWebdavPermissionState(webdavProfile, permissionResult);
+      if (permissionResult.kind !== 'granted') {
+        recordStatusEntry({
+          statusKey: 'restore-webdav-draft-blocked',
+          action: appShellCopy.webdavDraftRestoreStatusAction,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavDraftRestoreBlockedResult,
+          detail:
+            permissionResult.kind === 'denied'
+              ? appShellCopy.webdavAvailabilityPermissionDeniedDetail
+              : permissionResult.kind === 'invalid-origin'
+                ? appShellCopy.webdavAvailabilityInvalidUrlDetail
+                : permissionResult.kind === 'unavailable'
+                  ? appShellCopy.webdavAvailabilityPermissionUnavailableDetail
+                  : permissionResult.kind === 'error'
+                    ? permissionResult.error
+                    : appShellCopy.webdavDraftRestoreBlockedDetail,
+        });
+        return;
+      }
+
+      const versionsResult = await listRestorableVersions({
+        kind: 'draft',
+        profile: webdavProfile,
+      });
+
+      if (versionsResult.kind === 'success') {
+        setDraftRestorePickerState({
+          selectedVersionId: null,
+          versions: sortVersionsNewestFirst(versionsResult.versions),
+        });
+        setIsDraftRestorePickerOpen(true);
+        return;
+      }
+
+      recordStatusEntry({
+        statusKey:
+          versionsResult.kind === 'blocked'
+            ? 'restore-webdav-draft-blocked'
+            : 'restore-webdav-draft-list-failed',
+        action: appShellCopy.webdavDraftRestoreStatusAction,
+        time: occurredAtDisplay,
+        result:
+          versionsResult.kind === 'blocked'
+            ? appShellCopy.webdavDraftRestoreBlockedResult
+            : appShellCopy.webdavDraftRestoreListFailedResult,
+        detail:
+          versionsResult.kind === 'blocked'
+            ? versionsResult.reason
+            : versionsResult.error,
+      });
+    } finally {
+      finishExternalAction();
+    }
+  }, [
+    applyInspectedWebdavPermissionState,
+    beginExternalAction,
+    finishExternalAction,
+    recordStatusEntry,
+    webdavProfile,
+  ]);
   const executeOverwriteAction = useCallback(async (action: OverwriteConfirmationAction) => {
     const confirmationCopy = getOverwriteConfirmationCopy(action);
     const statusTime = () => formatStatusTimestamp(new Date().toISOString());
@@ -1216,6 +1357,98 @@ export function App({
             persistResult.kind === 'saved'
               ? confirmationCopy.successStatusResult
               : '已根据当前浏览器书签重建当前草稿，但本地保存失败',
+          detail:
+            persistResult.kind === 'saved'
+              ? confirmationCopy.successStatusDetail
+              : persistResult.kind === 'error'
+                ? `${confirmationCopy.successStatusDetail} ${persistResult.error}`
+                : `${confirmationCopy.successStatusDetail} 当前本地存储不可用，刷新后可能丢失。`,
+        });
+        return;
+      }
+
+      if (action === 'restore-webdav-draft') {
+        if (!webdavProfile || !selectedDraftRestoreVersion) {
+          recordStatusEntry({
+            statusKey: confirmationCopy.blockedStatusKey,
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: confirmationCopy.blockedStatusResult,
+            detail: confirmationCopy.blockedStatusDetail,
+          });
+          return;
+        }
+
+        const draftBackupArtifact = createDraftLocalBackupArtifact({
+          payload: currentDraftSession?.draftSnapshot ?? createEmptyDraftSnapshot(),
+          sourceOrigin: 'webdav-draft-version',
+          sourceVersionId: selectedDraftRestoreVersion.versionId,
+          sourceVersionLabel: selectedDraftRestoreVersion.snapshotLabel,
+          triggerAction: action,
+        });
+        const backupWriteResult = await writeLocalBackupArtifact(draftBackupArtifact);
+
+        if (backupWriteResult.kind !== 'saved') {
+          recordStatusEntry({
+            statusKey: 'restore-webdav-draft-backup-blocked',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: confirmationCopy.backupBlockedStatusResult,
+            detail:
+              backupWriteResult.kind === 'error'
+                ? `${confirmationCopy.backupBlockedStatusDetail} ${backupWriteResult.error}`
+                : confirmationCopy.backupBlockedStatusDetail,
+          });
+          return;
+        }
+
+        updateLocalBackupState(backupWriteResult.artifact);
+
+        const restoreResult = await restoreVersionedSnapshot({
+          kind: 'draft',
+          profile: webdavProfile,
+          version: selectedDraftRestoreVersion,
+          versionId: selectedDraftRestoreVersion.versionId,
+        });
+
+        if (restoreResult.kind !== 'success') {
+          recordStatusEntry({
+            statusKey:
+              restoreResult.kind === 'blocked'
+                ? confirmationCopy.blockedStatusKey
+                : 'restore-webdav-draft-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result:
+              restoreResult.kind === 'blocked'
+                ? confirmationCopy.blockedStatusResult
+                : appShellCopy.webdavDraftRestoreFailedResult,
+            detail:
+              restoreResult.kind === 'blocked'
+                ? restoreResult.reason
+                : `${restoreResult.error} 当前草稿保持不变，已保留本地备份。`,
+          });
+          return;
+        }
+
+        const nextSession = buildDraftSession(restoreResult.snapshot);
+        const persistResult = await persistCurrentDraftSession(nextSession);
+
+        resetDraftReplacementUi();
+        resetDraftRestorePicker();
+        setWorkspaceRenderKey((current) => current + 1);
+
+        recordStatusEntry({
+          statusKey:
+            persistResult.kind === 'saved'
+              ? 'restore-webdav-draft-succeeded'
+              : 'restore-webdav-draft-succeeded-unsaved',
+          action: confirmationCopy.blockedStatusAction,
+          time: statusTime(),
+          result:
+            persistResult.kind === 'saved'
+              ? confirmationCopy.successStatusResult
+              : '已恢复当前草稿，但本地保存失败',
           detail:
             persistResult.kind === 'saved'
               ? confirmationCopy.successStatusDetail
@@ -1307,7 +1540,18 @@ export function App({
     } finally {
       finishExternalAction();
     }
-  }, [beginExternalAction, currentDraftSession, finishExternalAction, persistCurrentDraftSession, recordStatusEntry, resetDraftReplacementUi, updateLocalBackupState]);
+  }, [
+    beginExternalAction,
+    currentDraftSession,
+    finishExternalAction,
+    persistCurrentDraftSession,
+    recordStatusEntry,
+    resetDraftReplacementUi,
+    resetDraftRestorePicker,
+    selectedDraftRestoreVersion,
+    updateLocalBackupState,
+    webdavProfile,
+  ]);
   const executeLocalRecovery = useCallback(async (target: LocalRecoveryTarget) => {
     const targetCopy = getLocalRecoveryTargetCopy(target);
     const statusTime = () => formatStatusTimestamp(new Date().toISOString());
@@ -1490,6 +1734,80 @@ export function App({
       <strong>{appShellCopy.statusAnchorLabel}</strong>
       <span>{`${latestDisplayedStatusEntry.action} · ${latestDisplayedStatusEntry.result}`}</span>
     </button>
+  ) : null;
+  const draftRestorePickerDialog = isDraftRestorePickerOpen ? (
+    <div
+      aria-modal="true"
+      className="draft-dialog-backdrop"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          resetDraftRestorePicker();
+        }
+      }}
+      role="dialog"
+    >
+      <div className="draft-dialog-card overwrite-confirmation-card draft-restore-picker-card">
+        <h3>{appShellCopy.webdavDraftRestorePickerTitle}</h3>
+        <p>{appShellCopy.webdavDraftRestorePickerSummary}</p>
+        <p>{appShellCopy.webdavDraftRestorePickerTargetSummary}</p>
+        <p className="draft-dialog-note">{appShellCopy.webdavDraftRestorePickerBackupReminder}</p>
+        {draftRestorePickerState.versions.length > 0 ? (
+          <div
+            aria-label={appShellCopy.webdavDraftRestorePickerTitle}
+            className="local-recovery-choice-list draft-restore-choice-list"
+            role="group"
+          >
+            {draftRestorePickerState.versions.map((version, index) => {
+              const isSelected = version.versionId === draftRestorePickerState.selectedVersionId;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`local-recovery-choice draft-restore-choice${isSelected ? ' is-selected' : ''}`}
+                  key={version.versionId}
+                  onClick={() => {
+                    setDraftRestorePickerState((current) => ({
+                      ...current,
+                      selectedVersionId: version.versionId,
+                    }));
+                  }}
+                  type="button"
+                >
+                  <span className="draft-restore-choice-label">{`版本${index + 1}`}</span>
+                  <span className="draft-restore-choice-time">{formatStatusTimestamp(version.createdAt)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="draft-dialog-warning" role="status">
+            {appShellCopy.webdavDraftRestorePickerEmptyState}
+          </p>
+        )}
+        <div className="draft-dialog-actions">
+          <button
+            className="draft-dialog-button"
+            onClick={() => {
+              resetDraftRestorePicker();
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavDraftRestorePickerCancelLabel}
+          </button>
+          <button
+            className="draft-dialog-button is-primary"
+            disabled={!selectedDraftRestoreVersion}
+            onClick={() => {
+              setIsDraftRestorePickerOpen(false);
+              setOverwriteConfirmationAction('restore-webdav-draft');
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavDraftRestorePickerContinueLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   ) : null;
   const overwriteConfirmationDialog = overwriteConfirmationCopy ? (
     <div
@@ -2156,6 +2474,11 @@ export function App({
                       return;
                     }
 
+                    if (action.key === 'restore-webdav-draft') {
+                      void openWebdavDraftRestorePicker();
+                      return;
+                    }
+
                     if (action.key === 'undo-overwrite') {
                       const hasAvailableTarget =
                         localBackupState.browser.availability === 'available' ||
@@ -2314,6 +2637,9 @@ export function App({
       {webdavSettingsDialog && typeof document !== 'undefined'
         ? createPortal(webdavSettingsDialog, document.body)
         : webdavSettingsDialog}
+      {draftRestorePickerDialog && typeof document !== 'undefined'
+        ? createPortal(draftRestorePickerDialog, document.body)
+        : draftRestorePickerDialog}
       {overwriteConfirmationDialog && typeof document !== 'undefined'
         ? createPortal(overwriteConfirmationDialog, document.body)
         : overwriteConfirmationDialog}

@@ -1,0 +1,12 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Centralized draft truth, explicit external action gating, and WebDAV restore side-effect boundary"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Draft snapshot and WebDAV envelope validation rules at restore boundaries"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Vitest gate, backup/restore verification expectations, and child-task test-first baseline"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Restore flow crosses WebDAV adapter, local backup persistence, draft state replacement, and UI status history"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md", "reason": "Restore-to-draft contract, type boundary, index-based version list, and result semantics"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md", "reason": "Mandatory draft backup-before-restore rule and strong transactional restore failure policy"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/restore-version.md", "reason": "Single-target restore picker and shared confirmation flow wording for draft restore"}
+{"file": "src/app/App.webdavUploadFlow.test.tsx", "reason": "Nearest app-shell WebDAV flow test pattern for action gating, fetch mocking, and status assertions"}
+{"file": "src/app/App.localBackupRecovery.test.tsx", "reason": "Nearest local-backup restore and ordering test pattern for draft/browser backup slots"}
+{"file": ".trellis/tasks/04-04-webdav-draft-restore/test-first.md", "reason": "Task-local frozen test-first gate for T12A draft restore execution"}

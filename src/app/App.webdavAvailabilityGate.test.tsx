@@ -202,11 +202,11 @@ describe('T10 WebDAV configuration and availability gate', () => {
     });
 
     expect(screen.getByRole('button', { name: '上传当前草稿到 WebDAV' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: '恢复 WebDAV 草稿到当前草稿' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '恢复 WebDAV 草稿到当前草稿' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '恢复 WebDAV 书签到浏览器书签' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '恢复 WebDAV 草稿到当前草稿' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '恢复 WebDAV 书签到浏览器书签' })).toHaveAttribute(
       'title',
-      '当前 WebDAV 恢复列表与恢复流程将在后续任务接入。',
+      '当前 WebDAV 浏览器书签恢复流程将在后续任务接入。',
     );
   });
 

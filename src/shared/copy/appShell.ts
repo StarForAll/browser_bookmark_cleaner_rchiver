@@ -1,6 +1,7 @@
 export type OverwriteConfirmationAction =
   | 'overwrite-draft-from-browser'
-  | 'sync-draft-to-browser';
+  | 'sync-draft-to-browser'
+  | 'restore-webdav-draft';
 
 export type LocalRecoveryTarget = 'browser' | 'draft';
 export type WebdavTestStatus = 'untested' | 'success' | 'error';
@@ -15,7 +16,7 @@ type OverwriteConfirmationCopy = {
   backupReminder: string;
   caution: string | null;
   confirmLabel: string;
-  blockedStatusKey: 'overwrite-draft-blocked' | 'sync-draft-blocked';
+  blockedStatusKey: string;
   blockedStatusAction: string;
   blockedStatusResult: string;
   blockedStatusDetail: string;
@@ -44,13 +45,13 @@ type WebdavSettingsResultCopy = {
 
 export const appShellCopy = {
   title: '书签清理与归档工作区',
-  subtitle: '当前草稿工作区已经接入基础编辑、拖拽、草稿撤销、浏览器覆盖/同步、本地撤销覆盖与 WebDAV 上传；后续任务继续补 WebDAV 恢复能力。',
+  subtitle: '当前草稿工作区已经接入基础编辑、拖拽、草稿撤销、浏览器覆盖/同步、本地撤销覆盖、WebDAV 上传与 WebDAV 草稿恢复；后续任务继续补浏览器书签恢复能力。',
   topShellLabel: '顶部动作区',
   searchLabel: '搜索与聚焦区',
   canvasLabel: '图谱画布区',
   hintLabel: '操作提示区',
   statusLabel: '状态结果区',
-  topShellSummary: '高风险动作入口保持显式可见；当前浏览器覆盖、同步、本地撤销覆盖与 WebDAV 上传已经接入显式执行边界，后续任务继续补 WebDAV 恢复能力。',
+  topShellSummary: '高风险动作入口保持显式可见；当前浏览器覆盖、同步、本地撤销覆盖、WebDAV 上传与 WebDAV 草稿恢复已经接入显式执行边界，后续任务继续补浏览器书签恢复能力。',
   searchSummary: '标题或 URL 搜索会基于当前草稿实时更新命中结果；普通搜索在按下 Enter 后才会聚焦首个结果，并可用 ↑ / ↓ 循环切换；仅看重复项会切换到重复 URL 聚焦视图。',
   searchInputPlaceholder: '搜索标题或 URL',
   searchToggleLabel: '仅看重复项',
@@ -93,7 +94,8 @@ export const appShellCopy = {
   ],
   syncWithoutDraftReason: '当前还没有可同步的草稿内容。',
   webdavUnavailableReason: '请先完成 WebDAV 设置与可用性检测。',
-  webdavRestoreUnavailableReason: '当前 WebDAV 恢复列表与恢复流程将在后续任务接入。',
+  webdavRestoreUnavailableReason: '当前 WebDAV 恢复列表暂时不可用，请稍后重试。',
+  webdavBrowserRestoreUnavailableReason: '当前 WebDAV 浏览器书签恢复流程将在后续任务接入。',
   relayoutWithoutDraftReason: '当前还没有可重新整理的草稿图谱。',
   relayoutUnavailableReason: '当前自动重排能力将在后续任务接入。',
   webdavSettingsUnavailableReason: null,
@@ -142,6 +144,19 @@ export const appShellCopy = {
   webdavDraftUploadFailedResult: '上传当前草稿到 WebDAV 失败',
   webdavBrowserUploadFailedResult: '上传当前浏览器书签到 WebDAV 失败',
   webdavBrowserUploadReadFailedResult: '读取当前浏览器书签失败，未执行 WebDAV 上传',
+  webdavDraftRestoreStatusAction: '恢复 WebDAV 草稿到当前草稿',
+  webdavDraftRestorePickerTitle: '选择要恢复到当前草稿的 WebDAV 草稿版本',
+  webdavDraftRestorePickerSummary: '这里只显示 WebDAV 草稿版本；继续后会进入覆盖确认，确认恢复前不会改动当前草稿。',
+  webdavDraftRestorePickerTargetSummary: '目标：当前草稿',
+  webdavDraftRestorePickerBackupReminder: '确认恢复前，系统会先为当前草稿自动生成一份本地备份，便于后续撤销覆盖。',
+  webdavDraftRestorePickerEmptyState: '当前没有可恢复的 WebDAV 草稿版本。',
+  webdavDraftRestorePickerContinueLabel: '继续',
+  webdavDraftRestorePickerCancelLabel: '取消',
+  webdavDraftRestoreListFailedResult: '读取 WebDAV 草稿版本列表失败',
+  webdavDraftRestoreBlockedResult: '当前还不能恢复 WebDAV 草稿版本',
+  webdavDraftRestoreBlockedDetail: '请先完成 WebDAV 设置、host 权限授权与可用性检测后再重试。',
+  webdavDraftRestoreEmptyResult: '当前没有可恢复的 WebDAV 草稿版本',
+  webdavDraftRestoreFailedResult: '恢复 WebDAV 草稿到当前草稿失败',
   hintItems: [
     '单击：选择节点',
     '双击：编辑节点',
@@ -206,6 +221,25 @@ const overwriteConfirmationCopy: Record<OverwriteConfirmationAction, OverwriteCo
     backupBlockedStatusDetail: '当前草稿和浏览器书签都保持不变；请先处理本地备份失败后再重试同步。',
     successStatusResult: '已将当前草稿同步到浏览器书签',
     successStatusDetail: '同步前的浏览器书签已写入本地备份；如需回退，可使用“撤销覆盖操作”恢复之前的浏览器书签。',
+  },
+  'restore-webdav-draft': {
+    title: '确认将 WebDAV 草稿版本恢复到当前草稿',
+    sourceSummary: '来源：所选 WebDAV 草稿版本',
+    targetSummary: '目标：当前草稿',
+    overwriteStatement: '所选 WebDAV 草稿版本将覆盖当前草稿。',
+    replaceSummary: '当前草稿的结构和内容将被替换，包括当前草稿相关的搜索、重复过滤和撤销上下文。',
+    preserveSummary: '保持不变：浏览器书签本身不会被这个动作修改。',
+    backupReminder: '执行前会先生成一份当前草稿的本地备份；如需回退，可使用“撤销覆盖操作”恢复之前的草稿。',
+    caution: null,
+    confirmLabel: '确认恢复',
+    blockedStatusKey: 'restore-webdav-draft-blocked',
+    blockedStatusAction: '恢复 WebDAV 草稿到当前草稿',
+    blockedStatusResult: '当前还不能恢复 WebDAV 草稿版本',
+    blockedStatusDetail: '请先完成 WebDAV 设置、host 权限授权与可用性检测后再重试。',
+    backupBlockedStatusResult: '未能生成草稿本地备份，已阻止恢复 WebDAV 草稿到当前草稿',
+    backupBlockedStatusDetail: '当前草稿保持不变；请先处理本地备份失败后再重试恢复。',
+    successStatusResult: '已将所选 WebDAV 草稿版本恢复到当前草稿',
+    successStatusDetail: '恢复前的当前草稿已写入本地备份；如需回退，可使用“撤销覆盖操作”恢复之前的草稿。',
   },
 };
 

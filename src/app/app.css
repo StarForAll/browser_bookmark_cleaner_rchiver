@@ -1125,6 +1125,16 @@ input:disabled {
   color: #506c72;
 }
 
+.draft-restore-picker-card {
+  width: min(360px, calc(100vw - 32px));
+}
+
+.draft-restore-picker-card p,
+.draft-restore-picker-card .draft-dialog-note,
+.draft-restore-picker-card .draft-dialog-warning {
+  max-width: 312px;
+}
+
 .draft-dialog-warning {
   font-weight: 600;
   color: #7a3526;
@@ -1283,6 +1293,38 @@ input:disabled {
   opacity: 0.58;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.draft-restore-choice-list {
+  justify-items: start;
+  gap: 12px;
+}
+
+.draft-restore-choice {
+  justify-content: space-between;
+  gap: 20px;
+  width: min(100%, 312px);
+  min-height: 50px;
+  padding: 12px 18px 12px 20px;
+}
+
+.draft-restore-choice-label {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #14333a;
+}
+
+.draft-restore-choice-time {
+  flex: 0 0 auto;
+  min-width: 132px;
+  padding-left: 18px;
+  border-left: 1px solid rgba(45, 74, 80, 0.12);
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5a747a;
+  white-space: nowrap;
 }
 
 .draft-dialog-button {
