@@ -3,7 +3,7 @@
   "name": "webdav-upload-versioning",
   "title": "Implement WebDAV Upload And Version Retention",
   "description": "Implement WebDAV upload and version retention for draft and browser snapshots without adding restore flows.",
-  "status": "planning",
+  "status": "completed",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -11,11 +11,11 @@
   "creator": "xzc",
   "assignee": "xzc",
   "createdAt": "2026-04-04",
-  "completedAt": null,
+  "completedAt": "2026-04-12",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 4,
   "next_action": [
     {
       "phase": 1,
@@ -38,7 +38,7 @@
       "action": "create-pr"
     }
   ],
-  "commit": null,
+  "commit": "72c1793",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -47,6 +47,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "T11 implementation, provider-compatibility fixes, task-level check, review-gate round 1, finish-work, delivery artifacts, human verification, and human commit are complete. This task is ready for archive and parent-progress sync.",
   "meta": {}
 }

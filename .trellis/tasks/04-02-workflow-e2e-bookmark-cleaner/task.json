@@ -46,7 +46,6 @@
   "pr_url": null,
   "subtasks": [],
   "children": [
-    "04-04-webdav-upload-versioning",
     "04-04-webdav-draft-restore",
     "04-04-webdav-browser-restore",
     "04-04-verification-closeout"
@@ -56,7 +55,7 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
     "tmp/workflow-e2e-issues.md"
   ],
-  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task now serves as summary/coordination only. Runtime execution has progressed through T10 in the frozen serial chain; T08B, T09A, T09B, and T10 are complete, and the next serial child task is T11 when explicitly authorized.",
+  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task now serves as summary/coordination only. Runtime execution has progressed through T11 in the frozen serial chain; T08B, T09A, T09B, T10, and T11 are complete, and the next serial child task is T12A when explicitly authorized.",
   "meta": {
     "task_type": "interactive-product-implementation",
     "product_name": "browser-bookmark-cleaner-archiver",
