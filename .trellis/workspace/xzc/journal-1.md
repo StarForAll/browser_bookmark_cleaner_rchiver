@@ -1030,3 +1030,37 @@ Delivered T09B local backup and undo-overwrite flows, closed two review-gate rou
 ### Next Steps
 
 - None - task complete
+
+
+## Session 26: T10 WebDAV Configuration And Permissions
+
+**Date**: 2026-04-12
+**Task**: T10 WebDAV Configuration And Permissions
+**Branch**: `master`
+
+### Summary
+
+Completed T10 WebDAV configuration, runtime host permission gating, delivery artifacts, and archive/parent progress sync.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `cbe2512` | (see git log) |
+| `4d4609d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 25
+- **Total Sessions**: 26
 - **Last Active**: 2026-04-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1032 | Active |
+| `journal-1.md` | ~1066 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 26 | 2026-04-12 | T10 WebDAV Configuration And Permissions | `cbe2512`, `4d4609d` | `master` |
 | 25 | 2026-04-12 | T09B Local Backup And Undo Overwrite | `6302386`, `6a803b4` | `master` |
 | 24 | 2026-04-11 | T09A 浏览器覆盖与同步确认收尾 | `351b0f0` | `master` |
 | 23 | 2026-04-11 | T08B Status Feedback And Disabled States | `7080700`, `635ae11` | `master` |
