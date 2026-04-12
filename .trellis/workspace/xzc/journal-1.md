@@ -996,3 +996,37 @@ Completed T09A confirmation-gate work, simplified the status area to one newest-
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: T09B Local Backup And Undo Overwrite
+
+**Date**: 2026-04-12
+**Task**: T09B Local Backup And Undo Overwrite
+**Branch**: `master`
+
+### Summary
+
+Delivered T09B local backup and undo-overwrite flows, closed two review-gate rounds, passed automated verification and human runtime validation.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6302386` | (see git log) |
+| `6a803b4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
