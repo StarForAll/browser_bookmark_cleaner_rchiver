@@ -3,7 +3,7 @@
   "name": "webdav-config-permissions",
   "title": "Implement WebDAV Configuration And Permissions",
   "description": "Implement WebDAV configuration, permission, and availability gating without adding upload or restore execution.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "xzc",
   "assignee": "xzc",
   "createdAt": "2026-04-04",
-  "completedAt": null,
+  "completedAt": "2026-04-12",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -38,7 +38,7 @@
       "action": "create-pr"
     }
   ],
-  "commit": null,
+  "commit": "cbe2512",
   "pr_url": null,
   "subtasks": [],
   "children": [],
@@ -48,6 +48,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/webdav-settings.md"
   ],
-  "notes": "T10 implementation, task-level check, and review-gate round 1 are complete. Current remaining step is finish-work / pre-commit closeout; archive and parent-progress sync still belong to the later closeout round.",
+  "notes": "T10 implementation, task-level check, review-gate round 1, finish-work, delivery artifacts, and human commit are complete. This task is ready for archive and parent-progress sync.",
   "meta": {}
 }
