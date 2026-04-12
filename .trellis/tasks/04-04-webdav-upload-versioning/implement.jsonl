@@ -1,0 +1,11 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "T11 verification matrix and child-task test-first rules"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Explicit external-action gating and status history rules for WebDAV uploads"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "WebDAV snapshot envelope and persisted contract boundaries"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md", "reason": "Canonical upload ordering, retention, rollback, and partial-success rules for T11"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Operational flows for upload-draft and upload-browser actions"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/IDD.md", "reason": "WebDAV adapter contract and cloud path separation"}
+{"file": "src/app/App.tsx", "reason": "Existing external-action orchestration and status-history wiring for top-shell actions"}
+{"file": "src/app/App.webdavAvailabilityGate.test.tsx", "reason": "T10 app-level WebDAV interaction test pattern"}
+{"file": "src/adapters/browser-bookmarks/writeManagedBrowserTree.ts", "reason": "Rollback-oriented external side-effect result pattern to mirror in WebDAV uploads"}

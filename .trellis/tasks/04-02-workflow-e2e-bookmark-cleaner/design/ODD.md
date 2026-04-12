@@ -53,14 +53,14 @@ Rules:
 
 1. Verify WebDAV config exists and last test is usable
 2. Build current browser snapshot
-3. Upload version to `/bookmarks/`
+3. Upload version to `/bookmark-extension-data/bookmarks/`
 4. Prune older versions beyond five
 5. Bottom-right status history records success or failure
 
 ### Flow 6: Save draft to WebDAV
 
 1. Serialize current draft graph
-2. Upload version to `/drafts/`
+2. Upload version to `/bookmark-extension-data/drafts/`
 3. Prune older versions beyond five
 4. Bottom-right status history records success or failure
 

@@ -71,6 +71,9 @@ function installChromeRuntime(input: {
   return {
     storageState,
     set,
+    setPermissionGranted(nextValue: boolean) {
+      permissionGranted = nextValue;
+    },
     permissions,
   };
 }
@@ -205,6 +208,40 @@ describe('T10 WebDAV configuration and availability gate', () => {
       'title',
       '当前 WebDAV 恢复列表与恢复流程将在后续任务接入。',
     );
+  });
+
+  test('re-disables WebDAV upload actions when runtime host permission is revoked outside the app', async () => {
+    const runtime = installChromeRuntime({
+      initialPermissionGranted: true,
+      storageState: {
+        [LOCAL_PERSISTENCE_KEYS.sensitive.webdavProfile]: {
+          endpointUrl: 'https://dav.example.com/collection/',
+          username: 'alice',
+          password: 'secret-pass',
+          lastTestedAt: '2026-04-12T10:30:00.000Z',
+          lastTestStatus: 'success',
+        },
+        [LOCAL_PERSISTENCE_KEYS.sensitive.webdavPermissionState]: {
+          origin: 'https://dav.example.com/',
+          granted: true,
+        },
+      },
+    });
+
+    await renderAppWithEditableDraft();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '上传当前浏览器书签到 WebDAV' })).toBeEnabled();
+    });
+
+    runtime.setPermissionGranted(false);
+    window.dispatchEvent(new Event('focus'));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '上传当前浏览器书签到 WebDAV' })).toBeDisabled();
+    });
+
+    expect(screen.getByRole('button', { name: '上传当前草稿到 WebDAV' })).toBeDisabled();
   });
 
   test('keeps uploads disabled and records a failure entry without leaking secrets when availability test fails', async () => {

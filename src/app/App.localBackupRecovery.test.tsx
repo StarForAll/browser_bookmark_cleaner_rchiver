@@ -334,7 +334,7 @@ describe('T09B local backup and undo-overwrite gate', () => {
 
     expect(screen.getByRole('button', { name: '同步当前草稿到浏览器书签' })).toHaveAttribute(
       'title',
-      '当前有覆盖、同步或恢复操作正在执行，请等待完成后再继续。',
+      '当前有覆盖、同步、上传或恢复操作正在执行，请等待完成后再继续。',
     );
 
     browserRead.resolve(createBrowserBookmarkTree());

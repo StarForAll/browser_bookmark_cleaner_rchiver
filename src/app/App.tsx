@@ -36,7 +36,10 @@ import {
   readPersistedWebdavConfig,
   writePersistedWebdavConfig,
 } from '@/adapters/local-persistence/webdavConfig';
-import { ensureWebdavHostPermission } from '@/adapters/webdav/requestHostPermission';
+import {
+  ensureWebdavHostPermission,
+  inspectWebdavHostPermission,
+} from '@/adapters/webdav/requestHostPermission';
 import { testWebdavAvailability } from '@/adapters/webdav/testAvailability';
 import {
   bootstrapWorkspace as defaultBootstrapWorkspace,
@@ -48,6 +51,7 @@ import {
   isWebdavUploadReady,
   normalizeWebdavEndpointUrl,
 } from '@/features/webdav/application/availability';
+import { uploadVersionedSnapshot } from '@/features/webdav/application/uploadVersionedSnapshot';
 import { DraftGraphWorkspace } from '@/features/bookmark-graph/ui/DraftGraphWorkspace';
 import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
 import { DRAFT_GRAPH_SCHEMA_VERSION, type DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
@@ -91,6 +95,8 @@ type WebdavSettingsFormValues = {
   username: string;
   password: string;
 };
+
+type WebdavUploadKind = 'browser' | 'draft';
 
 type PrimarySystemActionItem = (typeof appShellCopy.primaryActionItems)[number];
 
@@ -490,6 +496,12 @@ function buildDisabledActionSummaries(
   return Array.from(summaryByReason.values());
 }
 
+function resolveWebdavUploadActionLabel(kind: WebdavUploadKind): string {
+  return kind === 'draft'
+    ? appShellCopy.webdavDraftUploadStatusAction
+    : appShellCopy.webdavBrowserUploadStatusAction;
+}
+
 export function App({
   enableStartupBootstrap = false,
   bootstrapWorkspace = defaultBootstrapWorkspace,
@@ -712,6 +724,44 @@ export function App({
     setWebdavFormError(null);
     setIsWebdavSettingsOpen(true);
   }, [webdavProfile?.endpointUrl, webdavProfile?.password, webdavProfile?.username]);
+  const applyInspectedWebdavPermissionState = useCallback(async (
+    profile: WebdavProfile,
+    inspectResult: Awaited<ReturnType<typeof inspectWebdavHostPermission>>,
+  ) => {
+    const nextPermissionState: WebdavPermissionState | null =
+      inspectResult.kind === 'granted' || inspectResult.kind === 'denied'
+        ? {
+            origin: inspectResult.origin,
+            granted: inspectResult.kind === 'granted',
+          }
+        : null;
+
+    const nextOrigin = nextPermissionState?.origin ?? null;
+    const nextGranted = nextPermissionState?.granted ?? null;
+    const currentOrigin = webdavPermissionState?.origin ?? null;
+    const currentGranted = webdavPermissionState?.granted ?? null;
+    if (currentOrigin === nextOrigin && currentGranted === nextGranted) {
+      return nextPermissionState;
+    }
+
+    setWebdavPermissionState(nextPermissionState);
+    await writePersistedWebdavConfig({
+      profile,
+      permissionState: nextPermissionState,
+    });
+    return nextPermissionState;
+  }, [webdavPermissionState]);
+  const refreshWebdavPermissionState = useCallback(async (
+    profileOverride?: WebdavProfile | null,
+  ) => {
+    const activeProfile = profileOverride ?? webdavProfile;
+    if (!activeProfile) {
+      return;
+    }
+
+    const inspectResult = await inspectWebdavHostPermission(activeProfile.endpointUrl);
+    await applyInspectedWebdavPermissionState(activeProfile, inspectResult);
+  }, [applyInspectedWebdavPermissionState, webdavProfile]);
   const saveWebdavSettings = useCallback(async () => {
     const validation = buildWebdavFormValidationResult(webdavFormValues);
     if (!validation.ok) {
@@ -952,6 +1002,152 @@ export function App({
   const recoveryConfirmationCopy = recoveryConfirmationTarget
     ? getLocalRecoveryTargetCopy(recoveryConfirmationTarget)
     : null;
+  const executeWebdavUpload = useCallback(async (kind: WebdavUploadKind) => {
+    const occurredAtIso = new Date().toISOString();
+    const occurredAtDisplay = formatStatusTimestamp(occurredAtIso);
+    const actionLabel = resolveWebdavUploadActionLabel(kind);
+    const runningActionKey = kind === 'draft' ? 'upload-draft-to-webdav' : 'upload-browser-to-webdav';
+
+    if (!beginExternalAction(runningActionKey)) {
+      return;
+    }
+
+    try {
+      if (!webdavProfile) {
+        recordStatusEntry({
+          statusKey: `${runningActionKey}-blocked`,
+          action: actionLabel,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavUnavailableReason,
+          detail: appShellCopy.webdavUnavailableReason,
+        });
+        return;
+      }
+
+      const permissionResult = await inspectWebdavHostPermission(webdavProfile.endpointUrl);
+      await applyInspectedWebdavPermissionState(webdavProfile, permissionResult);
+      if (permissionResult.kind !== 'granted') {
+        recordStatusEntry({
+          statusKey: kind === 'draft' ? 'webdav-draft-upload-blocked' : 'webdav-browser-upload-blocked',
+          action: actionLabel,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavUnavailableReason,
+          detail:
+            permissionResult.kind === 'denied'
+              ? appShellCopy.webdavAvailabilityPermissionDeniedDetail
+              : permissionResult.kind === 'invalid-origin'
+                ? appShellCopy.webdavAvailabilityInvalidUrlDetail
+                : permissionResult.kind === 'unavailable'
+                  ? appShellCopy.webdavAvailabilityPermissionUnavailableDetail
+                  : permissionResult.kind === 'error'
+                    ? permissionResult.error
+                    : appShellCopy.webdavUnavailableReason,
+        });
+        return;
+      }
+
+      if (kind === 'draft' && !currentDraftSession) {
+        recordStatusEntry({
+          statusKey: 'webdav-draft-upload-blocked',
+          action: actionLabel,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavDraftUploadBlockedResult,
+          detail: appShellCopy.webdavDraftUploadBlockedDetail,
+        });
+        return;
+      }
+
+      const uploadResult = kind === 'draft'
+        ? await uploadVersionedSnapshot({
+            createdAt: occurredAtIso,
+            draftSnapshot: currentDraftSession!.draftSnapshot,
+            kind: 'draft',
+            profile: webdavProfile,
+          })
+        : await (async () => {
+            const browserTreeResult = await readBrowserBookmarkTree();
+            if (browserTreeResult.kind !== 'loaded') {
+              recordStatusEntry({
+                statusKey: 'webdav-browser-upload-read-failed',
+                action: actionLabel,
+                time: occurredAtDisplay,
+                result: appShellCopy.webdavBrowserUploadReadFailedResult,
+                detail:
+                  browserTreeResult.kind === 'error'
+                    ? browserTreeResult.error
+                    : '当前浏览器书签不可读，已阻止云端上传。',
+              });
+              return null;
+            }
+
+            return uploadVersionedSnapshot({
+              browserTree: browserTreeResult.tree,
+              createdAt: occurredAtIso,
+              kind: 'browser',
+              profile: webdavProfile,
+            });
+          })();
+
+      if (uploadResult === null) {
+        return;
+      }
+
+      if (uploadResult.kind === 'success') {
+        recordStatusEntry({
+          statusKey: kind === 'draft' ? 'webdav-draft-upload-succeeded' : 'webdav-browser-upload-succeeded',
+          action: actionLabel,
+          time: occurredAtDisplay,
+          result:
+            kind === 'draft'
+              ? appShellCopy.webdavDraftUploadSuccessResult
+              : appShellCopy.webdavBrowserUploadSuccessResult,
+          detail:
+            uploadResult.prunedVersionIds.length > 0
+              ? `${appShellCopy.webdavUploadSuccessDetail} 本次额外清理了 ${uploadResult.prunedVersionIds.length} 个旧版本。`
+              : appShellCopy.webdavUploadSuccessDetail,
+        });
+        return;
+      }
+
+      if (uploadResult.kind === 'partial-success') {
+        recordStatusEntry({
+          statusKey: kind === 'draft' ? 'webdav-draft-upload-partial-success' : 'webdav-browser-upload-partial-success',
+          action: actionLabel,
+          time: occurredAtDisplay,
+          result:
+            kind === 'draft'
+              ? appShellCopy.webdavDraftUploadPartialSuccessResult
+              : appShellCopy.webdavBrowserUploadPartialSuccessResult,
+          detail: `${appShellCopy.webdavUploadPartialSuccessDetail} ${uploadResult.cleanupError}`,
+        });
+        return;
+      }
+
+      if (uploadResult.kind === 'blocked') {
+        recordStatusEntry({
+          statusKey: kind === 'draft' ? 'webdav-draft-upload-blocked' : 'webdav-browser-upload-blocked',
+          action: actionLabel,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavUnavailableReason,
+          detail: uploadResult.reason,
+        });
+        return;
+      }
+
+      recordStatusEntry({
+        statusKey: kind === 'draft' ? 'webdav-draft-upload-failed' : 'webdav-browser-upload-failed',
+        action: actionLabel,
+        time: occurredAtDisplay,
+        result:
+          kind === 'draft'
+            ? appShellCopy.webdavDraftUploadFailedResult
+            : appShellCopy.webdavBrowserUploadFailedResult,
+        detail: uploadResult.error,
+      });
+    } finally {
+      finishExternalAction();
+    }
+  }, [applyInspectedWebdavPermissionState, beginExternalAction, currentDraftSession, finishExternalAction, recordStatusEntry, webdavProfile]);
   const executeOverwriteAction = useCallback(async (action: OverwriteConfirmationAction) => {
     const confirmationCopy = getOverwriteConfirmationCopy(action);
     const statusTime = () => formatStatusTimestamp(new Date().toISOString());
@@ -1748,6 +1944,32 @@ export function App({
   }, []);
 
   useEffect(() => {
+    if (!webdavProfile) {
+      return;
+    }
+
+    const recheckPermission = () => {
+      void refreshWebdavPermissionState();
+    };
+
+    void refreshWebdavPermissionState(webdavProfile);
+    window.addEventListener('focus', recheckPermission);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        recheckPermission();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', recheckPermission);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshWebdavPermissionState, webdavProfile]);
+
+  useEffect(() => {
     persistedStatusHistoryRef.current = persistedStatusHistory;
   }, [persistedStatusHistory]);
 
@@ -1921,6 +2143,16 @@ export function App({
 
                     if (isOverwriteConfirmationAction(action.key)) {
                       setOverwriteConfirmationAction(action.key);
+                      return;
+                    }
+
+                    if (action.key === 'upload-draft-to-webdav') {
+                      void executeWebdavUpload('draft');
+                      return;
+                    }
+
+                    if (action.key === 'upload-browser-to-webdav') {
+                      void executeWebdavUpload('browser');
                       return;
                     }
 

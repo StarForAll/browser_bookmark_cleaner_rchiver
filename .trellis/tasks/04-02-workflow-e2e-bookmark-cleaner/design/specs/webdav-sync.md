@@ -13,12 +13,12 @@ It also does not define the separate local draft-to-browser write-back flow. Tha
 ## Cloud Paths
 
 ```text
-/bookmarks/index.json
-/bookmarks/latest.json
-/bookmarks/versions/<timestamp>.json
-/drafts/index.json
-/drafts/latest.json
-/drafts/versions/<timestamp>.json
+/bookmark-extension-data/bookmarks/index.json
+/bookmark-extension-data/bookmarks/latest.json
+/bookmark-extension-data/bookmarks/versions/<timestamp>.json
+/bookmark-extension-data/drafts/index.json
+/bookmark-extension-data/drafts/latest.json
+/bookmark-extension-data/drafts/versions/<timestamp>.json
 ```
 
 Each category keeps an explicit version index manifest in `index.json`.

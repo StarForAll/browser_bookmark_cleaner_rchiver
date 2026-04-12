@@ -30,12 +30,96 @@ export type EnsureWebdavHostPermissionResult =
       error: string;
     };
 
+export type InspectWebdavHostPermissionResult =
+  | {
+      kind: 'granted';
+      origin: string;
+    }
+  | {
+      kind: 'denied';
+      origin: string;
+    }
+  | {
+      kind: 'invalid-origin';
+      error: string;
+    }
+  | {
+      kind: 'unavailable';
+    }
+  | {
+      kind: 'error';
+      error: string;
+    };
+
+function resolvePermissionsApi(
+  permissionsApi?: ChromePermissionsApi,
+): ChromePermissionsApi | undefined {
+  return permissionsApi ?? (globalThis as typeof globalThis & { chrome?: ChromeRuntime }).chrome?.permissions;
+}
+
+function resolveWebdavOrigin(
+  endpointUrl: string,
+): { ok: true; origin: string } | { ok: false; error: string } {
+  const origin = deriveWebdavOriginPattern(endpointUrl);
+  if (!origin) {
+    return {
+      ok: false,
+      error: 'WebDAV URL 无效，无法申请 host 权限。',
+    };
+  }
+
+  return {
+    ok: true,
+    origin,
+  };
+}
+
+export async function inspectWebdavHostPermission(
+  endpointUrl: string,
+  permissionsApi?: ChromePermissionsApi,
+): Promise<InspectWebdavHostPermissionResult> {
+  const runtimePermissionsApi = resolvePermissionsApi(permissionsApi);
+
+  if (!runtimePermissionsApi?.contains) {
+    return {
+      kind: 'unavailable',
+    };
+  }
+
+  const originResult = resolveWebdavOrigin(endpointUrl);
+  if (!originResult.ok) {
+    return {
+      kind: 'invalid-origin',
+      error: originResult.error,
+    };
+  }
+
+  try {
+    const granted = await runtimePermissionsApi.contains({
+      origins: [originResult.origin],
+    });
+    return granted
+      ? {
+          kind: 'granted',
+          origin: originResult.origin,
+        }
+      : {
+          kind: 'denied',
+          origin: originResult.origin,
+        };
+  } catch (error) {
+    return {
+      kind: 'error',
+      error: error instanceof Error ? error.message : 'Failed to inspect WebDAV host permission.',
+    };
+  }
+}
+
 export async function ensureWebdavHostPermission(
   endpointUrl: string,
   permissionsApi?: ChromePermissionsApi,
 ): Promise<EnsureWebdavHostPermissionResult> {
-  const runtimePermissionsApi =
-    permissionsApi ?? (globalThis as typeof globalThis & { chrome?: ChromeRuntime }).chrome?.permissions;
+  const runtimePermissionsApi = resolvePermissionsApi(permissionsApi);
 
   if (!runtimePermissionsApi?.contains || !runtimePermissionsApi?.request) {
     return {
@@ -43,13 +127,14 @@ export async function ensureWebdavHostPermission(
     };
   }
 
-  const origin = deriveWebdavOriginPattern(endpointUrl);
-  if (!origin) {
+  const originResult = resolveWebdavOrigin(endpointUrl);
+  if (!originResult.ok) {
     return {
       kind: 'invalid-origin',
-      error: 'WebDAV URL 无效，无法申请 host 权限。',
+      error: originResult.error,
     };
   }
+  const origin = originResult.origin;
 
   try {
     const alreadyGranted = await runtimePermissionsApi.contains({

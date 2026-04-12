@@ -76,11 +76,11 @@ Adapter contract:
 File grouping:
 
 ```text
-/bookmarks/
+/bookmark-extension-data/bookmarks/
   index.json
   latest.json
   versions/<timestamp>.json
-/drafts/
+/bookmark-extension-data/drafts/
   index.json
   latest.json
   versions/<timestamp>.json

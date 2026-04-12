@@ -1,0 +1,6 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Review T11 against verification matrix, child-task sync, and cloud action evidence rules"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/webdav-sync.md", "reason": "Check upload ordering, rollback, retention, and scope boundaries against the design contract"}
+{"file": "src/app/App.webdavAvailabilityGate.test.tsx", "reason": "Regression surface for T10 gating while T11 wires upload execution"}
+{"file": "src/adapters/browser-bookmarks/writeManagedBrowserTree.ts", "reason": "Reference rollback classification and partial-failure review pattern"}

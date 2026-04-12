@@ -1,7 +1,26 @@
 import { describe, expect, test, vi } from 'vitest';
-import { ensureWebdavHostPermission } from './requestHostPermission';
+import {
+  ensureWebdavHostPermission,
+  inspectWebdavHostPermission,
+} from './requestHostPermission';
 
 describe('T10 WebDAV host permission adapter', () => {
+  test('inspects the current host permission without requesting again', async () => {
+    const contains = vi.fn(async () => false);
+    const request = vi.fn(async () => true);
+
+    const result = await inspectWebdavHostPermission(
+      'https://dav.example.com/collection/',
+      { contains, request },
+    );
+
+    expect(result).toEqual({
+      kind: 'denied',
+      origin: 'https://dav.example.com/',
+    });
+    expect(request).not.toHaveBeenCalled();
+  });
+
   test('short-circuits when the origin is already granted', async () => {
     const contains = vi.fn(async () => true);
     const request = vi.fn(async () => true);
