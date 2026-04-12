@@ -1,0 +1,3 @@
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md", "reason": "Debugging should follow the frozen backup and recovery contract instead of ad hoc fixes."}
+{"file": "src/app/App.localBackupRecovery.test.tsx", "reason": "Debug against the failing T09B gate tests first."}

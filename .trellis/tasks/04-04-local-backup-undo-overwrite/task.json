@@ -3,7 +3,7 @@
   "name": "local-backup-undo-overwrite",
   "title": "Implement Local Backup And Undo Overwrite",
   "description": "Implement local backup generation and undo-overwrite boundaries without conflating them with Ctrl+Z.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,

@@ -1,0 +1,14 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frozen verification matrix and child-task test-first baseline for T09B."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "T09B must keep local backup metadata in persisted state and keep external overwrite actions serial."}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Undo-overwrite chooser and confirmation UI must stay copy-driven and free of direct adapter logic."}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "Backup generation and recovery orchestration must not be hidden inside generic hooks."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Local backup assets must stay versioned and validated before becoming trusted recovery inputs."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "T09B crosses UI, adapter, persistence, and browser execution boundaries."}
+{"file": ".trellis/tasks/archive/2026-04/04-04-browser-overwrite-sync-confirmation/test-first.md", "reason": "Upstream T09A gate defines the confirmation boundary that T09B now extends with real backup and recovery behavior."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Operational flows define backup-before-overwrite and undo-overwrite sequencing."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md", "reason": "Source-of-truth contract for backup slots, availability rules, failure policy, and recovery semantics."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/local-backup-recovery.md", "reason": "User-facing chooser, copy, and confirmation rules for local backup recovery."}
+{"file": "src/adapters/local-persistence/contracts.ts", "reason": "Frozen local persistence keys and backup metadata validation matrix for T09B."}
+{"file": "src/app/App.overwriteConfirmation.test.tsx", "reason": "Existing T09A interaction-test pattern to extend for backup-first behavior."}

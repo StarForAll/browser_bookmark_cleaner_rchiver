@@ -1,12 +1,33 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
   appShellCopy,
+  formatLocalBackupOrigin,
   formatStatusTimestamp,
+  getLocalRecoveryTargetCopy,
   getOverwriteConfirmationCopy,
   getStartupStatusCopy,
+  type LocalRecoveryTarget,
   type OverwriteConfirmationAction,
 } from '@/shared/copy/appShell';
+import { readBrowserBookmarkTree } from '@/adapters/browser-bookmarks/readBookmarkTree';
+import { importBrowserTreeToDraftGraph } from '@/adapters/browser-bookmarks/importToDraft';
+import { exportDraftToBrowserTree } from '@/adapters/browser-bookmarks/exportDraftToBrowserTree';
+import { writeManagedBrowserTree } from '@/adapters/browser-bookmarks/writeManagedBrowserTree';
+import {
+  LOCAL_PERSISTENCE_SCHEMA_VERSION,
+  type PersistedDraftSession,
+} from '@/adapters/local-persistence/contracts';
+import {
+  createBrowserLocalBackupArtifact,
+  createDraftLocalBackupArtifact,
+  readLocalBackupArtifacts,
+  writeLocalBackupArtifact,
+  type BrowserLocalBackupArtifact,
+  type DraftLocalBackupArtifact,
+  type LocalBackupArtifact,
+  type LocalBackupAvailability,
+} from '@/adapters/local-persistence/localBackupArtifacts';
 import {
   bootstrapWorkspace as defaultBootstrapWorkspace,
   type WorkspaceBootstrapResult,
@@ -14,6 +35,7 @@ import {
 import { deriveSearchResults } from '@/features/bookmark-graph/state/searchAndFocus';
 import { DraftGraphWorkspace } from '@/features/bookmark-graph/ui/DraftGraphWorkspace';
 import { writePersistedDraftSession } from '@/adapters/local-persistence/writePersistedDraftSession';
+import { DRAFT_GRAPH_SCHEMA_VERSION, type DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
 import './app.css';
 
 type AppProps = {
@@ -37,15 +59,16 @@ type ChromeRuntime = {
 };
 
 type PersistedStatusEntry = {
-  statusKey:
-    | WorkspaceBootstrapResult['statusKey']
-    | 'pending'
-    | 'overwrite-draft-blocked'
-    | 'sync-draft-blocked';
+  statusKey: string;
   action: string;
   time: string;
   result: string;
   detail: string;
+};
+
+type LocalBackupState = {
+  draft: LocalBackupAvailability;
+  browser: LocalBackupAvailability;
 };
 
 type PrimarySystemActionItem = (typeof appShellCopy.primaryActionItems)[number];
@@ -74,6 +97,11 @@ type CanvasOverlayPosition = {
 };
 
 const PAGE_BACK_TO_TOP_SCROLL_THRESHOLD = 200;
+const EMPTY_LOCAL_BACKUP_AVAILABILITY: LocalBackupAvailability = {
+  availability: 'missing',
+  artifact: null,
+  reason: null,
+};
 
 function resolveCanvasOverlayMargin(viewportWidth: number): number {
   if (viewportWidth <= 720) {
@@ -168,6 +196,37 @@ export function resolveStatusOverlayPosition(input: {
 
 function resolveStorageArea(): ChromeStorageArea | null {
   return (globalThis as typeof globalThis & { chrome?: ChromeRuntime }).chrome?.storage?.local ?? null;
+}
+
+function createEmptyDraftSnapshot(): DraftGraphSnapshot {
+  return {
+    schemaVersion: DRAFT_GRAPH_SCHEMA_VERSION,
+    snapshotVersion: 0,
+    selectedNodeId: null,
+    nodesById: {},
+    rootIds: [],
+  };
+}
+
+function buildDraftSession(
+  draftSnapshot: DraftGraphSnapshot,
+  baseSession?: Partial<PersistedDraftSession> | null,
+): PersistedDraftSession {
+  return {
+    schemaVersion: LOCAL_PERSISTENCE_SCHEMA_VERSION,
+    draftSnapshot,
+    expandedStateById: baseSession?.expandedStateById ?? {},
+    nodePositionsById: baseSession?.nodePositionsById ?? {},
+    undoHistory: baseSession?.undoHistory ?? [],
+    checkpoints: baseSession?.checkpoints ?? [],
+  };
+}
+
+function createEmptyLocalBackupState(): LocalBackupState {
+  return {
+    draft: EMPTY_LOCAL_BACKUP_AVAILABILITY,
+    browser: EMPTY_LOCAL_BACKUP_AVAILABILITY,
+  };
 }
 
 async function readStatusPopoverOpen(): Promise<boolean | null> {
@@ -288,8 +347,12 @@ function isOverwriteConfirmationAction(
 
 function resolvePrimaryActionDisabledReason(
   actionKey: PrimarySystemActionItem['key'],
-  input: { hasEditableDraft: boolean },
+  input: { hasEditableDraft: boolean; hasUndoOverwriteTarget: boolean; hasRunningExternalAction: boolean },
 ): string | null {
+  if (input.hasRunningExternalAction) {
+    return appShellCopy.externalActionRunningReason;
+  }
+
   switch (actionKey) {
     case 'overwrite-draft-from-browser':
       return null;
@@ -302,7 +365,7 @@ function resolvePrimaryActionDisabledReason(
     case 'restore-webdav-browser':
       return appShellCopy.webdavUnavailableReason;
     case 'undo-overwrite':
-      return appShellCopy.undoUnavailableReason;
+      return input.hasUndoOverwriteTarget ? null : appShellCopy.undoUnavailableReason;
     default:
       return appShellCopy.webdavUnavailableReason;
   }
@@ -357,7 +420,12 @@ export function App({
   const [persistedStatusHistory, setPersistedStatusHistory] = useState<PersistedStatusEntry[]>([]);
   const [latestActionStatusEntry, setLatestActionStatusEntry] = useState<PersistedStatusEntry | null>(null);
   const [startupResult, setStartupResult] = useState<WorkspaceBootstrapResult | null>(null);
+  const [currentDraftSession, setCurrentDraftSession] = useState<PersistedDraftSession | null>(null);
+  const [localBackupState, setLocalBackupState] = useState<LocalBackupState>(() => createEmptyLocalBackupState());
   const [overwriteConfirmationAction, setOverwriteConfirmationAction] = useState<OverwriteConfirmationAction | null>(null);
+  const [isLocalRecoveryChooserOpen, setIsLocalRecoveryChooserOpen] = useState(false);
+  const [selectedLocalRecoveryTarget, setSelectedLocalRecoveryTarget] = useState<LocalRecoveryTarget | null>(null);
+  const [recoveryConfirmationTarget, setRecoveryConfirmationTarget] = useState<LocalRecoveryTarget | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [duplicateOnly, setDuplicateOnly] = useState(false);
   const [isSearchNavigationActive, setIsSearchNavigationActive] = useState(false);
@@ -365,11 +433,14 @@ export function App({
   const [hintOverlayPosition, setHintOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
   const [statusOverlayPosition, setStatusOverlayPosition] = useState<CanvasOverlayPosition | null>(null);
   const [showPageBackToTopButton, setShowPageBackToTopButton] = useState(false);
+  const [runningExternalAction, setRunningExternalAction] = useState<string | null>(null);
+  const [workspaceRenderKey, setWorkspaceRenderKey] = useState(0);
   const canvasStageRef = useRef<HTMLElement | null>(null);
   const searchNavigationActiveRef = useRef(false);
   const hintOverlayRef = useRef<HTMLElement | null>(null);
   const statusOverlayRef = useRef<HTMLElement | null>(null);
   const pageBackToTopFrameRef = useRef(0);
+  const runningExternalActionRef = useRef<string | null>(null);
   const startupStatusCopy = getStartupStatusCopy(
     startupResult
       ? {
@@ -399,8 +470,11 @@ export function App({
         { folderCount: 0, bookmarkCount: 0 },
       )
     : null;
-  const editableDraftSnapshot = startupResult?.draftSnapshot ?? null;
+  const editableDraftSnapshot = currentDraftSession?.draftSnapshot ?? null;
   const hasEditableDraft = editableDraftSnapshot !== null;
+  const hasUndoOverwriteTarget =
+    localBackupState.draft.availability === 'available' ||
+    localBackupState.browser.availability === 'available';
   const normalizedSearchQuery = useMemo(() => searchQuery.trim(), [searchQuery]);
   const normalSearchResults = useMemo(() => {
     if (!editableDraftSnapshot) {
@@ -414,14 +488,18 @@ export function App({
   }, [duplicateOnly, editableDraftSnapshot, searchQuery]);
   const primarySystemActions = useMemo<PrimarySystemActionWithState[]>(() => {
     return appShellCopy.primaryActionItems.map((action) => {
-      const disabledReason = resolvePrimaryActionDisabledReason(action.key, { hasEditableDraft });
+      const disabledReason = resolvePrimaryActionDisabledReason(action.key, {
+        hasEditableDraft,
+        hasUndoOverwriteTarget,
+        hasRunningExternalAction: runningExternalAction !== null,
+      });
       return {
         ...action,
         disabledReason,
         isDisabled: disabledReason !== null,
       };
     });
-  }, [hasEditableDraft]);
+  }, [hasEditableDraft, hasUndoOverwriteTarget, runningExternalAction]);
   const secondarySystemActions = useMemo<SecondarySystemActionWithState[]>(() => {
     return appShellCopy.secondaryActionItems.map((action) => {
       const disabledReason = resolveSecondaryActionDisabledReason(action.key, { hasEditableDraft });
@@ -484,9 +562,361 @@ export function App({
       top: `${statusOverlayPosition.top}px`,
     } as const;
   }, [statusOverlayPosition]);
+  const persistCurrentDraftSession = useCallback(async (
+    nextSession: PersistedDraftSession,
+  ) => {
+    setCurrentDraftSession(nextSession);
+    return writePersistedDraftSession(nextSession);
+  }, []);
+  const beginExternalAction = useCallback((actionKey: string): boolean => {
+    if (runningExternalActionRef.current !== null) {
+      return false;
+    }
+
+    runningExternalActionRef.current = actionKey;
+    setRunningExternalAction(actionKey);
+    return true;
+  }, []);
+  const finishExternalAction = useCallback(() => {
+    runningExternalActionRef.current = null;
+    setRunningExternalAction(null);
+  }, []);
+  const openStatusPopover = useCallback(() => {
+    setIsStatusOpen(true);
+    void writeStatusPopoverOpen(true);
+  }, []);
+  const recordStatusEntry = useCallback((entry: PersistedStatusEntry) => {
+    setLatestActionStatusEntry(entry);
+    openStatusPopover();
+  }, [openStatusPopover]);
+  const resetDraftReplacementUi = useCallback(() => {
+    setSearchQuery('');
+    setDuplicateOnly(false);
+    setSearchNavigationIndex(0);
+    setIsSearchNavigationActive(false);
+    searchNavigationActiveRef.current = false;
+  }, []);
+  const updateLocalBackupState = useCallback((artifact: LocalBackupArtifact) => {
+    setLocalBackupState((current) => {
+      if (artifact.artifactType === 'draft-restore-backup') {
+        return {
+          ...current,
+          draft: {
+            availability: 'available',
+            artifact,
+          },
+        };
+      }
+
+      return {
+        ...current,
+        browser: {
+          availability: 'available',
+          artifact,
+        },
+      };
+    });
+  }, []);
+  const selectedLocalRecoveryArtifact = useMemo<
+    DraftLocalBackupArtifact | BrowserLocalBackupArtifact | null
+  >(() => {
+    if (!selectedLocalRecoveryTarget) {
+      return null;
+    }
+
+    if (selectedLocalRecoveryTarget === 'draft' && localBackupState.draft.availability === 'available') {
+      return localBackupState.draft.artifact as DraftLocalBackupArtifact;
+    }
+
+    if (selectedLocalRecoveryTarget === 'browser' && localBackupState.browser.availability === 'available') {
+      return localBackupState.browser.artifact as BrowserLocalBackupArtifact;
+    }
+
+    return null;
+  }, [localBackupState.browser, localBackupState.draft, selectedLocalRecoveryTarget]);
+  const recoveryConfirmationArtifact = useMemo<
+    DraftLocalBackupArtifact | BrowserLocalBackupArtifact | null
+  >(() => {
+    if (!recoveryConfirmationTarget) {
+      return null;
+    }
+
+    if (recoveryConfirmationTarget === 'draft' && localBackupState.draft.availability === 'available') {
+      return localBackupState.draft.artifact as DraftLocalBackupArtifact;
+    }
+
+    if (recoveryConfirmationTarget === 'browser' && localBackupState.browser.availability === 'available') {
+      return localBackupState.browser.artifact as BrowserLocalBackupArtifact;
+    }
+
+    return null;
+  }, [localBackupState.browser, localBackupState.draft, recoveryConfirmationTarget]);
   const overwriteConfirmationCopy = overwriteConfirmationAction
     ? getOverwriteConfirmationCopy(overwriteConfirmationAction)
     : null;
+  const recoveryConfirmationCopy = recoveryConfirmationTarget
+    ? getLocalRecoveryTargetCopy(recoveryConfirmationTarget)
+    : null;
+  const executeOverwriteAction = useCallback(async (action: OverwriteConfirmationAction) => {
+    const confirmationCopy = getOverwriteConfirmationCopy(action);
+    const statusTime = () => formatStatusTimestamp(new Date().toISOString());
+    if (!beginExternalAction(action)) {
+      return;
+    }
+
+    try {
+      if (action === 'overwrite-draft-from-browser') {
+        const draftBackupArtifact = createDraftLocalBackupArtifact({
+          payload: currentDraftSession?.draftSnapshot ?? createEmptyDraftSnapshot(),
+          sourceOrigin: 'browser-current-tree',
+          triggerAction: action,
+        });
+        const backupWriteResult = await writeLocalBackupArtifact(draftBackupArtifact);
+
+        if (backupWriteResult.kind !== 'saved') {
+          recordStatusEntry({
+            statusKey: 'overwrite-draft-backup-blocked',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: confirmationCopy.backupBlockedStatusResult,
+            detail:
+              backupWriteResult.kind === 'error'
+                ? `${confirmationCopy.backupBlockedStatusDetail} ${backupWriteResult.error}`
+                : confirmationCopy.backupBlockedStatusDetail,
+          });
+          return;
+        }
+
+        updateLocalBackupState(backupWriteResult.artifact);
+
+        const browserTreeResult = await readBrowserBookmarkTree();
+        if (browserTreeResult.kind !== 'loaded') {
+          recordStatusEntry({
+            statusKey: 'overwrite-draft-read-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: '读取当前浏览器书签失败，未执行覆盖',
+            detail:
+              browserTreeResult.kind === 'error'
+                ? browserTreeResult.error
+                : '当前浏览器书签不可读，已阻止覆盖。',
+          });
+          return;
+        }
+
+        const nextSnapshot = importBrowserTreeToDraftGraph({
+          source: 'browser',
+          tree: browserTreeResult.tree,
+        });
+        const nextSession = buildDraftSession(nextSnapshot);
+        const persistResult = await persistCurrentDraftSession(nextSession);
+
+        resetDraftReplacementUi();
+        setWorkspaceRenderKey((current) => current + 1);
+
+        recordStatusEntry({
+          statusKey:
+            persistResult.kind === 'saved'
+              ? 'overwrite-draft-succeeded'
+              : 'overwrite-draft-succeeded-unsaved',
+          action: confirmationCopy.blockedStatusAction,
+          time: statusTime(),
+          result:
+            persistResult.kind === 'saved'
+              ? confirmationCopy.successStatusResult
+              : '已根据当前浏览器书签重建当前草稿，但本地保存失败',
+          detail:
+            persistResult.kind === 'saved'
+              ? confirmationCopy.successStatusDetail
+              : persistResult.kind === 'error'
+                ? `${confirmationCopy.successStatusDetail} ${persistResult.error}`
+                : `${confirmationCopy.successStatusDetail} 当前本地存储不可用，刷新后可能丢失。`,
+        });
+        return;
+      }
+
+      if (!currentDraftSession) {
+        return;
+      }
+
+      const currentBrowserTreeResult = await readBrowserBookmarkTree();
+      if (currentBrowserTreeResult.kind !== 'loaded') {
+        recordStatusEntry({
+          statusKey: 'sync-draft-read-failed',
+          action: confirmationCopy.blockedStatusAction,
+          time: statusTime(),
+          result: '读取当前浏览器书签失败，未执行同步',
+          detail:
+            currentBrowserTreeResult.kind === 'error'
+              ? currentBrowserTreeResult.error
+              : '当前浏览器书签不可读，已阻止同步。',
+        });
+        return;
+      }
+
+      const browserBackupArtifact = createBrowserLocalBackupArtifact({
+        payload: currentBrowserTreeResult.tree,
+        sourceOrigin: 'draft-sync',
+        triggerAction: action,
+      });
+      const backupWriteResult = await writeLocalBackupArtifact(browserBackupArtifact);
+
+      if (backupWriteResult.kind !== 'saved') {
+        recordStatusEntry({
+          statusKey: 'sync-draft-backup-blocked',
+          action: confirmationCopy.blockedStatusAction,
+          time: statusTime(),
+          result: confirmationCopy.backupBlockedStatusResult,
+          detail:
+            backupWriteResult.kind === 'error'
+              ? `${confirmationCopy.backupBlockedStatusDetail} ${backupWriteResult.error}`
+              : confirmationCopy.backupBlockedStatusDetail,
+        });
+        return;
+      }
+
+      updateLocalBackupState(backupWriteResult.artifact);
+
+      const writeResult = await writeManagedBrowserTree({
+        desiredTree: exportDraftToBrowserTree(currentDraftSession.draftSnapshot),
+        currentTree: currentBrowserTreeResult.tree,
+      });
+
+      if (writeResult.kind !== 'written') {
+        const failureDetail =
+          writeResult.kind === 'rolled-back-after-error'
+            ? `浏览器写入过程中发生错误，但已自动回退到执行前状态。${writeResult.error}`
+            : writeResult.kind === 'rollback-failed'
+              ? `浏览器写入过程中发生错误，且自动回退也失败。原始错误：${writeResult.error}；回退错误：${writeResult.rollbackError}`
+              : writeResult.kind === 'error'
+                ? writeResult.error
+                : '当前浏览器书签不可写，已阻止同步。';
+        recordStatusEntry({
+          statusKey: 'sync-draft-failed',
+          action: confirmationCopy.blockedStatusAction,
+          time: statusTime(),
+          result:
+            writeResult.kind === 'rolled-back-after-error'
+              ? '同步当前草稿到浏览器书签失败，但已自动回退浏览器书签'
+              : writeResult.kind === 'rollback-failed'
+                ? '同步当前草稿到浏览器书签失败，且自动回退也失败'
+                : '同步当前草稿到浏览器书签失败',
+          detail: failureDetail,
+        });
+        return;
+      }
+
+      recordStatusEntry({
+        statusKey: 'sync-draft-succeeded',
+        action: confirmationCopy.blockedStatusAction,
+        time: statusTime(),
+        result: confirmationCopy.successStatusResult,
+        detail: confirmationCopy.successStatusDetail,
+      });
+    } finally {
+      finishExternalAction();
+    }
+  }, [beginExternalAction, currentDraftSession, finishExternalAction, persistCurrentDraftSession, recordStatusEntry, resetDraftReplacementUi, updateLocalBackupState]);
+  const executeLocalRecovery = useCallback(async (target: LocalRecoveryTarget) => {
+    const targetCopy = getLocalRecoveryTargetCopy(target);
+    const statusTime = () => formatStatusTimestamp(new Date().toISOString());
+    if (!beginExternalAction(`recover-${target}`)) {
+      return;
+    }
+
+    try {
+      if (target === 'draft') {
+        if (localBackupState.draft.availability !== 'available') {
+          return;
+        }
+
+        const draftBackupArtifact = localBackupState.draft.artifact as DraftLocalBackupArtifact;
+        const nextSession = buildDraftSession(draftBackupArtifact.payload);
+        const persistResult = await persistCurrentDraftSession(nextSession);
+        resetDraftReplacementUi();
+        setWorkspaceRenderKey((current) => current + 1);
+
+        recordStatusEntry({
+          statusKey:
+            persistResult.kind === 'saved'
+              ? 'recover-draft-succeeded'
+              : 'recover-draft-succeeded-unsaved',
+          action: targetCopy.successStatusAction,
+          time: statusTime(),
+          result:
+            persistResult.kind === 'saved'
+              ? targetCopy.successStatusResult
+              : '已恢复当前草稿，但本地保存失败',
+          detail:
+            persistResult.kind === 'saved'
+              ? targetCopy.successStatusDetail
+              : persistResult.kind === 'error'
+                ? `${targetCopy.successStatusDetail} ${persistResult.error}`
+                : `${targetCopy.successStatusDetail} 当前本地存储不可用，刷新后可能丢失。`,
+        });
+        return;
+      }
+
+      if (localBackupState.browser.availability !== 'available') {
+        return;
+      }
+
+      const browserBackupArtifact = localBackupState.browser.artifact as BrowserLocalBackupArtifact;
+      const currentBrowserTreeResult = await readBrowserBookmarkTree();
+      if (currentBrowserTreeResult.kind !== 'loaded') {
+        recordStatusEntry({
+          statusKey: 'recover-browser-read-failed',
+          action: targetCopy.successStatusAction,
+          time: statusTime(),
+          result: '读取当前浏览器书签失败，未执行浏览器恢复',
+          detail:
+            currentBrowserTreeResult.kind === 'error'
+              ? currentBrowserTreeResult.error
+              : '当前浏览器书签不可读，无法开始浏览器恢复。',
+        });
+        return;
+      }
+
+      const writeResult = await writeManagedBrowserTree({
+        desiredTree: browserBackupArtifact.payload,
+        currentTree: currentBrowserTreeResult.tree,
+      });
+
+      if (writeResult.kind !== 'written') {
+        const failureDetail =
+          writeResult.kind === 'rolled-back-after-error'
+            ? `浏览器恢复过程中发生错误，但已自动回退到恢复前状态。${writeResult.error}`
+            : writeResult.kind === 'rollback-failed'
+              ? `浏览器恢复过程中发生错误，且自动回退也失败。原始错误：${writeResult.error}；回退错误：${writeResult.rollbackError}`
+              : writeResult.kind === 'error'
+                ? writeResult.error
+                : '当前浏览器书签不可写，无法恢复本地浏览器备份。';
+        recordStatusEntry({
+          statusKey: 'recover-browser-failed',
+          action: targetCopy.successStatusAction,
+          time: statusTime(),
+          result:
+            writeResult.kind === 'rolled-back-after-error'
+              ? '撤销对浏览器书签的覆盖失败，但已自动回退浏览器书签到恢复前状态'
+              : writeResult.kind === 'rollback-failed'
+                ? '撤销对浏览器书签的覆盖失败，且自动回退也失败'
+                : '撤销对浏览器书签的覆盖失败',
+          detail: failureDetail,
+        });
+        return;
+      }
+
+      recordStatusEntry({
+        statusKey: 'recover-browser-succeeded',
+        action: targetCopy.successStatusAction,
+        time: statusTime(),
+        result: targetCopy.successStatusResult,
+        detail: targetCopy.successStatusDetail,
+      });
+    } finally {
+      finishExternalAction();
+    }
+  }, [beginExternalAction, finishExternalAction, localBackupState.browser, localBackupState.draft, persistCurrentDraftSession, recordStatusEntry, resetDraftReplacementUi]);
   const hintOverlay = (
     <aside
       aria-label={appShellCopy.hintLabel}
@@ -608,16 +1038,13 @@ export function App({
             autoFocus
             className="draft-dialog-button is-primary"
             onClick={() => {
-              setLatestActionStatusEntry({
-                statusKey: overwriteConfirmationCopy.blockedStatusKey,
-                action: overwriteConfirmationCopy.blockedStatusAction,
-                time: formatStatusTimestamp(new Date().toISOString()),
-                result: overwriteConfirmationCopy.blockedStatusResult,
-                detail: overwriteConfirmationCopy.blockedStatusDetail,
-              });
+              const action = overwriteConfirmationAction;
               setOverwriteConfirmationAction(null);
-              setIsStatusOpen(true);
-              void writeStatusPopoverOpen(true);
+              if (!action) {
+                return;
+              }
+
+              void executeOverwriteAction(action);
             }}
             type="button"
           >
@@ -627,6 +1054,150 @@ export function App({
       </div>
     </div>
   ) : null;
+  const localRecoveryChooserDialog = isLocalRecoveryChooserOpen ? (
+    <div
+      aria-modal="true"
+      className="draft-dialog-backdrop"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          setIsLocalRecoveryChooserOpen(false);
+          setSelectedLocalRecoveryTarget(null);
+        }
+      }}
+      role="dialog"
+    >
+      <div className="draft-dialog-card overwrite-confirmation-card">
+        <h3>{appShellCopy.localRecoveryChooserTitle}</h3>
+        <p>{appShellCopy.localRecoveryChooserSummary}</p>
+        <div className="local-recovery-choice-list" role="group" aria-label={appShellCopy.localRecoveryChooserTitle}>
+        {(['browser', 'draft'] as const).map((target) => {
+          const targetCopy = getLocalRecoveryTargetCopy(target);
+          const targetState = target === 'browser' ? localBackupState.browser : localBackupState.draft;
+          const isAvailable = targetState.availability === 'available';
+          const isSelected = selectedLocalRecoveryTarget === target;
+          const disabledReason =
+            targetState.availability === 'invalid'
+              ? targetCopy.invalidReason
+              : targetState.availability === 'missing'
+                ? targetCopy.missingReason
+                : undefined;
+
+          return (
+            <button
+              aria-label={targetCopy.label}
+              aria-pressed={isAvailable ? isSelected : undefined}
+              className={`local-recovery-choice${isSelected ? ' is-selected' : ''}`}
+              disabled={!isAvailable}
+              key={target}
+              onClick={() => {
+                if (isAvailable) {
+                  setSelectedLocalRecoveryTarget(target);
+                }
+              }}
+              title={!isAvailable ? disabledReason : undefined}
+              type="button"
+            >
+              <strong>{targetCopy.label}</strong>
+            </button>
+          );
+        })}
+        </div>
+        <div className="draft-dialog-actions">
+          <button
+            className="draft-dialog-button"
+            onClick={() => {
+              setIsLocalRecoveryChooserOpen(false);
+              setSelectedLocalRecoveryTarget(null);
+            }}
+            type="button"
+          >
+            {appShellCopy.localRecoveryChooserCancelLabel}
+          </button>
+          <button
+            autoFocus
+            className="draft-dialog-button is-primary"
+            disabled={!selectedLocalRecoveryArtifact}
+            onClick={() => {
+              if (!selectedLocalRecoveryTarget || !selectedLocalRecoveryArtifact) {
+                return;
+              }
+
+              setRecoveryConfirmationTarget(selectedLocalRecoveryTarget);
+              setIsLocalRecoveryChooserOpen(false);
+            }}
+            type="button"
+          >
+            {appShellCopy.localRecoveryChooserContinueLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  const localRecoveryConfirmationDialog =
+    recoveryConfirmationTarget && recoveryConfirmationArtifact && recoveryConfirmationCopy ? (
+      <div
+        aria-modal="true"
+        className="draft-dialog-backdrop"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setRecoveryConfirmationTarget(null);
+          }
+        }}
+        role="dialog"
+      >
+        <div className="draft-dialog-card overwrite-confirmation-card">
+          <h3>{recoveryConfirmationCopy.confirmationTitle}</h3>
+          <p>{recoveryConfirmationCopy.confirmationSummary}</p>
+          <p className="draft-dialog-warning">
+            {`${appShellCopy.localRecoverySummaryCreatedAtLabel}：${formatStatusTimestamp(
+              recoveryConfirmationArtifact.createdAt,
+            )}`}
+          </p>
+          <p>
+            {`${appShellCopy.localRecoverySummaryOriginLabel}：${formatLocalBackupOrigin(
+              recoveryConfirmationArtifact.sourceOrigin,
+            )}`}
+          </p>
+          {recoveryConfirmationArtifact.sourceVersionLabel ? (
+            <p>
+              {`${appShellCopy.localRecoverySummaryVersionLabel}：${recoveryConfirmationArtifact.sourceVersionLabel}`}
+            </p>
+          ) : null}
+          {recoveryConfirmationCopy.confirmationWarning ? (
+            <p className="draft-dialog-note overwrite-confirmation-caution">
+              {recoveryConfirmationCopy.confirmationWarning}
+            </p>
+          ) : null}
+          <div className="draft-dialog-actions">
+            <button
+              className="draft-dialog-button"
+              onClick={() => {
+                setRecoveryConfirmationTarget(null);
+              }}
+              type="button"
+            >
+              {appShellCopy.localRecoveryChooserCancelLabel}
+            </button>
+            <button
+              autoFocus
+              className="draft-dialog-button is-primary"
+              onClick={() => {
+                const target = recoveryConfirmationTarget;
+                setRecoveryConfirmationTarget(null);
+                if (!target) {
+                  return;
+                }
+
+                void executeLocalRecovery(target);
+              }}
+              type="button"
+            >
+              {appShellCopy.localRecoveryConfirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null;
   const pageBackToTopButton = showPageBackToTopButton ? (
     <button
       aria-label={appShellCopy.pageBackToTopLabel}
@@ -742,7 +1313,11 @@ export function App({
   useEffect(() => {
     let isMounted = true;
 
-    void Promise.all([readStatusPopoverOpen(), readStatusHistory()]).then(([persistedOpenValue, history]) => {
+    void Promise.all([
+      readStatusPopoverOpen(),
+      readStatusHistory(),
+      readLocalBackupArtifacts(),
+    ]).then(([persistedOpenValue, history, localBackups]) => {
       if (!isMounted) {
         return;
       }
@@ -751,6 +1326,12 @@ export function App({
         setIsStatusOpen(persistedOpenValue);
       }
       setPersistedStatusHistory(history);
+      if (localBackups.kind === 'loaded') {
+        setLocalBackupState({
+          draft: localBackups.draft,
+          browser: localBackups.browser,
+        });
+      }
       setStatusPopoverReady(true);
     });
 
@@ -783,6 +1364,11 @@ export function App({
     void bootstrapWorkspace().then((result) => {
       if (isMounted) {
         setStartupResult(result);
+        setCurrentDraftSession(
+          result.draftSnapshot
+            ? buildDraftSession(result.draftSnapshot, result.draftSession)
+            : null,
+        );
       }
     });
 
@@ -910,8 +1496,31 @@ export function App({
                   disabled={action.isDisabled}
                   key={action.key}
                   onClick={() => {
-                    if (!action.isDisabled && isOverwriteConfirmationAction(action.key)) {
+                    if (action.isDisabled) {
+                      return;
+                    }
+
+                    if (isOverwriteConfirmationAction(action.key)) {
                       setOverwriteConfirmationAction(action.key);
+                      return;
+                    }
+
+                    if (action.key === 'undo-overwrite') {
+                      const hasAvailableTarget =
+                        localBackupState.browser.availability === 'available' ||
+                        localBackupState.draft.availability === 'available';
+                      const defaultTarget =
+                        localBackupState.browser.availability === 'available' &&
+                        localBackupState.draft.availability === 'available'
+                          ? null
+                          : localBackupState.browser.availability === 'available'
+                          ? 'browser'
+                          : localBackupState.draft.availability === 'available'
+                            ? 'draft'
+                            : null;
+
+                      setSelectedLocalRecoveryTarget(defaultTarget);
+                      setIsLocalRecoveryChooserOpen(hasAvailableTarget);
                     }
                   }}
                   title={action.disabledReason ?? undefined}
@@ -996,10 +1605,11 @@ export function App({
               {editableDraftSnapshot ? (
                 <DraftGraphWorkspace
                   duplicateOnly={duplicateOnly}
+                  key={workspaceRenderKey}
                   initialSnapshot={editableDraftSnapshot}
-                  initialUndoHistory={startupResult?.draftSession?.undoHistory}
-                  initialCheckpoints={startupResult?.draftSession?.checkpoints}
-                  onPersistDraftSession={writePersistedDraftSession}
+                  initialUndoHistory={currentDraftSession?.undoHistory}
+                  initialCheckpoints={currentDraftSession?.checkpoints}
+                  onPersistDraftSession={persistCurrentDraftSession}
                   onExitSearchNavigation={() => {
                     setIsSearchNavigationActive(false);
                   }}
@@ -1044,6 +1654,12 @@ export function App({
       {overwriteConfirmationDialog && typeof document !== 'undefined'
         ? createPortal(overwriteConfirmationDialog, document.body)
         : overwriteConfirmationDialog}
+      {localRecoveryChooserDialog && typeof document !== 'undefined'
+        ? createPortal(localRecoveryChooserDialog, document.body)
+        : localRecoveryChooserDialog}
+      {localRecoveryConfirmationDialog && typeof document !== 'undefined'
+        ? createPortal(localRecoveryConfirmationDialog, document.body)
+        : localRecoveryConfirmationDialog}
       {typeof document !== 'undefined' ? createPortal(hintOverlay, document.body) : hintOverlay}
       {typeof document !== 'undefined' ? createPortal(statusOverlay, document.body) : statusOverlay}
     </div>

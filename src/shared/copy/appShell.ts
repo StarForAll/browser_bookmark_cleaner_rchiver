@@ -2,6 +2,8 @@ export type OverwriteConfirmationAction =
   | 'overwrite-draft-from-browser'
   | 'sync-draft-to-browser';
 
+export type LocalRecoveryTarget = 'browser' | 'draft';
+
 type OverwriteConfirmationCopy = {
   title: string;
   sourceSummary: string;
@@ -16,17 +18,33 @@ type OverwriteConfirmationCopy = {
   blockedStatusAction: string;
   blockedStatusResult: string;
   blockedStatusDetail: string;
+  backupBlockedStatusResult: string;
+  backupBlockedStatusDetail: string;
+  successStatusResult: string;
+  successStatusDetail: string;
+};
+
+type LocalRecoveryTargetCopy = {
+  label: string;
+  missingReason: string;
+  invalidReason: string;
+  confirmationTitle: string;
+  confirmationSummary: string;
+  confirmationWarning: string | null;
+  successStatusAction: string;
+  successStatusResult: string;
+  successStatusDetail: string;
 };
 
 export const appShellCopy = {
   title: '书签清理与归档工作区',
-  subtitle: '当前草稿工作区已经接入基础编辑、拖拽、草稿撤销与搜索聚焦；后续任务继续补同步能力。',
+  subtitle: '当前草稿工作区已经接入基础编辑、拖拽、草稿撤销、浏览器覆盖/同步与本地撤销覆盖；后续任务继续补 WebDAV 能力。',
   topShellLabel: '顶部动作区',
   searchLabel: '搜索与聚焦区',
   canvasLabel: '图谱画布区',
   hintLabel: '操作提示区',
   statusLabel: '状态结果区',
-  topShellSummary: '高风险动作入口保持显式可见；当前已接入浏览器覆盖与同步确认门禁，真实备份与执行链路会按后续任务继续补齐。',
+  topShellSummary: '高风险动作入口保持显式可见；当前浏览器覆盖、同步和本地撤销覆盖已经接入显式确认与本地备份边界，后续任务继续补 WebDAV 能力。',
   searchSummary: '标题或 URL 搜索会基于当前草稿实时更新命中结果；普通搜索在按下 Enter 后才会聚焦首个结果，并可用 ↑ / ↓ 循环切换；仅看重复项会切换到重复 URL 聚焦视图。',
   searchInputPlaceholder: '搜索标题或 URL',
   searchToggleLabel: '仅看重复项',
@@ -72,6 +90,7 @@ export const appShellCopy = {
   relayoutWithoutDraftReason: '当前还没有可重新整理的草稿图谱。',
   relayoutUnavailableReason: '当前自动重排能力将在后续任务接入。',
   webdavSettingsUnavailableReason: '当前设置面板将在后续任务接入。',
+  externalActionRunningReason: '当前有覆盖、同步或恢复操作正在执行，请等待完成后再继续。',
   hintItems: [
     '单击：选择节点',
     '双击：编辑节点',
@@ -88,6 +107,14 @@ export const appShellCopy = {
   hintSummary: '操作提示贴住当前可视画布右上角，并保持半透明低干扰样式；滚动画布区域时会继续保持可见。',
   undoUnavailableReason: '当前没有进行覆盖操作，不能进行撤销覆盖操作。启用后会先打开撤销目标选择。',
   overwriteConfirmationCancelLabel: '取消',
+  localRecoveryChooserTitle: '选择要撤销的覆盖目标',
+  localRecoveryChooserSummary: '撤销覆盖操作只针对最新的一份本地备份，不会替代 Ctrl+Z 草稿撤销。',
+  localRecoveryChooserCancelLabel: '取消',
+  localRecoveryChooserContinueLabel: '继续',
+  localRecoverySummaryCreatedAtLabel: '备份时间',
+  localRecoverySummaryOriginLabel: '备份来源',
+  localRecoverySummaryVersionLabel: '来源版本',
+  localRecoveryConfirmLabel: '确认恢复',
 } as const;
 
 const overwriteConfirmationCopy: Record<OverwriteConfirmationAction, OverwriteConfirmationCopy> = {
@@ -105,6 +132,10 @@ const overwriteConfirmationCopy: Record<OverwriteConfirmationAction, OverwriteCo
     blockedStatusAction: '从浏览器覆盖当前草稿',
     blockedStatusResult: '确认已记录，但当前尚未接入浏览器覆盖执行链路',
     blockedStatusDetail: '本次只完成了覆盖确认门禁；当前草稿和浏览器书签都没有发生变化。',
+    backupBlockedStatusResult: '未能生成草稿本地备份，已阻止从浏览器覆盖当前草稿',
+    backupBlockedStatusDetail: '当前草稿保持不变；请先处理本地备份失败后再重试覆盖。',
+    successStatusResult: '已根据当前浏览器书签重建当前草稿',
+    successStatusDetail: '覆盖前的草稿已写入本地备份；如需回退，可使用“撤销覆盖操作”恢复之前的草稿。',
   },
   'sync-draft-to-browser': {
     title: '确认同步当前草稿到浏览器书签',
@@ -120,6 +151,35 @@ const overwriteConfirmationCopy: Record<OverwriteConfirmationAction, OverwriteCo
     blockedStatusAction: '同步当前草稿到浏览器书签',
     blockedStatusResult: '确认已记录，但当前尚未接入浏览器写回执行链路',
     blockedStatusDetail: '本次只完成了同步确认门禁；当前草稿和浏览器书签都没有发生变化。',
+    backupBlockedStatusResult: '未能生成浏览器本地备份，已阻止同步当前草稿到浏览器书签',
+    backupBlockedStatusDetail: '当前草稿和浏览器书签都保持不变；请先处理本地备份失败后再重试同步。',
+    successStatusResult: '已将当前草稿同步到浏览器书签',
+    successStatusDetail: '同步前的浏览器书签已写入本地备份；如需回退，可使用“撤销覆盖操作”恢复之前的浏览器书签。',
+  },
+};
+
+const localRecoveryTargetCopy: Record<LocalRecoveryTarget, LocalRecoveryTargetCopy> = {
+  browser: {
+    label: '撤销对浏览器书签的覆盖',
+    missingReason: '当前没有对浏览器书签进行覆盖操作，不能撤销对浏览器书签的覆盖',
+    invalidReason: '当前浏览器书签备份无效，不能撤销对浏览器书签的覆盖',
+    confirmationTitle: '确认撤销对浏览器书签的覆盖',
+    confirmationSummary: '当前浏览器书签将被最新的本地浏览器备份覆盖恢复。',
+    confirmationWarning: '提醒：Ctrl+Z 不会撤销已经完成的浏览器写入，请确认后再继续。',
+    successStatusAction: '撤销对浏览器书签的覆盖',
+    successStatusResult: '已使用本地浏览器备份恢复浏览器书签',
+    successStatusDetail: '浏览器书签已按最新的本地备份恢复；本次恢复不会生成新的持久化本地备份。',
+  },
+  draft: {
+    label: '撤销对当前草稿的覆盖',
+    missingReason: '当前没有对当前草稿进行覆盖操作，不能撤销对当前草稿的覆盖',
+    invalidReason: '当前草稿备份无效，不能撤销对当前草稿的覆盖',
+    confirmationTitle: '确认撤销对当前草稿的覆盖',
+    confirmationSummary: '当前草稿将被最新的本地草稿备份覆盖恢复。',
+    confirmationWarning: null,
+    successStatusAction: '撤销对当前草稿的覆盖',
+    successStatusResult: '已使用本地草稿备份恢复当前草稿',
+    successStatusDetail: '当前草稿已按最新的本地备份恢复；浏览器书签保持不变，本次恢复不会生成新的持久化本地备份。',
   },
 };
 
@@ -127,6 +187,29 @@ export function getOverwriteConfirmationCopy(
   action: OverwriteConfirmationAction,
 ): OverwriteConfirmationCopy {
   return overwriteConfirmationCopy[action];
+}
+
+export function getLocalRecoveryTargetCopy(
+  target: LocalRecoveryTarget,
+): LocalRecoveryTargetCopy {
+  return localRecoveryTargetCopy[target];
+}
+
+export function formatLocalBackupOrigin(
+  origin: 'webdav-bookmark-version' | 'webdav-draft-version' | 'draft-sync' | 'browser-current-tree',
+): string {
+  switch (origin) {
+    case 'browser-current-tree':
+      return '当前浏览器书签';
+    case 'draft-sync':
+      return '当前草稿同步前状态';
+    case 'webdav-bookmark-version':
+      return 'WebDAV 书签版本';
+    case 'webdav-draft-version':
+      return 'WebDAV 草稿版本';
+    default:
+      return origin;
+  }
 }
 
 type StartupStatusCopy = {

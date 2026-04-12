@@ -137,40 +137,4 @@ describe('T09A browser overwrite and sync confirmation gate', () => {
     expect(bookmarksApi.update).not.toHaveBeenCalled();
     expect(bookmarksApi.removeTree).not.toHaveBeenCalled();
   });
-
-  test('records a blocked status entry after sync confirmation because the real execution chain is deferred to later tasks', async () => {
-    render(
-      <App
-        bootstrapWorkspace={async () => ({
-          policy: {
-            action: 'restore-local-draft',
-            reason: 'persisted-draft-session-exists',
-          },
-          draftSnapshot: createDraftSnapshot(),
-          statusKey: 'restored-local-draft',
-          occurredAt: '2026-04-11T19:00:00',
-        })}
-        enableStartupBootstrap
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '书签节点：Docs Hub' })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: '同步当前草稿到浏览器书签' }));
-    fireEvent.click(await screen.findByRole('button', { name: '确认同步' }));
-
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
-
-    expect(screen.getByText('同步当前草稿到浏览器书签', { selector: '.status-history-list li strong' })).toBeInTheDocument();
-    expect(
-      screen.getByText('确认已记录，但当前尚未接入浏览器写回执行链路', { selector: '.status-history-list li dd' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('本次只完成了同步确认门禁；当前草稿和浏览器书签都没有发生变化。', { selector: '.status-history-list li p' }),
-    ).toBeInTheDocument();
-  });
 });

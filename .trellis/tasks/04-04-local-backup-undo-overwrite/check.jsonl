@@ -1,0 +1,11 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Check must verify the frozen test matrix and truthfully report pass/fail/not run."}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Check must confirm backup state and overwrite side effects remain separated and serial."}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Check must confirm backup payloads and metadata stay validated at the boundary."}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Check must review UI, persistence, and browser-write flow consistency."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/ODD.md", "reason": "Check against the frozen overwrite and undo-overwrite operational flows."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md", "reason": "Check against backup slot, failure, and recovery rules."}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/local-backup-recovery.md", "reason": "Check against chooser and dedicated confirmation copy/interaction rules."}
+{"file": ".trellis/tasks/04-04-local-backup-undo-overwrite/test-first.md", "reason": "Check against the T09B red-gate cases frozen before implementation."}
+{"file": "src/app/App.localBackupRecovery.test.tsx", "reason": "Primary automated red-gate for T09B local backup and undo-overwrite behavior."}
