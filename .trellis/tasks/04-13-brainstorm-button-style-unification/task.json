@@ -1,0 +1,45 @@
+{
+  "id": "brainstorm-button-style-unification",
+  "name": "brainstorm-button-style-unification",
+  "title": "brainstorm: button-style-unification",
+  "description": "",
+  "status": "in_progress",
+  "dev_type": "frontend",
+  "scope": "ui",
+  "package": null,
+  "priority": "P2",
+  "creator": "xzc",
+  "assignee": "xzc",
+  "createdAt": "2026-04-13",
+  "completedAt": null,
+  "branch": "feature/button-style-unification",
+  "base_branch": "master",
+  "worktree_path": "/ops/projects/personal/trellis-worktrees/feature/button-style-unification",
+  "current_phase": 1,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "全量 UI 美化：P0-P2 共 46 项改进。用户确认：范围A（全量）+ 拖拽A（幽灵）+ 动画B（适中200-280ms）。单文件 app.css 修改，预计新增~300行CSS。",
+  "meta": {}
+}
