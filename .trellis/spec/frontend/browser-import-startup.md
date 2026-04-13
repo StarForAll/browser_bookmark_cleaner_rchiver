@@ -1,6 +1,6 @@
 # Browser Import Startup
 
-> Executable code-spec for startup bootstrap, browser import, persisted draft restore, and startup status reporting.
+> Executable code-spec for startup bootstrap, browser import, persisted draft restore, startup status reporting, and extension action-icon workspace entry.
 
 ---
 
@@ -207,3 +207,217 @@ Manual assertions:
 - persist first imported draft immediately
 - when persistence write fails, surface `imported-browser-tree-unsaved` and warn refresh may lose the draft
 - reject malformed bookmark leaves at the browser adapter boundary
+
+
+---
+
+## Scenario: Extension Action Entry And Workspace Refocus
+
+### 1. Scope / Trigger
+
+- Trigger:
+  - changing `public/manifest.json` action/background fields
+  - changing `src/main.tsx` workspace page bootstrap registration
+  - changing `src/service-worker.ts`
+  - changing `src/features/workspace-entry/application/registerWorkspaceActionTarget.ts`
+  - changing `src/features/workspace-entry/application/actionWorkspaceServiceWorker.ts`
+  - changing tests that prove the extension shell entry contract
+- This requires code-spec depth because the flow crosses:
+  - extension manifest contract
+  - extension page bootstrap
+  - runtime messaging
+  - session-scoped persistence
+  - service worker action orchestration
+
+### 2. Signatures
+
+File paths and functions:
+
+- `public/manifest.json`
+  - `background.service_worker = 'service-worker.js'`
+  - `action.default_title`
+  - `options_ui.page = 'index.html'`
+  - `options_ui.open_in_tab = true`
+- `src/main.tsx`
+  - `registerWorkspaceActionTarget() => Promise<void>`
+- `src/service-worker.ts`
+  - `installWorkspaceActionServiceWorker() => void`
+- `src/features/workspace-entry/application/registerWorkspaceActionTarget.ts`
+  - `registerWorkspaceActionTarget(dependencies?) => Promise<void>`
+- `src/features/workspace-entry/application/actionWorkspaceServiceWorker.ts`
+  - `handleWorkspaceActionMessage(message, dependencies?) => Promise<boolean>`
+  - `handleWorkspaceActionClick(dependencies?) => Promise<void>`
+  - `installWorkspaceActionServiceWorker(dependencies?) => void`
+
+Verification commands:
+
+- `pnpm test`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm build`
+
+### 3. Contracts
+
+#### Manifest contract
+
+- `manifest_version = 3`
+- `action`
+  - must keep `default_title`
+  - must not define `default_popup`
+- `background`
+  - must define `service_worker = 'service-worker.js'`
+- `options_ui`
+  - must keep `page = 'index.html'`
+  - must keep `open_in_tab = true`
+- permissions
+  - must keep existing permissions required by the workspace
+  - must **not** add `tabs` permission for this feature
+
+#### Workspace registration message contract
+
+```ts
+type RegisterWorkspaceActionTargetMessage = {
+  type: 'workspace-action-target/register';
+  tabId: number;
+  windowId: number;
+};
+```
+
+Rules:
+
+- the workspace page calls `chrome.tabs.getCurrent()` only to discover its own tab context
+- if `getCurrent()` returns no tab, registration becomes a no-op
+- if `tabId` or `windowId` is missing, registration becomes a no-op
+- the registration message is fire-and-forget; the sender does not depend on a payload response
+
+#### Session storage contract
+
+```ts
+const WORKSPACE_ACTION_TARGET_STORAGE_KEY = 'workspace-action-target';
+
+type WorkspaceActionTarget = {
+  tabId: number;
+  windowId: number;
+};
+```
+
+Rules:
+
+- the remembered target lives in `chrome.storage.session`
+- the remembered target is overwritten by the latest successful registration
+- stale targets must be removed when focus/activation fails
+
+#### Action click behavior contract
+
+When the user clicks the extension action icon:
+
+1. read `workspace-action-target` from `chrome.storage.session`
+2. if a valid remembered target exists:
+   - focus its window
+   - activate its tab
+   - do not create a duplicate workspace tab
+3. if there is no remembered target, or focus/activation fails:
+   - remove the stale remembered target when present
+   - create a new tab with `chrome.runtime.getURL('index.html')`
+
+### 4. Validation & Error Matrix
+
+| Boundary | Input / Condition | Output | User-visible result |
+|---|---|---|---|
+| manifest | `action.default_popup` defined | invalid contract | action-click entry breaks because `onClicked` will not fire |
+| manifest | `tabs` permission added | invalid contract | install surface expands without need |
+| page registration | `chrome.runtime` or `chrome.tabs` missing | no-op | page still renders; action click later falls back to new tab |
+| page registration | `chrome.tabs.getCurrent()` returns `undefined` | no-op | page still renders; no remembered target stored |
+| message intake | message type mismatch | `false` | ignored message |
+| message intake | `storage.session.set` unavailable | `false` | ignored registration; action click later falls back to new tab |
+| action click | remembered target exists and focus succeeds | no new tab | action icon refocuses the existing workspace |
+| action click | no remembered target exists | create new tab | workspace opens in a new tab |
+| action click | remembered target is stale and focus/activation throws | stale key removed, new tab created | workspace still opens successfully |
+
+### 5. Good / Base / Bad Cases
+
+#### Good
+
+- manifest keeps `options_ui`, adds `background.service_worker`, and keeps `default_popup` absent
+- workspace page loads in tab context, self-registers `tabId/windowId`, and later action click refocuses that tab
+- stale remembered target is cleared and action click falls back to a fresh `index.html` tab
+
+#### Base
+
+- workspace page is opened from `options_ui`
+- registration succeeds
+- future action clicks refocus the same page
+
+#### Bad
+
+- adding `default_popup` silently disables `action.onClicked`
+- adding `tabs` permission just to search for the workspace tab
+- registration throws instead of no-op when tab context is absent
+- stale remembered target causes action click to fail without opening a fresh workspace tab
+
+### 6. Tests Required
+
+Required automated tests:
+
+- `src/extensionShellPageEntry.test.tsx`
+  - assert `background.service_worker`
+  - assert `options_ui` remains present
+  - assert `action.default_popup` is absent
+  - assert `tabs` permission is not added
+- `src/features/workspace-entry/application/registerWorkspaceActionTarget.test.ts`
+  - assert successful registration message with `tabId/windowId`
+  - assert no-op when tab context is unavailable
+- `src/features/workspace-entry/application/actionWorkspaceServiceWorker.test.ts`
+  - assert registration message stores the remembered target
+  - assert action click refocuses the remembered target
+  - assert no remembered target opens a new workspace tab
+  - assert stale remembered target is cleared and replaced by new-tab fallback
+
+Manual assertions:
+
+- in real Chrome, clicking the action icon with no workspace open creates one workspace tab
+- in real Chrome, clicking the action icon while the workspace tab is already open focuses that tab instead of opening a duplicate one
+
+### 7. Wrong vs Correct
+
+#### Wrong
+
+```ts
+chrome.action.onClicked.addListener(() => {
+  chrome.tabs.query({ url: chrome.runtime.getURL('index.html') });
+});
+```
+
+Why wrong:
+
+- this requires `tabs` permission to read tab URLs
+- it breaks the lightweight self-registration constraint
+
+#### Correct
+
+```ts
+await runtime.sendMessage({
+  type: 'workspace-action-target/register',
+  tabId,
+  windowId,
+});
+
+const rememberedTarget = stored[WORKSPACE_ACTION_TARGET_STORAGE_KEY];
+if (isWorkspaceActionTarget(rememberedTarget)) {
+  try {
+    await windows.update(rememberedTarget.windowId, { focused: true });
+    await tabs.update(rememberedTarget.tabId, { active: true });
+    return;
+  } catch {
+    await storage.session.remove(WORKSPACE_ACTION_TARGET_STORAGE_KEY);
+  }
+}
+
+await tabs.create({ active: true, url: runtime.getURL('index.html') });
+```
+
+Why correct:
+
+- keeps the manifest permission surface narrow
+- preserves existing `options_ui` entry
+- handles stale remembered targets safely

@@ -11,8 +11,10 @@
 - `T03` 已落地 Chrome 扩展运行壳、独立页面入口和五区工作区
 - `T04` 至 `T05` 已落地草稿图谱契约、本地持久化适配器、浏览器书签读取与启动导入
 - `T06` 至 `T08B` 已落地图谱基础编辑、删除、同级 / 子级创建、拖拽移动、键盘重排 / 提升、悬浮信息、draft-only `Ctrl+Z`、搜索 / 重复聚焦，以及状态反馈与禁用态说明
+- `T09B` 至 `T12B` 已落地本地备份与撤销覆盖恢复边界、WebDAV 配置 / 上传 / 恢复
+- 当前已通过 service worker 接入“点击扩展图标打开或聚焦工作区页面”的扩展入口
 - 当前页面已有状态弹窗开关、最近 3 条状态历史持久化、统一禁用动作说明和集中管理的中文文案
-- 浏览器覆盖写回、WebDAV、本地备份与撤销覆盖恢复仍待后续任务继续实现
+- 浏览器覆盖写回的真实执行链路与最终验收收尾仍待后续任务继续实现
 
 ## 3. 当前实际技术栈
 
@@ -35,6 +37,7 @@
 
 - `public/manifest.json`
 - `index.html` + `src/main.tsx` 扩展页面入口
+- `src/service-worker.ts` 扩展图标点击入口的 service worker 装配点
 - `src/app/App.tsx` 五区工作区壳层与启动状态区
 - `src/app/app.css` 壳层样式
 - `src/shared/copy/appShell.ts` 中文文案集中定义
@@ -42,6 +45,8 @@
 - `src/adapters/local-persistence/*` 本地持久化契约与读写适配器
 - `src/domain/draft-graph/*` 规范化草稿图谱契约与编辑领域逻辑
 - `src/features/browser-sync/application/bootstrapWorkspace.ts` 启动引导编排
+- `src/features/workspace-entry/application/actionWorkspaceServiceWorker.ts` 扩展图标点击后的工作区聚焦 / 新建逻辑
+- `src/features/workspace-entry/application/registerWorkspaceActionTarget.ts` 工作区页面自注册当前 tab 目标
 - `src/features/bookmark-graph/ui/DraftGraphWorkspace.tsx` 草稿图谱工作区
 - `src/engineeringBaseline.test.ts` 工程基线断言
 - `src/extensionShellPageEntry.test.tsx` 扩展入口与页面壳断言
@@ -52,12 +57,8 @@
 
 当前仍未具备：
 
-- WebDAV 设置、上传、恢复
 - 浏览器覆盖写回、覆盖确认与回滚保护
-- 搜索、重复 URL 聚焦与重复信息展示
-- `Ctrl+Z` 撤销链路与真实 undo history 消费
-- 本地备份生成、撤销覆盖与恢复边界
-- 自动归位与更完整的状态历史保留
+- 更完整的状态历史保留
 
 ## 6. 目录方向
 
@@ -132,11 +133,10 @@ pnpm sonar
 - 剩余业务能力对应的单元测试、组件测试与人工验证补齐
 - 浏览器覆盖写回、覆盖确认与恢复边界
 - WebDAV 配置、连通性测试与版本化恢复
-- 自动归位与本地备份 / 撤销覆盖恢复
+- 本地备份 / 撤销覆盖恢复
 
 ## 11. 后续实现顺序建议
 
-1. 完成自动归位等剩余画布侧缺口
-2. 接入浏览器覆盖 / 写回与本地备份保护
-3. 接入 WebDAV 配置、上传、恢复与版本保留
-4. 补齐人工验证与收尾文档
+1. 接入浏览器覆盖 / 写回与本地备份保护
+2. 接入 WebDAV 配置、上传、恢复与版本保留
+3. 补齐人工验证与收尾文档

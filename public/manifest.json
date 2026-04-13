@@ -5,6 +5,9 @@
   "version": "0.1.0",
   "permissions": ["bookmarks", "storage"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
   "action": {
     "default_title": "打开书签清理与归档工作区"
   },

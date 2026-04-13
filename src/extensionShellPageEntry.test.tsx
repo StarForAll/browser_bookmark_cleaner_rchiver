@@ -18,17 +18,22 @@ describe('T03 extension shell and page entry', () => {
       readFileSync(join(repoRoot, 'public/manifest.json'), 'utf8'),
     ) as {
       manifest_version: number;
+      background?: { service_worker?: string };
       permissions?: string[];
       optional_host_permissions?: string[];
+      action?: { default_popup?: string };
       options_ui?: { page?: string; open_in_tab?: boolean };
     };
     const indexHtml = readFileSync(join(repoRoot, 'index.html'), 'utf8');
 
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.permissions).toEqual(expect.arrayContaining(['bookmarks', 'storage']));
+    expect(manifest.permissions).not.toEqual(expect.arrayContaining(['tabs']));
     expect(manifest.optional_host_permissions).toEqual(
       expect.arrayContaining(['https://*/*', 'http://*/*']),
     );
+    expect(manifest.background?.service_worker).toBe('service-worker.js');
+    expect(manifest.action?.default_popup).toBeUndefined();
     expect(manifest.options_ui?.page).toBe('index.html');
     expect(manifest.options_ui?.open_in_tab).toBe(true);
     expect(indexHtml).toContain('/src/main.tsx');
@@ -70,6 +75,7 @@ describe('T03 extension shell and page entry', () => {
 
     expect(screen.getByRole('button', { name: '从浏览器覆盖当前草稿' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'WebDAV 设置' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: '重新整理布局' })).toBeNull();
     expect(screen.getByRole('button', { name: '同步当前草稿到浏览器书签' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '上传当前草稿到 WebDAV' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '上传当前浏览器书签到 WebDAV' })).toBeDisabled();
@@ -153,6 +159,7 @@ describe('T03 extension shell and page entry', () => {
       'title',
       '当前还没有可同步的草稿内容。',
     );
+    expect(within(topShell).queryByText('当前还没有可重新整理的草稿图谱。')).toBeNull();
   });
 
 });

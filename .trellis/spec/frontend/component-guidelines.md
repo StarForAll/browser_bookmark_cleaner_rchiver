@@ -78,7 +78,7 @@ Keep large domain logic, layout mapping, or side-effect coordination outside the
 ## Canvas Viewport Safety
 
 - visual discoverability fixes must not silently reset `scrollLeft`, `scrollTop`, or viewport focus after node create, edit, delete, or layout refresh
-- if a canvas needs recentering or refocusing, it must be tied to an explicit user action such as a dedicated "重新整理布局" or "定位到节点" command
+- if a canvas needs recentering or refocusing, it must be tied to an explicit user action such as a dedicated "定位到节点" command
 - graph-only layout effects may derive visible subsets from the current viewport, but they must preserve the user's existing browsing position
 
 ---

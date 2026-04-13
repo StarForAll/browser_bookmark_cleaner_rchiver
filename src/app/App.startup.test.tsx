@@ -40,6 +40,14 @@ afterEach(() => {
 });
 
 describe('T05 app startup integration', () => {
+  test('shows a visible warning that uninstall clears extension-local data', () => {
+    render(<App />);
+
+    expect(
+      screen.getByText(/Chrome 在卸载扩展时会清除当前扩展保存在本地的草稿、撤销历史、本地备份和 WebDAV 设置。/),
+    ).toBeInTheDocument();
+  });
+
   test('updates the status area after importing the browser tree on first startup', async () => {
     render(
       <App

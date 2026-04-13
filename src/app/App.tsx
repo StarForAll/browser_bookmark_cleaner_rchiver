@@ -497,11 +497,8 @@ function resolvePrimaryActionDisabledReason(
 
 function resolveSecondaryActionDisabledReason(
   actionKey: SecondarySystemActionItem['key'],
-  input: { hasEditableDraft: boolean },
 ): string | null {
   switch (actionKey) {
-    case 'relayout':
-      return input.hasEditableDraft ? appShellCopy.relayoutUnavailableReason : appShellCopy.relayoutWithoutDraftReason;
     case 'webdav-settings':
       return null;
     default:
@@ -660,14 +657,14 @@ export function App({
   }, [hasEditableDraft, hasUndoOverwriteTarget, isWebdavUploadEnabled, runningExternalAction]);
   const secondarySystemActions = useMemo<SecondarySystemActionWithState[]>(() => {
     return appShellCopy.secondaryActionItems.map((action) => {
-      const disabledReason = resolveSecondaryActionDisabledReason(action.key, { hasEditableDraft });
+      const disabledReason = resolveSecondaryActionDisabledReason(action.key);
       return {
         ...action,
         disabledReason,
         isDisabled: disabledReason !== null,
       };
     });
-  }, [hasEditableDraft]);
+  }, []);
   const disabledActionSummaries = useMemo(() => {
     return buildDisabledActionSummaries([...primarySystemActions, ...secondarySystemActions]);
   }, [primarySystemActions, secondarySystemActions]);

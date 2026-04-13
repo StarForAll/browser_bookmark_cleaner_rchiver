@@ -11,7 +11,6 @@ The workspace always represents the current draft, not live browser bookmarks.
 1. Top shell
    - page title
    - seven explicit action buttons
-   - auto-layout reset
    - WebDAV settings / test entry
 
 2. Search and focus strip

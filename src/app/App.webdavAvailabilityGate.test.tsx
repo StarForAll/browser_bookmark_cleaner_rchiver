@@ -147,6 +147,20 @@ afterEach(() => {
 });
 
 describe('T10 WebDAV configuration and availability gate', () => {
+  test('shows uninstall data-loss guidance inside the WebDAV settings dialog', async () => {
+    installChromeRuntime();
+
+    render(<App />);
+
+    openWebdavSettings();
+
+    expect(
+      screen.getByText(
+        '云端上传功能只有在配置有效、host 权限已授予、且最近一次可用性检测成功后才会启用。注意：Chrome 在卸载扩展时会清除当前扩展保存在本地的草稿、撤销历史、本地备份和 WebDAV 设置；如需后续恢复，请在卸载前先把当前草稿或当前浏览器书签上传到 WebDAV，重新安装后需重新填写 WebDAV 设置再执行恢复。',
+      ),
+    ).toBeInTheDocument();
+  });
+
   test('keeps WebDAV settings available, persists a valid profile, and does not treat save as connectivity success', async () => {
     const runtime = installChromeRuntime();
 

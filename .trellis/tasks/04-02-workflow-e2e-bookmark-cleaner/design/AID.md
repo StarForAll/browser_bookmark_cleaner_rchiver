@@ -13,7 +13,6 @@ The extension page is a single focused workspace with five persistent zones plus
    - restore a WebDAV draft version to the current draft
    - restore a WebDAV bookmark version to browser bookmarks
    - undo overwrite operation
-   - auto-layout reset
    - WebDAV test button
 
 2. Search and focus strip

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
+import { registerWorkspaceActionTarget } from './features/workspace-entry/application/registerWorkspaceActionTarget';
 
 const rootElement = document.getElementById('root');
 
@@ -13,3 +14,5 @@ createRoot(rootElement).render(
     <App enableStartupBootstrap />
   </StrictMode>,
 );
+
+void registerWorkspaceActionTarget();

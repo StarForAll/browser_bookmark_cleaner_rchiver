@@ -52,7 +52,8 @@ export const appShellCopy = {
   canvasLabel: '图谱画布区',
   hintLabel: '操作提示区',
   statusLabel: '状态结果区',
-  topShellSummary: '高风险动作入口保持显式可见；当前浏览器覆盖、同步、本地撤销覆盖、WebDAV 上传，以及 WebDAV 草稿 / 浏览器书签恢复都已经接入显式执行边界。',
+  topShellSummary:
+    '高风险动作入口保持显式可见；当前浏览器覆盖、同步、本地撤销覆盖、WebDAV 上传，以及 WebDAV 草稿 / 浏览器书签恢复都已经接入显式执行边界。注意：Chrome 在卸载扩展时会清除当前扩展保存在本地的草稿、撤销历史、本地备份和 WebDAV 设置。',
   searchSummary: '标题或 URL 搜索会基于当前草稿实时更新命中结果；普通搜索在按下 Enter 后才会聚焦首个结果，并可用 ↑ / ↓ 循环切换；仅看重复项会切换到重复 URL 聚焦视图。',
   searchInputPlaceholder: '搜索标题或 URL',
   searchToggleLabel: '仅看重复项',
@@ -78,7 +79,7 @@ export const appShellCopy = {
     '恢复 WebDAV 书签到浏览器书签',
     '撤销覆盖操作',
   ],
-  secondaryLabels: ['重新整理布局', 'WebDAV 设置'],
+  secondaryLabels: ['WebDAV 设置'],
   disabledSummaryTitle: '当前不可用说明',
   primaryActionItems: [
     { key: 'overwrite-draft-from-browser', label: '从浏览器覆盖当前草稿' },
@@ -90,14 +91,11 @@ export const appShellCopy = {
     { key: 'undo-overwrite', label: '撤销覆盖操作' },
   ],
   secondaryActionItems: [
-    { key: 'relayout', label: '重新整理布局' },
     { key: 'webdav-settings', label: 'WebDAV 设置' },
   ],
   syncWithoutDraftReason: '当前还没有可同步的草稿内容。',
   webdavUnavailableReason: '请先完成 WebDAV 设置与可用性检测。',
   webdavRestoreUnavailableReason: '当前 WebDAV 恢复列表暂时不可用，请稍后重试。',
-  relayoutWithoutDraftReason: '当前还没有可重新整理的草稿图谱。',
-  relayoutUnavailableReason: '当前自动重排能力将在后续任务接入。',
   webdavSettingsUnavailableReason: null,
   externalActionRunningReason: '当前有覆盖、同步、上传或恢复操作正在执行，请等待完成后再继续。',
   webdavSettingsTitle: 'WebDAV 设置',
@@ -108,7 +106,8 @@ export const appShellCopy = {
   webdavSettingsEndpointPlaceholder: 'https://dav.example.com/collection/',
   webdavSettingsUsernamePlaceholder: '请输入 WebDAV 用户名',
   webdavSettingsPasswordPlaceholder: '请输入 WebDAV 密码',
-  webdavSettingsHelper: '云端上传功能只有在配置有效、host 权限已授予、且最近一次可用性检测成功后才会启用。',
+  webdavSettingsHelper:
+    '云端上传功能只有在配置有效、host 权限已授予、且最近一次可用性检测成功后才会启用。注意：Chrome 在卸载扩展时会清除当前扩展保存在本地的草稿、撤销历史、本地备份和 WebDAV 设置；如需后续恢复，请在卸载前先把当前草稿或当前浏览器书签上传到 WebDAV，重新安装后需重新填写 WebDAV 设置再执行恢复。',
   webdavSettingsSaveLabel: '保存设置',
   webdavSettingsTestLabel: '测试可用性',
   webdavSettingsCloseLabel: '关闭',

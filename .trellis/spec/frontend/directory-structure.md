@@ -43,6 +43,8 @@ Example target shape:
 
 ```text
 src/features/
+  workspace-entry/
+    application/
   workspace/
     ui/
     application/
