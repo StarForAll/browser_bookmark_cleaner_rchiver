@@ -456,8 +456,7 @@ input:disabled {
 }
 
 .draft-node-drop-zone.is-active {
-  background: rgba(49, 109, 114, 0.06);
-  border-left: 2px dashed rgba(49, 109, 114, 0.3);
+  /* Visual feedback removed — the drop zone is functional without visual distraction */
 }
 
 /* Dragging ghost effect */
