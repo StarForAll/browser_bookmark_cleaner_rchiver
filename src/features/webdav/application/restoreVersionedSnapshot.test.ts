@@ -1,7 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
+import type { BrowserBookmarkTreeNode } from '@/adapters/browser-bookmarks/contracts';
 import type { WebdavProfile } from '@/adapters/local-persistence/contracts';
 import type { ReadWebdavJsonDocumentResult } from '@/adapters/webdav/jsonDocument';
 import type { DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
+import type { RestoreVersionedSnapshotInput } from './restoreVersionedSnapshot';
 
 const WEBDAV_DATA_ROOT = '/bookmark-extension-data';
 
@@ -10,6 +12,14 @@ type StoredVersionDescriptor = {
   createdAt: string;
   snapshotLabel: string | null;
   source: 'draft';
+  versionId: string;
+};
+
+type StoredBrowserVersionDescriptor = {
+  artifactType: 'bookmark-snapshot';
+  createdAt: string;
+  snapshotLabel: string | null;
+  source: 'browser';
   versionId: string;
 };
 
@@ -61,6 +71,15 @@ function createVersionIndex(versions: StoredVersionDescriptor[]) {
   };
 }
 
+function createBrowserVersionIndex(
+  versions: StoredBrowserVersionDescriptor[],
+) {
+  return {
+    schemaVersion: 'webdav-index/v1',
+    versions,
+  };
+}
+
 function createDraftEnvelope(
   version: StoredVersionDescriptor,
   payload: DraftGraphSnapshot,
@@ -76,6 +95,64 @@ function createDraftEnvelope(
     payloadFormat: 'draft-graph-snapshot' as const,
     payload,
   };
+}
+
+function createRestoredBrowserTree(): BrowserBookmarkTreeNode[] {
+  return [
+    {
+      id: '0',
+      parentId: null,
+      title: '',
+      children: [
+        {
+          id: '1',
+          parentId: '0',
+          title: 'Bookmarks Bar',
+          children: [
+            {
+              id: '11',
+              parentId: '1',
+              title: 'Recovered Docs',
+              url: 'https://recovered.example.com',
+            },
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+function createBrowserEnvelope(
+  version: StoredBrowserVersionDescriptor,
+  payload: BrowserBookmarkTreeNode[],
+) {
+  return {
+    schemaVersion: 'webdav-snapshot/v1',
+    artifactType: 'bookmark-snapshot' as const,
+    createdAt: version.createdAt,
+    versionId: version.versionId,
+    source: 'browser' as const,
+    originAction: 'upload-browser-to-webdav' as const,
+    snapshotLabel: version.snapshotLabel,
+    payloadFormat: 'browser-bookmark-tree' as const,
+    payload,
+  };
+}
+
+async function callRestoreVersionedSnapshot(
+  input: RestoreVersionedSnapshotInput,
+  dependencies: {
+    readJson: (path: string, profile: WebdavProfile) => Promise<ReadWebdavJsonDocumentResult>;
+  },
+) {
+  const restoreModule = await import('./restoreVersionedSnapshot');
+  const restoreVersionedSnapshot = Reflect.get(restoreModule, 'restoreVersionedSnapshot');
+
+  if (typeof restoreVersionedSnapshot !== 'function') {
+    throw new Error('restoreVersionedSnapshot export is unavailable.');
+  }
+
+  return restoreVersionedSnapshot(input, dependencies);
 }
 
 describe('T12A WebDAV draft restore orchestration', () => {
@@ -273,5 +350,116 @@ describe('T12A WebDAV draft restore orchestration', () => {
       error: 'Network unreachable',
       kind: 'error',
     });
+  });
+});
+
+describe('T12B WebDAV browser restore orchestration', () => {
+  test('loads the selected bookmark version from the bookmark category and returns the validated browser tree plus descriptor', async () => {
+    const profile = createWebdavProfile();
+    const version: StoredBrowserVersionDescriptor = {
+      artifactType: 'bookmark-snapshot',
+      createdAt: '2026-04-12T12:00:00.000Z',
+      snapshotLabel: '午间书签备份',
+      source: 'browser',
+      versionId: '2026-04-12T12-00-00.000Z',
+    };
+    const restoredTree = createRestoredBrowserTree();
+    const readJson = vi.fn(async (...args: [string, WebdavProfile]) => {
+      const [path] = args;
+
+      if (path === `${WEBDAV_DATA_ROOT}/bookmarks/index.json`) {
+        return {
+          kind: 'loaded',
+          value: createBrowserVersionIndex([version]),
+        } satisfies ReadWebdavJsonDocumentResult;
+      }
+
+      if (path === `${WEBDAV_DATA_ROOT}/bookmarks/versions/${version.versionId}.json`) {
+        return {
+          kind: 'loaded',
+          value: createBrowserEnvelope(version, restoredTree),
+        } satisfies ReadWebdavJsonDocumentResult;
+      }
+
+      return {
+        kind: 'missing',
+      } satisfies ReadWebdavJsonDocumentResult;
+    });
+
+    const result = await callRestoreVersionedSnapshot(
+      {
+        kind: 'browser',
+        profile,
+        versionId: version.versionId,
+      },
+      {
+        readJson,
+      },
+    );
+
+    expect(readJson.mock.calls.map(([path]) => path)).toEqual([
+      `${WEBDAV_DATA_ROOT}/bookmarks/index.json`,
+      `${WEBDAV_DATA_ROOT}/bookmarks/versions/${version.versionId}.json`,
+    ]);
+    expect(result).toMatchObject({
+      kind: 'success',
+      tree: restoredTree,
+      version,
+    });
+  });
+
+  test('returns an error when the selected remote envelope is not a bookmark snapshot', async () => {
+    const profile = createWebdavProfile();
+    const version: StoredBrowserVersionDescriptor = {
+      artifactType: 'bookmark-snapshot',
+      createdAt: '2026-04-12T12:00:00.000Z',
+      snapshotLabel: '午间书签备份',
+      source: 'browser',
+      versionId: '2026-04-12T12-00-00.000Z',
+    };
+    const readJson = vi.fn(async (...args: [string, WebdavProfile]) => {
+      const [path] = args;
+
+      if (path === `${WEBDAV_DATA_ROOT}/bookmarks/index.json`) {
+        return {
+          kind: 'loaded',
+          value: createBrowserVersionIndex([version]),
+        } satisfies ReadWebdavJsonDocumentResult;
+      }
+
+      if (path === `${WEBDAV_DATA_ROOT}/bookmarks/versions/${version.versionId}.json`) {
+        return {
+          kind: 'loaded',
+          value: {
+            ...createBrowserEnvelope(version, createRestoredBrowserTree()),
+            artifactType: 'draft-snapshot',
+            payloadFormat: 'draft-graph-snapshot',
+            source: 'draft',
+            payload: createRestoredDraftSnapshot(),
+          },
+        } satisfies ReadWebdavJsonDocumentResult;
+      }
+
+      return {
+        kind: 'missing',
+      } satisfies ReadWebdavJsonDocumentResult;
+    });
+
+    const result = await callRestoreVersionedSnapshot(
+      {
+        kind: 'browser',
+        profile,
+        versionId: version.versionId,
+      },
+      {
+        readJson,
+      },
+    );
+
+    expect(result.kind).toBe('error');
+    if (result.kind !== 'error') {
+      throw new Error('Expected restoreVersionedSnapshot to return an error result.');
+    }
+    expect(result.error).toMatch(/bookmark|browser|artifactType|source|payload/i);
   });
 });

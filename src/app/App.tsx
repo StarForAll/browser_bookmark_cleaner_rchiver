@@ -487,9 +487,7 @@ function resolvePrimaryActionDisabledReason(
     case 'restore-webdav-draft':
       return input.isWebdavUploadEnabled ? null : appShellCopy.webdavUnavailableReason;
     case 'restore-webdav-browser':
-      return input.isWebdavUploadEnabled
-        ? appShellCopy.webdavBrowserRestoreUnavailableReason
-        : appShellCopy.webdavUnavailableReason;
+      return input.isWebdavUploadEnabled ? null : appShellCopy.webdavUnavailableReason;
     case 'undo-overwrite':
       return input.hasUndoOverwriteTarget ? null : appShellCopy.undoUnavailableReason;
     default:
@@ -562,6 +560,10 @@ export function App({
   const [overwriteConfirmationAction, setOverwriteConfirmationAction] = useState<OverwriteConfirmationAction | null>(null);
   const [isDraftRestorePickerOpen, setIsDraftRestorePickerOpen] = useState(false);
   const [draftRestorePickerState, setDraftRestorePickerState] = useState<DraftRestorePickerState>(
+    () => createEmptyDraftRestorePickerState(),
+  );
+  const [isBrowserRestorePickerOpen, setIsBrowserRestorePickerOpen] = useState(false);
+  const [browserRestorePickerState, setBrowserRestorePickerState] = useState<DraftRestorePickerState>(
     () => createEmptyDraftRestorePickerState(),
   );
   const [isLocalRecoveryChooserOpen, setIsLocalRecoveryChooserOpen] = useState(false);
@@ -741,6 +743,17 @@ export function App({
       ) ?? null
     );
   }, [draftRestorePickerState.selectedVersionId, draftRestorePickerState.versions]);
+  const selectedBrowserRestoreVersion = useMemo<WebdavVersionDescriptor | null>(() => {
+    if (!browserRestorePickerState.selectedVersionId) {
+      return null;
+    }
+
+    return (
+      browserRestorePickerState.versions.find(
+        (version) => version.versionId === browserRestorePickerState.selectedVersionId,
+      ) ?? null
+    );
+  }, [browserRestorePickerState.selectedVersionId, browserRestorePickerState.versions]);
   const persistCurrentDraftSession = useCallback(async (
     nextSession: PersistedDraftSession,
   ) => {
@@ -1001,6 +1014,10 @@ export function App({
     setIsDraftRestorePickerOpen(false);
     setDraftRestorePickerState(createEmptyDraftRestorePickerState());
   }, []);
+  const resetBrowserRestorePicker = useCallback(() => {
+    setIsBrowserRestorePickerOpen(false);
+    setBrowserRestorePickerState(createEmptyDraftRestorePickerState());
+  }, []);
   const updateLocalBackupState = useCallback((artifact: LocalBackupArtifact) => {
     setLocalBackupState((current) => {
       if (artifact.artifactType === 'draft-restore-backup') {
@@ -1118,12 +1135,19 @@ export function App({
       }
 
       const uploadResult = kind === 'draft'
-        ? await uploadVersionedSnapshot({
-            createdAt: occurredAtIso,
-            draftSnapshot: currentDraftSession!.draftSnapshot,
-            kind: 'draft',
-            profile: webdavProfile,
-          })
+        ? await (async () => {
+            const draftSessionForUpload = currentDraftSession;
+            if (!draftSessionForUpload) {
+              throw new Error('Draft upload requires an existing draft session.');
+            }
+
+            return uploadVersionedSnapshot({
+              createdAt: occurredAtIso,
+              draftSnapshot: draftSessionForUpload.draftSnapshot,
+              kind: 'draft',
+              profile: webdavProfile,
+            });
+          })()
         : await (async () => {
             const browserTreeResult = await readBrowserBookmarkTree();
             if (browserTreeResult.kind !== 'loaded') {
@@ -1289,6 +1313,87 @@ export function App({
     recordStatusEntry,
     webdavProfile,
   ]);
+  const openWebdavBrowserRestorePicker = useCallback(async () => {
+    const occurredAtDisplay = formatStatusTimestamp(new Date().toISOString());
+
+    if (!beginExternalAction('list-webdav-browser-versions')) {
+      return;
+    }
+
+    try {
+      if (!webdavProfile) {
+        recordStatusEntry({
+          statusKey: 'restore-webdav-browser-blocked',
+          action: appShellCopy.webdavBrowserRestoreStatusAction,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavBrowserRestoreBlockedResult,
+          detail: appShellCopy.webdavBrowserRestoreBlockedDetail,
+        });
+        return;
+      }
+
+      const permissionResult = await inspectWebdavHostPermission(webdavProfile.endpointUrl);
+      await applyInspectedWebdavPermissionState(webdavProfile, permissionResult);
+      if (permissionResult.kind !== 'granted') {
+        recordStatusEntry({
+          statusKey: 'restore-webdav-browser-blocked',
+          action: appShellCopy.webdavBrowserRestoreStatusAction,
+          time: occurredAtDisplay,
+          result: appShellCopy.webdavBrowserRestoreBlockedResult,
+          detail:
+            permissionResult.kind === 'denied'
+              ? appShellCopy.webdavAvailabilityPermissionDeniedDetail
+              : permissionResult.kind === 'invalid-origin'
+                ? appShellCopy.webdavAvailabilityInvalidUrlDetail
+                : permissionResult.kind === 'unavailable'
+                  ? appShellCopy.webdavAvailabilityPermissionUnavailableDetail
+                  : permissionResult.kind === 'error'
+                    ? permissionResult.error
+                    : appShellCopy.webdavBrowserRestoreBlockedDetail,
+        });
+        return;
+      }
+
+      const versionsResult = await listRestorableVersions({
+        kind: 'browser',
+        profile: webdavProfile,
+      });
+
+      if (versionsResult.kind === 'success') {
+        setBrowserRestorePickerState({
+          selectedVersionId: null,
+          versions: sortVersionsNewestFirst(versionsResult.versions),
+        });
+        setIsBrowserRestorePickerOpen(true);
+        return;
+      }
+
+      recordStatusEntry({
+        statusKey:
+          versionsResult.kind === 'blocked'
+            ? 'restore-webdav-browser-blocked'
+            : 'restore-webdav-browser-list-failed',
+        action: appShellCopy.webdavBrowserRestoreStatusAction,
+        time: occurredAtDisplay,
+        result:
+          versionsResult.kind === 'blocked'
+            ? appShellCopy.webdavBrowserRestoreBlockedResult
+            : appShellCopy.webdavBrowserRestoreListFailedResult,
+        detail:
+          versionsResult.kind === 'blocked'
+            ? versionsResult.reason
+            : versionsResult.error,
+      });
+    } finally {
+      finishExternalAction();
+    }
+  }, [
+    applyInspectedWebdavPermissionState,
+    beginExternalAction,
+    finishExternalAction,
+    recordStatusEntry,
+    webdavProfile,
+  ]);
   const executeOverwriteAction = useCallback(async (action: OverwriteConfirmationAction) => {
     const confirmationCopy = getOverwriteConfirmationCopy(action);
     const statusTime = () => formatStatusTimestamp(new Date().toISOString());
@@ -1431,6 +1536,17 @@ export function App({
           return;
         }
 
+        if (!('snapshot' in restoreResult)) {
+          recordStatusEntry({
+            statusKey: 'restore-webdav-draft-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: appShellCopy.webdavDraftRestoreFailedResult,
+            detail: '恢复结果缺少草稿快照，当前草稿保持不变，已保留本地备份。',
+          });
+          return;
+        }
+
         const nextSession = buildDraftSession(restoreResult.snapshot);
         const persistResult = await persistCurrentDraftSession(nextSession);
 
@@ -1455,6 +1571,137 @@ export function App({
               : persistResult.kind === 'error'
                 ? `${confirmationCopy.successStatusDetail} ${persistResult.error}`
                 : `${confirmationCopy.successStatusDetail} 当前本地存储不可用，刷新后可能丢失。`,
+        });
+        return;
+      }
+
+      if (action === 'restore-webdav-browser') {
+        if (!webdavProfile || !selectedBrowserRestoreVersion) {
+          recordStatusEntry({
+            statusKey: confirmationCopy.blockedStatusKey,
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: confirmationCopy.blockedStatusResult,
+            detail: confirmationCopy.blockedStatusDetail,
+          });
+          return;
+        }
+
+        const currentBrowserTreeResult = await readBrowserBookmarkTree();
+        if (currentBrowserTreeResult.kind !== 'loaded') {
+          recordStatusEntry({
+            statusKey: 'restore-webdav-browser-read-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: '读取当前浏览器书签失败，未执行恢复',
+            detail:
+              currentBrowserTreeResult.kind === 'error'
+                ? currentBrowserTreeResult.error
+                : '当前浏览器书签不可读，已阻止恢复。',
+          });
+          return;
+        }
+
+        const browserBackupArtifact = createBrowserLocalBackupArtifact({
+          payload: currentBrowserTreeResult.tree,
+          sourceOrigin: 'webdav-bookmark-version',
+          sourceVersionId: selectedBrowserRestoreVersion.versionId,
+          sourceVersionLabel: selectedBrowserRestoreVersion.snapshotLabel,
+          triggerAction: action,
+        });
+        const backupWriteResult = await writeLocalBackupArtifact(browserBackupArtifact);
+
+        if (backupWriteResult.kind !== 'saved') {
+          recordStatusEntry({
+            statusKey: 'restore-webdav-browser-backup-blocked',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: confirmationCopy.backupBlockedStatusResult,
+            detail:
+              backupWriteResult.kind === 'error'
+                ? `${confirmationCopy.backupBlockedStatusDetail} ${backupWriteResult.error}`
+                : confirmationCopy.backupBlockedStatusDetail,
+          });
+          return;
+        }
+
+        updateLocalBackupState(backupWriteResult.artifact);
+
+        const restoreResult = await restoreVersionedSnapshot({
+          kind: 'browser',
+          profile: webdavProfile,
+          version: selectedBrowserRestoreVersion,
+          versionId: selectedBrowserRestoreVersion.versionId,
+        });
+
+        if (restoreResult.kind !== 'success') {
+          recordStatusEntry({
+            statusKey:
+              restoreResult.kind === 'blocked'
+                ? confirmationCopy.blockedStatusKey
+                : 'restore-webdav-browser-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result:
+              restoreResult.kind === 'blocked'
+                ? confirmationCopy.blockedStatusResult
+                : appShellCopy.webdavBrowserRestoreFailedResult,
+            detail:
+              restoreResult.kind === 'blocked'
+                ? restoreResult.reason
+                : `${restoreResult.error} 当前浏览器书签保持不变，已保留本地备份。`,
+          });
+          return;
+        }
+
+        if (!('tree' in restoreResult)) {
+          recordStatusEntry({
+            statusKey: 'restore-webdav-browser-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result: appShellCopy.webdavBrowserRestoreFailedResult,
+            detail: '恢复结果缺少浏览器书签树，当前浏览器书签保持不变，已保留本地备份。',
+          });
+          return;
+        }
+
+        const writeResult = await writeManagedBrowserTree({
+          desiredTree: restoreResult.tree,
+          currentTree: currentBrowserTreeResult.tree,
+        });
+
+        if (writeResult.kind !== 'written') {
+          const failureDetail =
+            writeResult.kind === 'rolled-back-after-error'
+              ? `浏览器恢复过程中发生错误，但已自动回退到执行前状态。${writeResult.error}`
+              : writeResult.kind === 'rollback-failed'
+                ? `浏览器恢复过程中发生错误，且自动回退也失败。原始错误：${writeResult.error}；回退错误：${writeResult.rollbackError}`
+                : writeResult.kind === 'error'
+                  ? writeResult.error
+                  : '当前浏览器书签不可写，已阻止恢复。';
+          recordStatusEntry({
+            statusKey: 'restore-webdav-browser-failed',
+            action: confirmationCopy.blockedStatusAction,
+            time: statusTime(),
+            result:
+              writeResult.kind === 'rolled-back-after-error'
+                ? '恢复 WebDAV 书签到浏览器书签失败，但已自动回退浏览器书签'
+                : writeResult.kind === 'rollback-failed'
+                  ? '恢复 WebDAV 书签到浏览器书签失败，且自动回退也失败'
+                  : appShellCopy.webdavBrowserRestoreFailedResult,
+            detail: failureDetail,
+          });
+          return;
+        }
+
+        resetBrowserRestorePicker();
+
+        recordStatusEntry({
+          statusKey: 'restore-webdav-browser-succeeded',
+          action: confirmationCopy.blockedStatusAction,
+          time: statusTime(),
+          result: confirmationCopy.successStatusResult,
+          detail: confirmationCopy.successStatusDetail,
         });
         return;
       }
@@ -1546,8 +1793,10 @@ export function App({
     finishExternalAction,
     persistCurrentDraftSession,
     recordStatusEntry,
+    resetBrowserRestorePicker,
     resetDraftReplacementUi,
     resetDraftRestorePicker,
+    selectedBrowserRestoreVersion,
     selectedDraftRestoreVersion,
     updateLocalBackupState,
     webdavProfile,
@@ -1800,6 +2049,80 @@ export function App({
             onClick={() => {
               setIsDraftRestorePickerOpen(false);
               setOverwriteConfirmationAction('restore-webdav-draft');
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavDraftRestorePickerContinueLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  const browserRestorePickerDialog = isBrowserRestorePickerOpen ? (
+    <div
+      aria-modal="true"
+      className="draft-dialog-backdrop"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          resetBrowserRestorePicker();
+        }
+      }}
+      role="dialog"
+    >
+      <div className="draft-dialog-card overwrite-confirmation-card draft-restore-picker-card">
+        <h3>{appShellCopy.webdavBrowserRestorePickerTitle}</h3>
+        <p>{appShellCopy.webdavBrowserRestorePickerSummary}</p>
+        <p>{appShellCopy.webdavBrowserRestorePickerTargetSummary}</p>
+        <p className="draft-dialog-note">{appShellCopy.webdavBrowserRestorePickerBackupReminder}</p>
+        {browserRestorePickerState.versions.length > 0 ? (
+          <div
+            aria-label={appShellCopy.webdavBrowserRestorePickerTitle}
+            className="local-recovery-choice-list draft-restore-choice-list"
+            role="group"
+          >
+            {browserRestorePickerState.versions.map((version, index) => {
+              const isSelected = version.versionId === browserRestorePickerState.selectedVersionId;
+
+              return (
+                <button
+                  aria-pressed={isSelected}
+                  className={`local-recovery-choice draft-restore-choice${isSelected ? ' is-selected' : ''}`}
+                  key={version.versionId}
+                  onClick={() => {
+                    setBrowserRestorePickerState((current) => ({
+                      ...current,
+                      selectedVersionId: version.versionId,
+                    }));
+                  }}
+                  type="button"
+                >
+                  <span className="draft-restore-choice-label">{`版本${index + 1}`}</span>
+                  <span className="draft-restore-choice-time">{formatStatusTimestamp(version.createdAt)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="draft-dialog-warning" role="status">
+            {appShellCopy.webdavBrowserRestorePickerEmptyState}
+          </p>
+        )}
+        <div className="draft-dialog-actions">
+          <button
+            className="draft-dialog-button"
+            onClick={() => {
+              resetBrowserRestorePicker();
+            }}
+            type="button"
+          >
+            {appShellCopy.webdavDraftRestorePickerCancelLabel}
+          </button>
+          <button
+            className="draft-dialog-button is-primary"
+            disabled={!selectedBrowserRestoreVersion}
+            onClick={() => {
+              setIsBrowserRestorePickerOpen(false);
+              setOverwriteConfirmationAction('restore-webdav-browser');
             }}
             type="button"
           >
@@ -2479,6 +2802,11 @@ export function App({
                       return;
                     }
 
+                    if (action.key === 'restore-webdav-browser') {
+                      void openWebdavBrowserRestorePicker();
+                      return;
+                    }
+
                     if (action.key === 'undo-overwrite') {
                       const hasAvailableTarget =
                         localBackupState.browser.availability === 'available' ||
@@ -2640,6 +2968,9 @@ export function App({
       {draftRestorePickerDialog && typeof document !== 'undefined'
         ? createPortal(draftRestorePickerDialog, document.body)
         : draftRestorePickerDialog}
+      {browserRestorePickerDialog && typeof document !== 'undefined'
+        ? createPortal(browserRestorePickerDialog, document.body)
+        : browserRestorePickerDialog}
       {overwriteConfirmationDialog && typeof document !== 'undefined'
         ? createPortal(overwriteConfirmationDialog, document.body)
         : overwriteConfirmationDialog}

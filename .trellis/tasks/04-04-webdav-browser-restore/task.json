@@ -3,7 +3,7 @@
   "name": "webdav-browser-restore",
   "title": "Implement WebDAV Browser Restore",
   "description": "Implement restoring a WebDAV browser snapshot back into browser bookmarks with local backup protection.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -49,6 +49,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/history-and-recovery.md",
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/restore-version.md"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "T12B was explicitly selected in the frozen serial chain. Test-first, implementation, task-level check, review-gate round 1, and finish-work are complete in the current round; browser restore now covers WebDAV bookmark version listing, explicit confirmation, pre-restore browser backup, managed browser write execution, browser order restoration after manual drift, and the stale-id runtime fix. Awaiting human commit, archive, and delivery / closeout steps.",
   "meta": {}
 }

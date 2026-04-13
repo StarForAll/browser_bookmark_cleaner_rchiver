@@ -62,7 +62,250 @@ function createTreeWithFolderAndBookmarkTargets(): BrowserBookmarkTreeNode[] {
   ];
 }
 
+function createTreeWithTopLevelOrder(
+  orderedIds: string[],
+): BrowserBookmarkTreeNode[] {
+  const nodeById: Record<string, BrowserBookmarkTreeNode> = {
+    '10': {
+      id: '10',
+      parentId: '1',
+      title: 'Alpha',
+      url: 'https://alpha.example.com',
+    },
+    '11': {
+      id: '11',
+      parentId: '1',
+      title: 'Bravo',
+      url: 'https://bravo.example.com',
+    },
+    '12': {
+      id: '12',
+      parentId: '1',
+      title: 'Charlie',
+      url: 'https://charlie.example.com',
+    },
+    '13': {
+      id: '13',
+      parentId: '1',
+      title: 'Delta',
+      url: 'https://delta.example.com',
+    },
+  };
+
+  return [
+    {
+      id: '0',
+      parentId: null,
+      title: '',
+      children: [
+        {
+          id: '1',
+          parentId: '0',
+          title: 'Bookmarks Bar',
+          children: orderedIds.map((id) => {
+            const node = nodeById[id];
+            if (!node) {
+              throw new Error(`Missing test node for id ${id}`);
+            }
+            return cloneTree(node);
+          }),
+        },
+      ],
+    },
+  ];
+}
+
 describe('T09B managed browser bookmark writer', () => {
+  test('restores the original top-level order when an existing browser bookmark was manually moved elsewhere', async () => {
+    const browserTreeState = createTreeWithTopLevelOrder(['10', '11', '13', '12']);
+    const desiredTree = createTreeWithTopLevelOrder(['10', '11', '12', '13']);
+
+    const bookmarksApi = {
+      getTree: vi.fn(async () => cloneTree(browserTreeState)),
+      update: vi.fn(async (id: string, changes: { title?: string; url?: string }) => {
+        const children = browserTreeState[0]?.children?.[0]?.children ?? [];
+        const bookmark = children.find((node) => node.id === id);
+        if (bookmark && !Array.isArray(bookmark.children)) {
+          bookmark.title = changes.title ?? bookmark.title;
+          bookmark.url = changes.url ?? bookmark.url;
+        }
+        return { id };
+      }),
+      create: vi.fn(async () => ({ id: 'created-bookmark' })),
+      move: vi.fn(async (id: string, destination: { parentId?: string; index?: number }) => {
+        const children = browserTreeState[0]?.children?.[0]?.children ?? [];
+        const currentIndex = children.findIndex((node) => node.id === id);
+        if (currentIndex < 0) {
+          throw new Error(`bookmark ${id} not found`);
+        }
+        const [moved] = children.splice(currentIndex, 1);
+        children.splice(destination.index ?? children.length, 0, {
+          ...moved,
+          parentId: destination.parentId ?? moved.parentId,
+        });
+        return { id };
+      }),
+      remove: vi.fn(async () => undefined),
+      removeTree: vi.fn(async () => undefined),
+    };
+
+    const result = await writeManagedBrowserTree(
+      {
+        desiredTree,
+        currentTree: browserTreeState,
+      },
+      bookmarksApi,
+    );
+
+    expect(result).toEqual({ kind: 'written' });
+    expect(bookmarksApi.move).toHaveBeenCalledWith('12', {
+      index: 2,
+      parentId: '1',
+    });
+    expect(
+      browserTreeState[0]?.children?.[0]?.children?.map((node) => node.id),
+    ).toEqual(['10', '11', '12', '13']);
+  });
+
+  test('does not try to move a removed stale id after recreating an earlier node with a different type', async () => {
+    const browserTreeState: BrowserBookmarkTreeNode[] = [
+      {
+        id: '0',
+        parentId: null,
+        title: '',
+        children: [
+          {
+            id: '1',
+            parentId: '0',
+            title: 'Bookmarks Bar',
+            children: [
+              {
+                id: '10',
+                parentId: '1',
+                title: 'Legacy Folder',
+                children: [],
+              },
+              {
+                id: '11',
+                parentId: '1',
+                title: 'Bravo',
+                url: 'https://bravo.example.com',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    let nextCreatedId = 20;
+
+    const bookmarksApi = {
+      getTree: vi.fn(async () => cloneTree(browserTreeState)),
+      update: vi.fn(async (id: string, changes: { title?: string; url?: string }) => {
+        const children = browserTreeState[0]?.children?.[0]?.children ?? [];
+        const bookmark = children.find((node) => node.id === id);
+        if (bookmark && !Array.isArray(bookmark.children)) {
+          bookmark.title = changes.title ?? bookmark.title;
+          bookmark.url = changes.url ?? bookmark.url;
+        }
+        return { id };
+      }),
+      create: vi.fn(async (bookmark: { parentId?: string; title: string; url?: string; index?: number }) => {
+        const children = browserTreeState[0]?.children?.[0]?.children ?? [];
+        const createdId = String(nextCreatedId);
+        nextCreatedId += 1;
+        const createdNode: BrowserBookmarkTreeNode =
+          bookmark.url === undefined
+            ? {
+                id: createdId,
+                parentId: bookmark.parentId ?? '1',
+                title: bookmark.title,
+                children: [],
+              }
+            : {
+                id: createdId,
+                parentId: bookmark.parentId ?? '1',
+                title: bookmark.title,
+                url: bookmark.url,
+              };
+        children.splice(bookmark.index ?? children.length, 0, createdNode);
+        return { id: createdId };
+      }),
+      move: vi.fn(async (id: string, destination: { parentId?: string; index?: number }) => {
+        const children = browserTreeState[0]?.children?.[0]?.children ?? [];
+        const currentIndex = children.findIndex((node) => node.id === id);
+        if (currentIndex < 0) {
+          throw new Error("Can't find bookmark for id.");
+        }
+        const [moved] = children.splice(currentIndex, 1);
+        children.splice(destination.index ?? children.length, 0, {
+          ...moved,
+          parentId: destination.parentId ?? moved.parentId,
+        });
+        return { id };
+      }),
+      remove: vi.fn(async () => undefined),
+      removeTree: vi.fn(async (id: string) => {
+        const children = browserTreeState[0]?.children?.[0]?.children ?? [];
+        const index = children.findIndex((node) => node.id === id);
+        if (index < 0) {
+          throw new Error("Can't find bookmark for id.");
+        }
+        children.splice(index, 1);
+        return undefined;
+      }),
+    };
+
+    const result = await writeManagedBrowserTree(
+      {
+        desiredTree: [
+          {
+            id: '0',
+            parentId: null,
+            title: '',
+            children: [
+              {
+                id: '1',
+                parentId: '0',
+                title: 'Bookmarks Bar',
+                children: [
+                  {
+                    id: '20',
+                    parentId: '1',
+                    title: 'Alpha Replacement',
+                    url: 'https://alpha.example.com',
+                  },
+                  {
+                    id: '11',
+                    parentId: '1',
+                    title: 'Bravo',
+                    url: 'https://bravo.example.com',
+                  },
+                  {
+                    id: '10',
+                    parentId: '1',
+                    title: 'Legacy Folder',
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+        currentTree: browserTreeState,
+      },
+      bookmarksApi,
+    );
+
+    expect(result).toEqual({ kind: 'written' });
+    expect(bookmarksApi.move).toHaveBeenCalledWith('11', {
+      index: 1,
+      parentId: '1',
+    });
+    expect(
+      browserTreeState[0]?.children?.[0]?.children?.map((node) => node.title),
+    ).toEqual(['Alpha Replacement', 'Bravo', 'Legacy Folder']);
+  });
+
   test('omits the url field when updating or creating folder nodes so browser APIs do not reject folder writes', async () => {
     const currentTree = createTreeWithFolderAndBookmarkTargets();
     const update = vi.fn(async () => ({ id: '10' }));
@@ -120,6 +363,7 @@ describe('T09B managed browser bookmark writer', () => {
       title: 'Existing Folder',
     });
     expect(create).toHaveBeenCalledWith({
+      index: 2,
       parentId: '1',
       title: 'New Empty Folder',
     });

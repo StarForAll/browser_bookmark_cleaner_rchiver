@@ -1,4 +1,8 @@
 import {
+  validateBrowserBookmarkTree,
+  type BrowserBookmarkTreeNode,
+} from '@/adapters/browser-bookmarks/contracts';
+import {
   validateWebdavProfile,
   type WebdavProfile,
 } from '@/adapters/local-persistence/contracts';
@@ -23,22 +27,49 @@ const WEBDAV_INDEX_SCHEMA_VERSION = 'webdav-index/v1';
 const WEBDAV_SNAPSHOT_SCHEMA_VERSION = 'webdav-snapshot/v1';
 const WEBDAV_DATA_ROOT_DIR_NAME = 'bookmark-extension-data';
 
-type RestoreCategoryConfig = {
-  artifactType: 'draft-snapshot';
-  basePathSuffix: '/drafts';
-  payloadFormat: 'draft-graph-snapshot';
-  source: 'draft';
-};
+type RestoreCategoryConfig =
+  | {
+      artifactType: 'draft-snapshot';
+      basePathSuffix: '/drafts';
+      kind: 'draft';
+      payloadFormat: 'draft-graph-snapshot';
+      source: 'draft';
+      targetLabel: 'draft';
+    }
+  | {
+      artifactType: 'bookmark-snapshot';
+      basePathSuffix: '/bookmarks';
+      kind: 'browser';
+      payloadFormat: 'browser-bookmark-tree';
+      source: 'browser';
+      targetLabel: 'bookmark';
+    };
 
 const DRAFT_RESTORE_CATEGORY: RestoreCategoryConfig = {
   artifactType: 'draft-snapshot',
   basePathSuffix: '/drafts',
+  kind: 'draft',
   payloadFormat: 'draft-graph-snapshot',
   source: 'draft',
+  targetLabel: 'draft',
 };
 
+const BROWSER_RESTORE_CATEGORY: RestoreCategoryConfig = {
+  artifactType: 'bookmark-snapshot',
+  basePathSuffix: '/bookmarks',
+  kind: 'browser',
+  payloadFormat: 'browser-bookmark-tree',
+  source: 'browser',
+  targetLabel: 'bookmark',
+};
+
+const RESTORE_CATEGORY_BY_KIND = {
+  browser: BROWSER_RESTORE_CATEGORY,
+  draft: DRAFT_RESTORE_CATEGORY,
+} as const;
+
 export type ListRestorableVersionsInput = {
-  kind: 'draft';
+  kind: 'browser' | 'draft';
   profile: WebdavProfile;
 };
 
@@ -57,7 +88,7 @@ export type ListRestorableVersionsResult =
     };
 
 export type RestoreVersionedSnapshotInput = {
-  kind: 'draft';
+  kind: 'browser' | 'draft';
   profile: WebdavProfile;
   version?: WebdavVersionDescriptor;
   versionId: string;
@@ -67,6 +98,11 @@ export type RestoreVersionedSnapshotResult =
   | {
       kind: 'success';
       snapshot: DraftGraphSnapshot;
+      version: WebdavVersionDescriptor;
+    }
+  | {
+      kind: 'success';
+      tree: BrowserBookmarkTreeNode[];
       version: WebdavVersionDescriptor;
     }
   | {
@@ -182,7 +218,7 @@ function validateVersionIndex(
 function validateDraftSnapshotEnvelope(
   value: unknown,
   category: RestoreCategoryConfig,
-): ValidationResult<DraftGraphSnapshot> {
+): ValidationResult<DraftGraphSnapshot | BrowserBookmarkTreeNode[]> {
   if (!isRecord(value)) {
     return validationFailure('WebDAV snapshot envelope must be an object.');
   }
@@ -207,7 +243,11 @@ function validateDraftSnapshotEnvelope(
     return validationFailure('WebDAV snapshot envelope metadata is incomplete.');
   }
 
-  return validateDraftGraphSnapshot(value.payload);
+  if (category.kind === 'draft') {
+    return validateDraftGraphSnapshot(value.payload);
+  }
+
+  return validateBrowserBookmarkTree(value.payload);
 }
 
 export async function listRestorableVersions(
@@ -216,6 +256,7 @@ export async function listRestorableVersions(
     readJson: readWebdavJsonDocument,
   },
 ): Promise<ListRestorableVersionsResult> {
+  const category = RESTORE_CATEGORY_BY_KIND[input.kind];
   const profileValidation = validateWebdavProfile(input.profile);
   if (!profileValidation.ok) {
     return {
@@ -224,7 +265,7 @@ export async function listRestorableVersions(
     };
   }
 
-  const categoryBasePath = resolveCategoryBasePath(profileValidation.value, DRAFT_RESTORE_CATEGORY);
+  const categoryBasePath = resolveCategoryBasePath(profileValidation.value, category);
   const indexResult = await dependencies.readJson(`${categoryBasePath}/index.json`, profileValidation.value);
 
   if (indexResult.kind === 'missing') {
@@ -241,7 +282,7 @@ export async function listRestorableVersions(
     };
   }
 
-  const validation = validateVersionIndex(indexResult.value, DRAFT_RESTORE_CATEGORY);
+  const validation = validateVersionIndex(indexResult.value, category);
   if (!validation.ok) {
     return {
       kind: 'error',
@@ -261,6 +302,7 @@ export async function restoreVersionedSnapshot(
     readJson: readWebdavJsonDocument,
   },
 ): Promise<RestoreVersionedSnapshotResult> {
+  const category = RESTORE_CATEGORY_BY_KIND[input.kind];
   const profileValidation = validateWebdavProfile(input.profile);
   if (!profileValidation.ok) {
     return {
@@ -287,7 +329,7 @@ export async function restoreVersionedSnapshot(
     if (!selectedVersion) {
       return {
         kind: 'blocked',
-        reason: `Selected WebDAV draft version ${input.versionId} is no longer listed in the remote index.`,
+        reason: `Selected WebDAV ${category.targetLabel} version ${input.versionId} is no longer listed in the remote index.`,
       };
     }
   }
@@ -295,11 +337,11 @@ export async function restoreVersionedSnapshot(
   if (selectedVersion.versionId !== input.versionId) {
     return {
       kind: 'blocked',
-      reason: 'Selected WebDAV draft version metadata does not match the requested version id.',
+      reason: `Selected WebDAV ${category.targetLabel} version metadata does not match the requested version id.`,
     };
   }
 
-  const categoryBasePath = resolveCategoryBasePath(profileValidation.value, DRAFT_RESTORE_CATEGORY);
+  const categoryBasePath = resolveCategoryBasePath(profileValidation.value, category);
   const snapshotResult = await dependencies.readJson(
     `${categoryBasePath}/versions/${selectedVersion.versionId}.json`,
     profileValidation.value,
@@ -308,7 +350,7 @@ export async function restoreVersionedSnapshot(
   if (snapshotResult.kind === 'missing') {
     return {
       kind: 'error',
-      error: `WebDAV draft version ${selectedVersion.versionId} is missing.`,
+      error: `WebDAV ${category.targetLabel} version ${selectedVersion.versionId} is missing.`,
     };
   }
 
@@ -321,7 +363,7 @@ export async function restoreVersionedSnapshot(
 
   const envelopeValidation = validateDraftSnapshotEnvelope(
     snapshotResult.value,
-    DRAFT_RESTORE_CATEGORY,
+    category,
   );
   if (!envelopeValidation.ok) {
     return {
@@ -330,9 +372,17 @@ export async function restoreVersionedSnapshot(
     };
   }
 
+  if (category.kind === 'browser') {
+    return {
+      kind: 'success',
+      tree: envelopeValidation.value as BrowserBookmarkTreeNode[],
+      version: selectedVersion,
+    };
+  }
+
   return {
     kind: 'success',
-    snapshot: envelopeValidation.value,
+    snapshot: envelopeValidation.value as DraftGraphSnapshot,
     version: selectedVersion,
   };
 }

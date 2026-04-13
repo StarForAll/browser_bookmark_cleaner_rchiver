@@ -2,6 +2,7 @@ import { readBrowserBookmarkTree, type ReadBrowserBookmarkTreeResult } from './r
 import type { BrowserBookmarkTreeNode } from './contracts';
 
 type ChromeBookmarkCreateInput = {
+  index?: number;
   parentId?: string;
   title: string;
   url?: string;
@@ -19,6 +20,7 @@ type ChromeBookmarkCreateResult = {
 type ChromeBookmarksApi = {
   getTree: () => Promise<unknown>;
   create: (bookmark: ChromeBookmarkCreateInput) => Promise<ChromeBookmarkCreateResult>;
+  move?: (id: string, destination: { index?: number; parentId?: string }) => Promise<unknown>;
   update: (id: string, changes: ChromeBookmarkChangeInput) => Promise<unknown>;
   removeTree?: (id: string) => Promise<unknown>;
   remove?: (id: string) => Promise<unknown>;
@@ -115,20 +117,37 @@ async function createSubtree(
   node: BrowserBookmarkTreeNode,
   parentId: string,
   bookmarksApi: ChromeBookmarksApi,
-): Promise<void> {
-  const created = await bookmarksApi.create(buildCreateInput(node, parentId));
-
-  if (!Array.isArray(node.children) || node.children.length === 0) {
-    return;
-  }
-
-  if (!created.id) {
+  index?: number,
+): Promise<BrowserBookmarkTreeNode> {
+  const created = await bookmarksApi.create({
+    ...buildCreateInput(node, parentId),
+    ...(typeof index === 'number' ? { index } : {}),
+  });
+  const createdId = created.id;
+  if (!createdId) {
     throw new Error('Browser bookmark create did not return a bookmark id.');
   }
 
-  for (const child of node.children) {
-    await createSubtree(child, created.id, bookmarksApi);
+  if (!Array.isArray(node.children) || node.children.length === 0) {
+    return {
+      id: createdId,
+      parentId,
+      title: node.title,
+      url: node.url,
+    };
   }
+
+  const createdChildren: BrowserBookmarkTreeNode[] = [];
+  for (const child of node.children) {
+    createdChildren.push(await createSubtree(child, createdId, bookmarksApi, createdChildren.length));
+  }
+
+  return {
+    id: createdId,
+    parentId,
+    title: node.title,
+    children: createdChildren,
+  };
 }
 
 async function removeNode(
@@ -153,11 +172,11 @@ async function syncNode(
   currentNode: BrowserBookmarkTreeNode | undefined,
   desiredNode: BrowserBookmarkTreeNode,
   parentId: string,
+  index: number,
   bookmarksApi: ChromeBookmarksApi,
-): Promise<void> {
+): Promise<BrowserBookmarkTreeNode> {
   if (!currentNode) {
-    await createSubtree(desiredNode, parentId, bookmarksApi);
-    return;
+    return createSubtree(desiredNode, parentId, bookmarksApi, index);
   }
 
   const currentIsFolder = Array.isArray(currentNode.children);
@@ -165,39 +184,95 @@ async function syncNode(
 
   if (currentIsFolder !== desiredIsFolder) {
     await removeNode(currentNode, bookmarksApi);
-    await createSubtree(desiredNode, parentId, bookmarksApi);
-    return;
+    return createSubtree(desiredNode, parentId, bookmarksApi, index);
   }
 
   await bookmarksApi.update(currentNode.id, buildUpdateInput(desiredNode));
 
   if (!desiredIsFolder) {
-    return;
+    return {
+      id: currentNode.id,
+      parentId,
+      title: desiredNode.title,
+      url: desiredNode.url,
+    };
   }
 
-  const currentChildren = currentNode.children ?? [];
-  const desiredChildren = desiredNode.children ?? [];
-  const nextParentId = currentNode.id;
-  const maxLength = Math.max(currentChildren.length, desiredChildren.length);
+  const syncedChildren = await syncOrderedNodes(
+    currentNode.children ?? [],
+    desiredNode.children ?? [],
+    currentNode.id,
+    bookmarksApi,
+  );
 
-  for (let index = 0; index < maxLength; index += 1) {
-    const nextDesiredChild = desiredChildren[index];
-    const nextCurrentChild = currentChildren[index];
+  return {
+    id: currentNode.id,
+    parentId,
+    title: desiredNode.title,
+    children: syncedChildren,
+  };
+}
 
-    if (nextDesiredChild && nextCurrentChild) {
-      await syncNode(nextCurrentChild, nextDesiredChild, nextParentId, bookmarksApi);
+async function syncOrderedNodes(
+  currentNodes: BrowserBookmarkTreeNode[],
+  desiredNodes: BrowserBookmarkTreeNode[],
+  parentId: string,
+  bookmarksApi: ChromeBookmarksApi,
+): Promise<BrowserBookmarkTreeNode[]> {
+  const orderedCurrentNodes = [...currentNodes];
+
+  for (let index = 0; index < desiredNodes.length; index += 1) {
+    const desiredNode = desiredNodes[index];
+    if (!desiredNode) {
+      continue;
+    }
+    const existingIndex = orderedCurrentNodes.findIndex((node) => node.id === desiredNode.id);
+
+    if (existingIndex >= 0) {
+      const matchedNode = orderedCurrentNodes[existingIndex];
+      if (!matchedNode) {
+        continue;
+      }
+
+      if (existingIndex !== index) {
+        if (!bookmarksApi.move) {
+          throw new Error('Browser bookmark reordering is unavailable.');
+        }
+
+        await bookmarksApi.move(matchedNode.id, {
+          parentId,
+          index,
+        });
+        orderedCurrentNodes.splice(existingIndex, 1);
+        orderedCurrentNodes.splice(index, 0, matchedNode);
+      }
+
+      orderedCurrentNodes[index] = await syncNode(
+        orderedCurrentNodes[index],
+        desiredNode,
+        parentId,
+        index,
+        bookmarksApi,
+      );
       continue;
     }
 
-    if (nextDesiredChild) {
-      await createSubtree(nextDesiredChild, nextParentId, bookmarksApi);
-      continue;
-    }
+    orderedCurrentNodes.splice(
+      index,
+      0,
+      await createSubtree(desiredNode, parentId, bookmarksApi, index),
+    );
+  }
 
-    if (nextCurrentChild) {
-      await removeNode(nextCurrentChild, bookmarksApi);
+  for (let index = orderedCurrentNodes.length - 1; index >= desiredNodes.length; index -= 1) {
+    const nextCurrentNode = orderedCurrentNodes[index];
+    if (nextCurrentNode) {
+      await removeNode(nextCurrentNode, bookmarksApi);
+      orderedCurrentNodes.splice(index, 1);
     }
   }
+
+  return orderedCurrentNodes;
 }
 
 async function applyManagedBrowserTree(
@@ -213,25 +288,7 @@ async function applyManagedBrowserTree(
     throw new Error('Managed browser bookmark container is unavailable.');
   }
 
-  const maxLength = Math.max(currentManagedRoots.length, desiredManagedRoots.length);
-  for (let index = 0; index < maxLength; index += 1) {
-    const nextDesiredRoot = desiredManagedRoots[index];
-    const nextCurrentRoot = currentManagedRoots[index];
-
-    if (nextDesiredRoot && nextCurrentRoot) {
-      await syncNode(nextCurrentRoot, nextDesiredRoot, managedContainerId, bookmarksApi);
-      continue;
-    }
-
-    if (nextDesiredRoot) {
-      await createSubtree(nextDesiredRoot, managedContainerId, bookmarksApi);
-      continue;
-    }
-
-    if (nextCurrentRoot) {
-      await removeNode(nextCurrentRoot, bookmarksApi);
-    }
-  }
+  await syncOrderedNodes(currentManagedRoots, desiredManagedRoots, managedContainerId, bookmarksApi);
 }
 
 export async function writeManagedBrowserTree(
