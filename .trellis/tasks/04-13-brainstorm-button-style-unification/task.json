@@ -3,7 +3,7 @@
   "name": "brainstorm-button-style-unification",
   "title": "brainstorm: button-style-unification",
   "description": "",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "frontend",
   "scope": "ui",
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "xzc",
   "assignee": "xzc",
   "createdAt": "2026-04-13",
-  "completedAt": null,
+  "completedAt": "2026-04-13",
   "branch": "feature/button-style-unification",
   "base_branch": "master",
   "worktree_path": "/ops/projects/personal/trellis-worktrees/feature/button-style-unification",
@@ -34,7 +34,7 @@
       "action": "create-pr"
     }
   ],
-  "commit": null,
+  "commit": "cc9154b",
   "pr_url": null,
   "subtasks": [],
   "children": [],
