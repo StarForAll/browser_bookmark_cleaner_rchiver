@@ -4,7 +4,9 @@
       "Skill(agent-browser)",
       "Bash(agent-browser install:*)",
       "Read(//home/xzc/.cache/**)",
-      "Read(//home/xzc/**)"
+      "Read(//home/xzc/**)",
+      "Edit(/ops/projects/personal/trellis-worktrees/feature/button-style-unification/**)",
+      "Write(/ops/projects/personal/trellis-worktrees/feature/button-style-unification/**)"
     ]
   }
 }
