@@ -1132,3 +1132,37 @@ Completed T12A WebDAV draft restore, closed review-gate, archived the child task
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: T12B WebDAV browser restore closeout
+
+**Date**: 2026-04-13
+**Task**: T12B WebDAV browser restore closeout
+**Branch**: `master`
+
+### Summary
+
+Implemented and validated T12B WebDAV browser restore, fixed browser bookmark order restoration and stale-id runtime failure, archived the child task, and synchronized parent progress to T13 as the next pending child task.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `12c56d4` | (see git log) |
+| `6e84638` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
