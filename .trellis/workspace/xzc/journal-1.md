@@ -1166,3 +1166,38 @@ Implemented and validated T12B WebDAV browser restore, fixed browser bookmark or
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: 扩展入口与工作区收口
+
+**Date**: 2026-04-13
+**Task**: 扩展入口与工作区收口
+**Branch**: `master`
+
+### Summary
+
+完成扩展图标打开/聚焦工作区入口，补充卸载数据清除提示，移除重新整理布局按钮，并同步 tests/docs/spec 后完成两项任务归档。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1b4788e` | (see git log) |
+| `a59efb7` | (see git log) |
+| `d485979` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
