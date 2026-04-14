@@ -3,7 +3,7 @@
   "name": "workflow-e2e-bookmark-cleaner",
   "title": "Browser Bookmark Cleaner Implementation",
   "description": "Use the imported workflow with real-time human interaction to clarify requirements and implement a minimal local bookmark cleaner.",
-  "status": "in_progress",
+  "status": "completed",
   "dev_type": "frontend",
   "scope": "interactive-brainstorm+mvp-app",
   "package": null,
@@ -11,7 +11,7 @@
   "creator": "xzc",
   "assignee": "xzc",
   "createdAt": "2026-04-02",
-  "completedAt": null,
+  "completedAt": "2026-04-14",
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
@@ -51,7 +51,7 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
     "tmp/workflow-e2e-issues.md"
   ],
-  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task now serves as summary/coordination only. Runtime execution has progressed through T12B in the frozen serial chain; T08B, T09A, T09B, T10, T11, T12A, and T12B are complete, and T13 verification-closeout is now explicitly selected and in progress. Automated verification is green and the fresh manual Chrome verification round is human-confirmed with no issue. The remaining steps are human commit, archive, and record-session.",
+  "notes": "Originally imported from /tmp/task-content, then reframed from workflow black-box testing to interactive product implementation. Brainstorm was reopened for the Chinese-first UI language requirement. Design Step 2 (functional specifications) and Design Step 3 (discussion-based prototype validation against tmp/ui) are complete. The parent task then served as summary/coordination only. The frozen serial chain `T01` through `T13` is now fully completed and archived, including final verification closeout, manual Chrome acceptance, and session recording. This parent task is now ready for final archive as the last coordinator record of the implementation program.",
   "meta": {
     "task_type": "interactive-product-implementation",
     "product_name": "browser-bookmark-cleaner-archiver",

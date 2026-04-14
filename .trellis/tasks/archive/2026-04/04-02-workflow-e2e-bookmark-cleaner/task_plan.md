@@ -8,7 +8,7 @@
 
 - 目录：`04-02-workflow-e2e-bookmark-cleaner`
 - 当前角色：总览、依赖汇总、阶段门禁、child task 编排
-- 当前阶段：`implementation`
+- 当前阶段：`closeout`
 
 当前状态：
 
@@ -16,9 +16,9 @@
 - refined task graph 已完成
 - 17 个 child task 已创建完成
 - `T01` 至 `T12A` 已完成实现并归档
-- 当前仍处于 active 的 child task 仅剩 `T13`，并已进入收尾执行
+- 所有 child task 已完成并归档
 - 已完成 child task 的实现范围已覆盖：工程基线、扩展运行壳、本地持久化契约、浏览器读取导入、图谱基础编辑、拖拽移动、撤销历史与 `Ctrl+Z`、搜索与重复 URL 聚焦、状态反馈与禁用态、浏览器覆盖与同步确认、本地备份与撤销覆盖恢复边界、WebDAV 配置/权限、WebDAV 上传与版本保留、WebDAV 草稿恢复、WebDAV 浏览器书签恢复
-- 后续 child task 仍需按既定串行顺序推进，不能把已完成前序任务误记为“尚未启动”
+- 冻结串行主链已全部执行完成，父 task 当前只剩协调任务本身的最终归档
 
 ## 父 Task 边界
 
@@ -37,14 +37,9 @@
 
 ## 当前门禁
 
-- 父 task 的项目级 `test-first` 基线已冻结完成
-- 当前 `test-first` 采用双层规则：
-  - 全局只冻结一次项目级测试基线
-  - 执行时按 child task 逐个编写测试门禁
-- 在进入具体 child task 的 `test-first` 前，仍需明确指定目标 task
-- child task 已创建，不等于 child task 已启动
-- 在未指定 child task 前，不开始测试编写，也不开始实现
-- 不在父协调 task 中一次性为整个 plan 预写完整测试套件
+- 父 task 的项目级 `test-first` 基线已冻结并在所有 child task 执行中使用完毕
+- 父 task 不再进入新的实现 / test-first / check 回合
+- 当前唯一剩余动作是保留最终摘要并归档父 task
 
 ## Canonical Docs
 
@@ -120,20 +115,17 @@
 
 ## 当前执行状态摘要
 
-- 父 task：`in_progress`
+- 父 task：`ready_to_archive`
 - 已归档完成：`T01`、`T02`、`T03`、`T04`、`T05`、`T06`、`T07A`、`T07B`、`T08A`、`T08B`、`T09A`、`T09B`、`T10`、`T11`、`T12A`
 - 已归档完成：`T12B`
-- 当前进行中：`T13`（验证已齐备，等待 human commit + archive + record-session）
-- child task：17/17 已创建；其中 16 个已归档完成，1 个处于 `in_progress`
-- 当前冻结串行链路已推进到 `T13` 收尾执行中；验证证据已齐备，等待正常提交与归档闭环
-- 剩余未归档的 child task 仅有 `T13`
+- `T13`：已归档完成
+- child task：17/17 已创建，17/17 已归档完成
+- 当前冻结串行链路已全部收尾完成
+- 父 task 的最终协调记录已可进入归档
 
 ## 后续入口
 
 后续当前默认入口：
 
-- 明确指定一个 child task
-- 先进入该 child task 的 `test-first`
-- 该 child task 的 `test-first` 完成后，再进入 `start` / 实现阶段
-- 当前 child task 收口后，才允许切换到下一个 child task
-- 切换到下一个 child task 前，必须再次得到用户明确授权；不能按串行顺序自动续跑
+- 归档父 task
+- 如需补充项目级复盘或新需求，另开新 task
