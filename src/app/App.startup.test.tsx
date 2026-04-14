@@ -1,5 +1,5 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, test } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test } from 'vitest';
 import type { DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
 import { App } from './App';
 
@@ -33,6 +33,10 @@ function createDraftSnapshot(): DraftGraphSnapshot {
     rootIds: ['folder-root'],
   };
 }
+
+beforeEach(() => {
+  delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
+});
 
 afterEach(() => {
   cleanup();

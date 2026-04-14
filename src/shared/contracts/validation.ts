@@ -49,5 +49,5 @@ export function isFiniteNumber(value: unknown): value is number {
 }
 
 export function isNonNegativeInteger(value: unknown): value is number {
-  return Number.isInteger(value) && typeof value === 'number' && value >= 0;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }

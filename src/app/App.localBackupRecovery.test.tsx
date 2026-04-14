@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import type { BrowserBookmarkTreeNode } from '@/adapters/browser-bookmarks/contracts';
 import {
   LOCAL_PERSISTENCE_KEYS,
@@ -242,6 +242,10 @@ function firstBrowserMutationCallOrder(bookmarksApi: {
 
   return candidates.length > 0 ? Math.min(...candidates) : null;
 }
+
+beforeEach(() => {
+  delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
+});
 
 afterEach(() => {
   cleanup();

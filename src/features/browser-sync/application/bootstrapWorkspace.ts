@@ -81,7 +81,7 @@ export async function bootstrapWorkspace(
 
   const policy = resolveStartupImportPolicy({
     hasPersistedDraftSession,
-    hasBrowserPermission: browserTreeResult.kind === 'loaded',
+    hasBrowserPermission: browserTreeResult.kind !== 'unavailable',
     hasReadableBrowserTree: browserTreeResult.kind === 'loaded',
   });
 

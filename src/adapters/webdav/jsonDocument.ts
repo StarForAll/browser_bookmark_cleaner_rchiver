@@ -36,28 +36,26 @@ export type DeleteWebdavFileResult =
       error: string;
     };
 
-function encodeBasicAuth(value: string): string {
-  if (typeof btoa === 'function') {
-    return btoa(value);
-  }
+import { encodeBasicAuth } from '@/shared/encodeBasicAuth';
 
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(value, 'utf-8').toString('base64');
-  }
+const WEBDAV_FETCH_TIMEOUT_MS = 30_000;
 
-  throw new Error('Base64 encoding is unavailable in this runtime.');
+function withTimeout(fetchImpl: FetchLike): FetchLike {
+  return async (input: string, init?: RequestInit) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), WEBDAV_FETCH_TIMEOUT_MS);
+    try {
+      return await fetchImpl(input, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  };
 }
 
 function resolveFetch(fetchImpl?: FetchLike): FetchLike | null {
-  if (fetchImpl) {
-    return fetchImpl;
-  }
-
-  if (typeof fetch === 'function') {
-    return fetch.bind(globalThis) as FetchLike;
-  }
-
-  return null;
+  const base = fetchImpl
+    ?? (typeof fetch === 'function' ? (fetch.bind(globalThis) as FetchLike) : null);
+  return base ? withTimeout(base) : null;
 }
 
 function buildWebdavUrl(logicalPath: string, endpointUrl: string): string {
@@ -267,6 +265,13 @@ export async function readWebdavJsonDocument(
     if (response.status === 404 || response.status === 409) {
       return {
         kind: 'missing',
+      };
+    }
+
+    if ([301, 302, 307, 308].includes(response.status)) {
+      return {
+        kind: 'error',
+        error: `WebDAV JSON read redirected with HTTP ${response.status}. Verify the endpoint URL.`,
       };
     }
 

@@ -4,6 +4,7 @@ import type { WebdavProfile } from '@/adapters/local-persistence/contracts';
 import type { ReadWebdavJsonDocumentResult } from '@/adapters/webdav/jsonDocument';
 import type { DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
 import type { RestoreVersionedSnapshotInput } from './restoreVersionedSnapshot';
+import { restoreVersionedSnapshot } from './restoreVersionedSnapshot';
 
 const WEBDAV_DATA_ROOT = '/bookmark-extension-data';
 
@@ -145,13 +146,6 @@ async function callRestoreVersionedSnapshot(
     readJson: (path: string, profile: WebdavProfile) => Promise<ReadWebdavJsonDocumentResult>;
   },
 ) {
-  const restoreModule = await import('./restoreVersionedSnapshot');
-  const restoreVersionedSnapshot = Reflect.get(restoreModule, 'restoreVersionedSnapshot');
-
-  if (typeof restoreVersionedSnapshot !== 'function') {
-    throw new Error('restoreVersionedSnapshot export is unavailable.');
-  }
-
   return restoreVersionedSnapshot(input, dependencies);
 }
 

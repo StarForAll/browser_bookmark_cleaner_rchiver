@@ -16,7 +16,8 @@ function validateBookmarkTreeNode(
     return validationFailure(`${path} must be an object.`);
   }
 
-  const { id, parentId, title, url, children } = value;
+  const { id, parentId, title, children } = value;
+  let { url } = value as { url?: string };
 
   if (!isNonEmptyString(id)) {
     return validationFailure(`${path}.id must be a non-empty string.`);
@@ -39,7 +40,9 @@ function validateBookmarkTreeNode(
   }
 
   const isFolderNode = Array.isArray(children);
-  if (!isFolderNode && !isNonEmptyString(url)) {
+  if (isFolderNode) {
+    url = undefined;
+  } else if (!isNonEmptyString(url)) {
     return validationFailure(`${path}.url must be a non-empty string for bookmark leaves.`);
   }
 

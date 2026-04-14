@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import { LOCAL_PERSISTENCE_KEYS } from '@/adapters/local-persistence/contracts';
 import type { DraftGraphSnapshot } from '@/domain/draft-graph/contracts';
 import { formatStatusTimestamp } from '@/shared/copy/appShell';
@@ -303,6 +303,10 @@ function readTopStatusResult(): string {
   const resultItems = document.querySelectorAll('.status-history-list li dd');
   return resultItems[1]?.textContent ?? '';
 }
+
+beforeEach(() => {
+  delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
+});
 
 afterEach(() => {
   cleanup();

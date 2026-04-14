@@ -34,8 +34,8 @@ export function importBrowserTreeToDraftGraph(input: ImportBrowserTreeInput): Dr
     let nodeUrl: string | null = null;
 
     if (!isFolder) {
-      if (node.url === undefined) {
-        throw new Error(`Bookmark node ${node.id} must include a validated url before import.`);
+      if (node.url === undefined || node.url === '') {
+        throw new Error(`Bookmark node ${node.id} must include a non-empty validated url before import.`);
       }
       nodeUrl = node.url;
     }

@@ -551,6 +551,8 @@ export function App({
   const [localBackupState, setLocalBackupState] = useState<LocalBackupState>(() => createEmptyLocalBackupState());
   const [webdavProfile, setWebdavProfile] = useState<WebdavProfile | null>(null);
   const [webdavPermissionState, setWebdavPermissionState] = useState<WebdavPermissionState | null>(null);
+  const webdavPermissionStateRef = useRef<WebdavPermissionState | null>(null);
+  webdavPermissionStateRef.current = webdavPermissionState;
   const [isWebdavSettingsOpen, setIsWebdavSettingsOpen] = useState(false);
   const [webdavFormValues, setWebdavFormValues] = useState<WebdavSettingsFormValues>(() => createEmptyWebdavSettingsFormValues());
   const [webdavFormError, setWebdavFormError] = useState<string | null>(null);
@@ -754,8 +756,11 @@ export function App({
   const persistCurrentDraftSession = useCallback(async (
     nextSession: PersistedDraftSession,
   ) => {
-    setCurrentDraftSession(nextSession);
-    return writePersistedDraftSession(nextSession);
+    const result = await writePersistedDraftSession(nextSession);
+    if (result.kind === 'saved') {
+      setCurrentDraftSession(nextSession);
+    }
+    return result;
   }, []);
   const beginExternalAction = useCallback((actionKey: string): boolean => {
     if (runningExternalActionRef.current !== null) {
@@ -804,8 +809,9 @@ export function App({
 
     const nextOrigin = nextPermissionState?.origin ?? null;
     const nextGranted = nextPermissionState?.granted ?? null;
-    const currentOrigin = webdavPermissionState?.origin ?? null;
-    const currentGranted = webdavPermissionState?.granted ?? null;
+    const current = webdavPermissionStateRef.current;
+    const currentOrigin = current?.origin ?? null;
+    const currentGranted = current?.granted ?? null;
     if (currentOrigin === nextOrigin && currentGranted === nextGranted) {
       return nextPermissionState;
     }
@@ -816,7 +822,7 @@ export function App({
       permissionState: nextPermissionState,
     });
     return nextPermissionState;
-  }, [webdavPermissionState]);
+  }, []);
   const refreshWebdavPermissionState = useCallback(async (
     profileOverride?: WebdavProfile | null,
   ) => {

@@ -17,13 +17,7 @@ export type TestWebdavAvailabilityResult =
       error: string;
     };
 
-function encodeBasicAuth(value: string): string {
-  if (typeof btoa === 'function') {
-    return btoa(value);
-  }
-
-  throw new Error('Base64 encoding is unavailable in this runtime.');
-}
+import { encodeBasicAuth } from '@/shared/encodeBasicAuth';
 
 export async function testWebdavAvailability(
   profile: WebdavProfile,

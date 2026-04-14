@@ -132,6 +132,10 @@ function validateNode(nodeKey: string, value: unknown): ValidationResult<DraftGr
     });
   }
 
+  if (childIds.length > 0) {
+    return validationFailure(`Bookmark node ${nodeKey} must not have children.`);
+  }
+
   if (!isNonEmptyString(url)) {
     return validationFailure(`Bookmark node ${nodeKey} must include a non-empty url.`);
   }
@@ -204,6 +208,27 @@ export function validateDraftGraphSnapshot(value: unknown): ValidationResult<Dra
       return validationFailure(
         `Draft graph node ${nodeKey} must reference an existing parentId when parentId is not null.`,
       );
+    }
+  }
+
+  for (const [nodeKey, node] of Object.entries(normalizedNodesById)) {
+    for (const childId of node.childIds) {
+      if (!(childId in normalizedNodesById)) {
+        return validationFailure(
+          `Draft graph node ${nodeKey} references non-existent childId ${childId}.`,
+        );
+      }
+    }
+  }
+
+  for (const [nodeKey, node] of Object.entries(normalizedNodesById)) {
+    for (const childId of node.childIds) {
+      const child = normalizedNodesById[childId];
+      if (child.parentId !== nodeKey) {
+        return validationFailure(
+          `Draft graph node ${childId} parentId must be ${nodeKey} to match parent childIds.`,
+        );
+      }
     }
   }
 

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import {
   DRAFT_GRAPH_SCHEMA_VERSION,
   type DraftGraphSnapshot,
@@ -75,6 +75,10 @@ function createSearchableDraftSnapshot(): DraftGraphSnapshot {
     rootIds: ['folder-root'],
   };
 }
+
+beforeEach(() => {
+  delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
+});
 
 afterEach(() => {
   cleanup();

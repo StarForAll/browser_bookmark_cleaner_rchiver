@@ -228,15 +228,15 @@ function validateDraftSnapshotEnvelope(
   }
 
   if (value.artifactType !== category.artifactType) {
-    return validationFailure('WebDAV snapshot artifactType is invalid for draft restore.');
+    return validationFailure(`WebDAV snapshot artifactType is invalid for ${category.targetLabel} restore.`);
   }
 
   if (value.source !== category.source) {
-    return validationFailure('WebDAV snapshot source is invalid for draft restore.');
+    return validationFailure(`WebDAV snapshot source is invalid for ${category.targetLabel} restore.`);
   }
 
   if (value.payloadFormat !== category.payloadFormat) {
-    return validationFailure('WebDAV snapshot payloadFormat is invalid for draft restore.');
+    return validationFailure(`WebDAV snapshot payloadFormat is invalid for ${category.targetLabel} restore.`);
   }
 
   if (!isNonEmptyString(value.createdAt) || !isNonEmptyString(value.versionId)) {

@@ -101,7 +101,8 @@ function resolveStorageArea(storageArea?: ChromeStorageArea): ChromeStorageArea 
 }
 
 function measurePayloadSize(payload: unknown): number {
-  return JSON.stringify(payload).length;
+  const json = JSON.stringify(payload);
+  return new TextEncoder().encode(json).length;
 }
 
 function validateDraftLocalBackupArtifact(value: unknown): DraftLocalBackupArtifact | null {

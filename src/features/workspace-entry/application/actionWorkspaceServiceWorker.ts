@@ -165,6 +165,7 @@ export function installWorkspaceActionServiceWorker(
 
   runtimeApi?.onMessage?.addListener((message) => {
     void handleWorkspaceActionMessage(message, dependencies);
+    return true;
   });
   actionApi?.onClicked?.addListener(() => {
     void handleWorkspaceActionClick(dependencies);

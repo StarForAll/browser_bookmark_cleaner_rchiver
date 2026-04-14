@@ -163,9 +163,11 @@ async function removeNode(
     return;
   }
 
-  if (bookmarksApi.remove) {
-    await bookmarksApi.remove(node.id);
+  if (!bookmarksApi.remove) {
+    throw new Error('Browser bookmark leaf removal is unavailable.');
   }
+
+  await bookmarksApi.remove(node.id);
 }
 
 async function syncNode(

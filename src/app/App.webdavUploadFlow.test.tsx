@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, test, vi } from 'vitest';
 import type { BrowserBookmarkTreeNode } from '@/adapters/browser-bookmarks/contracts';
 import { LOCAL_PERSISTENCE_KEYS } from '@/adapters/local-persistence/contracts';
 import { createDraftGraphFixture } from '../../test/fixtures/draftGraph';
@@ -238,6 +238,10 @@ function readTopStatusResult(): string {
   const resultItems = document.querySelectorAll('.status-history-list li dd');
   return resultItems[1]?.textContent ?? '';
 }
+
+beforeEach(() => {
+  delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome;
+});
 
 afterEach(() => {
   cleanup();
