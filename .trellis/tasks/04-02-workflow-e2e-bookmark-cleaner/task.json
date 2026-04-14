@@ -45,9 +45,7 @@
   "commit": null,
   "pr_url": null,
   "subtasks": [],
-  "children": [
-    "04-04-verification-closeout"
-  ],
+  "children": [],
   "parent": null,
   "relatedFiles": [
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/",
