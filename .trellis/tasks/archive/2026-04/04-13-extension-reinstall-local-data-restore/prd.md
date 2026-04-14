@@ -2,7 +2,7 @@
 
 ## Goal
 
-为当前 Chrome 扩展补充“卸载后再次安装仍可恢复之前工作数据”的能力，并在方案冻结后建立对应测试门禁，再进入实现。
+在当前 Chrome 扩展存储边界下，为“卸载后数据丢失”补充明确页面说明与 WebDAV 预先上传 / 重装后恢复指引，作为自动恢复 companion 方案之前的降级闭环。
 
 ## What I Already Know
 
@@ -39,17 +39,11 @@
 
 ## Open Questions
 
-- 外部持久化机制的安装与交付形式如何定义：
-  - 随扩展一起要求安装本机 companion 程序
-  - 作为可选增强能力单独安装
-- WebDAV 凭据的外部保存策略如何定义：
-  - 操作系统钥匙串 / 凭据管理器
-  - companion 本地加密文件
-  - 两者组合
-- 重装后的恢复触发方式如何定义：
-  - 首次启动自动探测并自动恢复
-  - 首次启动自动探测后显示一次确认
-  - 设置页显式触发恢复
+- 当前降级方案无剩余阻塞问题。
+- 若未来要重启“卸载后自动恢复”的高保证方案，应单独新建任务收敛：
+  - companion 的安装与交付形式
+  - WebDAV 凭据的扩展外保存策略
+  - 重装后的自动探测 / 恢复触发方式
 
 ## Requirements (Evolving)
 
@@ -68,6 +62,7 @@
   - 在页面内明确提示卸载会清除本地数据
   - 指引用户在卸载前先把当前草稿或当前浏览器书签上传到 WebDAV
   - 重装后重新配置 WebDAV，再执行恢复
+- 当前任务冻结为上述降级方案，不在本轮实现 Native Messaging companion。
 
 ## Acceptance Criteria (Evolving)
 
@@ -95,8 +90,8 @@
 
 ## Workflow Decisions
 
-- Accuracy Status: 部分准确
-- Complexity: L2
-- Need More Divergence: 是
-- Need Sub Tasks: 待定
-- Next Step: 当前已选择降级到“页面说明 + WebDAV 预先上传指引”方案；验证文案与测试后再决定是否重启 companion 方案
+- Accuracy Status: 已准确
+- Complexity: L1
+- Need More Divergence: 否
+- Need Sub Tasks: 否
+- Next Step: 当前降级方案的文案与测试已完成，可归档；若未来重启 companion 自动恢复方案，需单独立项

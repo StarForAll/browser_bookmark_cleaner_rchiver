@@ -383,7 +383,10 @@ describe('T12A WebDAV draft restore flow', () => {
 
     expect(backupWriteCallOrder).not.toBeNull();
     expect(versionReadCallOrder).not.toBeNull();
-    expect(backupWriteCallOrder!).toBeLessThan(versionReadCallOrder!);
+    if (backupWriteCallOrder === null || versionReadCallOrder === null) {
+      throw new Error('Expected backup write and version read call order to be recorded.');
+    }
+    expect(backupWriteCallOrder).toBeLessThan(versionReadCallOrder);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: '书签节点：Recovered Docs' })).toBeInTheDocument();

@@ -16,7 +16,7 @@
 - refined task graph 已完成
 - 17 个 child task 已创建完成
 - `T01` 至 `T12A` 已完成实现并归档
-- 当前仍处于 active / planning 的 child task 仅剩 `T13`
+- 当前仍处于 active 的 child task 仅剩 `T13`，并已进入收尾执行
 - 已完成 child task 的实现范围已覆盖：工程基线、扩展运行壳、本地持久化契约、浏览器读取导入、图谱基础编辑、拖拽移动、撤销历史与 `Ctrl+Z`、搜索与重复 URL 聚焦、状态反馈与禁用态、浏览器覆盖与同步确认、本地备份与撤销覆盖恢复边界、WebDAV 配置/权限、WebDAV 上传与版本保留、WebDAV 草稿恢复、WebDAV 浏览器书签恢复
 - 后续 child task 仍需按既定串行顺序推进，不能把已完成前序任务误记为“尚未启动”
 
@@ -123,10 +123,10 @@
 - 父 task：`in_progress`
 - 已归档完成：`T01`、`T02`、`T03`、`T04`、`T05`、`T06`、`T07A`、`T07B`、`T08A`、`T08B`、`T09A`、`T09B`、`T10`、`T11`、`T12A`
 - 已归档完成：`T12B`
-- 待继续推进：`T13`
-- child task：17/17 已创建；其中 16 个已归档完成，1 个仍处于 planning
-- 当前冻结串行链路已推进到 `T12B` 完成；下一步若继续推进新 child task，应显式点名 `T13`
-- 剩余未开始的 child task 仅有 `T13`
+- 当前进行中：`T13`（验证已齐备，等待 human commit + archive + record-session）
+- child task：17/17 已创建；其中 16 个已归档完成，1 个处于 `in_progress`
+- 当前冻结串行链路已推进到 `T13` 收尾执行中；验证证据已齐备，等待正常提交与归档闭环
+- 剩余未归档的 child task 仅有 `T13`
 
 ## 后续入口
 

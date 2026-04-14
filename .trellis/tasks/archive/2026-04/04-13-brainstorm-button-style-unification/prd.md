@@ -33,7 +33,7 @@
 | 状态锚点 | `.status-anchor` | active | P2 |
 | 布局弹窗关闭 | `.draft-layout-popover-close` | active | P2 |
 | 拖拽中节点 | `.draft-node-button.is-dragging` | **整类缺失 CSS** | P0 |
-| 拖拽放置区 | `.draft-node-drop-zone.is-active` | 视觉反馈缺失 | P1 |
+| 拖拽放置区 | `.draft-node-drop-zone.is-active` | 保持功能命中区，但不额外增加高亮遮挡 | P1 |
 
 #### B. 滚动条不统一（4 项）
 
@@ -97,7 +97,7 @@
 - **范围裁剪**：选项 A — 全量执行 P0-P2（约 46 项），L1 标准任务
 - **active 态强度**：选项 A — 微妙（`translateY(0)` 或 `translateY(1px)`，阴影减小）
 - **焦点环颜色**：选项 A — 项目主色 `rgba(49, 109, 114, 0.35)`
-- **拖拽节点样式**：选项 A — 半透明"幽灵"效果（`opacity: 0.6` + 虚线边框）
+- **拖拽节点样式**：选项 A — 半透明"幽灵"效果（`opacity: 0.6` + 阴影抬升）
 - **动画强度**：选项 B — 适中（slide-up + fade，200-280ms，有存在感但不抢注意力）
 
 ## Assumptions (Temporary)
@@ -116,7 +116,7 @@
    - **推荐**：选项 B，覆盖核心交互反馈 + 重要视觉增强，控制在合理范围
 
 2. **拖拽中节点样式**（`.is-dragging`）：当前 JS 已添加该类但 CSS 缺失。你希望拖拽中的节点表现为：
-   - 选项 A：半透明"幽灵"效果（`opacity: 0.6` + 虚线边框）
+   - 选项 A：半透明"幽灵"效果（`opacity: 0.6` + 阴影抬升）
    - 选项 B：轻微旋转 + 阴影加深（模拟"被拿起"的感觉）
    - 推荐：选项 A，更直观
 
@@ -133,7 +133,7 @@
 - 搜索输入框：hover + focus-visible + disabled + placeholder 样式
 - 表单输入框：hover + focus-visible + disabled + placeholder 样式
 - 拖拽中节点（`.is-dragging`）：完整的拖拽态样式
-- 放置区（`.is-active`）：拖拽经过时的视觉反馈
+- 放置区（`.is-active`）：保持低干扰的功能命中区，不额外增加高亮背景
 
 ### R2: 补全已有 hover/focus 元素的 active 态（P1）
 - 图谱节点按钮、回到顶部、本地恢复选择、状态锚点、状态关闭、布局关闭
@@ -190,7 +190,7 @@
 - 缓动：`cubic-bezier(0.22, 1, 0.36, 1)` 或 `ease`
 - 焦点环：`0 0 0 2px rgba(49, 109, 114, 0.35)` 或 `0 0 0 3px`
 - 禁用态：`opacity: 0.5` + `filter: saturate(0.5)`
-- 拖拽态：`opacity: 0.6` + `border-style: dashed`
+- 拖拽态：`opacity: 0.6` + 阴影抬升 + 轻微位移
 
 ### 需要修改的文件
 - `src/app/app.css` — 主要修改目标（预计新增 ~300 行 CSS）

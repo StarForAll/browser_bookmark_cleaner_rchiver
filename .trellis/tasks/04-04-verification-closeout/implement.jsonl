@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/tasks/04-04-verification-closeout/prd.md", "reason": "Current T13 closeout contract and acceptance scope"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frozen verification matrix and child-task closeout sync rules"}
+{"file": ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/task_plan.md", "reason": "Parent task summary and current closeout frontier for T13"}

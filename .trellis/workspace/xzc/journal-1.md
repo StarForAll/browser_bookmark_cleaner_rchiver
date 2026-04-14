@@ -1201,3 +1201,68 @@ Implemented and validated T12B WebDAV browser restore, fixed browser bookmark or
 ### Next Steps
 
 - None - task complete
+
+## Session 31: 项目全局代码审查与修复
+
+**Date**: 2026-04-14
+**Task**: Full-project code audit and fix
+**Branch**: `master`
+
+### Summary
+
+三阶段全量代码审查（分析 → 讨论 → 修复），覆盖 5 层 ~30 个源文件。发现并修复 2 HIGH、8 MEDIUM、6 LOW 级问题，补充 5 项测试基础设施改进。全部 205 测试通过。
+
+### Main Changes
+
+**Domain 层**
+- `contracts.ts`: 验证器新增 childIds 引用有效性检查 + parent↔child 双向一致性检查；书签节点 childIds 非空校验
+- `editing.ts`: 5 处 `Object.fromEntries` 后加 `as Record<string, DraftGraphNode>` + `!` 类型断言
+
+**Adapters 层**
+- `writeManagedBrowserTree.ts`: `removeNode` 在 API 不可用时抛异常（与 folder 删除一致）
+- `contracts.ts` (browser-bookmarks): 文件夹节点丢弃 url 字段
+- `importToDraft.ts`: 空字符串 URL 在 import 时拒绝
+- `localBackupArtifacts.ts`: `sizeBytes` 改用 `TextEncoder` 计算 UTF-8 字节
+- `jsonDocument.ts`: 提取 `encodeBasicAuth`、加 30s fetch 超时、加 3xx 重定向错误处理
+- `testAvailability.ts`: 使用共享 `encodeBasicAuth`
+
+**Features 层**
+- `actionWorkspaceServiceWorker.ts`: `onMessage` 返回 `true`
+- `bootstrapWorkspace.ts`: `hasBrowserPermission` 用 `kind !== 'unavailable'` 精确判断
+- `restoreVersionedSnapshot.ts`: 错误消息使用动态 `category.targetLabel`
+
+**App 层**
+- `App.tsx`: `persistCurrentDraftSession` 改为先写入再更新 state；`applyInspectedWebdavPermissionState` 用 ref 消除并发竞态
+
+**Shared**
+- 新文件 `encodeBasicAuth.ts`: 共享 Base64 编码（含 Buffer fallback）
+
+**Test 基础设施**
+- `tsconfig.json`: include 加 `test/fixtures`
+- `eslint.config.mjs`: 测试 globals 补全
+- `restoreVersionedSnapshot.test.ts`: `Reflect.get` → 直接 import
+- 9 个 App 测试: `beforeEach` chrome 全局防护
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4cf3f45` | 项目全局审查 |
+
+### Verification
+
+| Check | Result |
+|-------|--------|
+| `pnpm lint` | pass |
+| `pnpm typecheck` | pass |
+| `pnpm test` | 205/205 pass |
+| `pnpm build` | pass |
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 剩余测试覆盖（T1-T3: localBackupArtifacts/availability/service-worker 单元测试）后续单独处理
+- `04-04-verification-closeout` 任务 (T13) 仍在 planning

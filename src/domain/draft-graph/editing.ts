@@ -242,7 +242,13 @@ export function editDraftNode(
   const nodesById = Object.fromEntries(
     Object.entries(snapshot.nodesById).map(([id, node]) => [id, cloneNode(node)]),
   ) as Record<string, DraftGraphNode>;
-  const editableNode = nodesById[input.nodeId]!;
+  const editableNode = nodesById[input.nodeId];
+  if (!editableNode) {
+    return {
+      ok: false,
+      error: '当前节点结构无效，无法编辑。',
+    };
+  }
   editableNode.title = normalizedTitle;
   if (editableNode.nodeType === 'bookmark') {
     editableNode.url = (input.url ?? '').trim();
@@ -290,7 +296,15 @@ export function createDraftChildNode(
     Object.entries(snapshot.nodesById).map(([id, node]) => [id, cloneNode(node)]),
   ) as Record<string, DraftGraphNode>;
 
-  nodesById[input.parentId]!.childIds.push(createdNodeId);
+  const clonedParent = nodesById[input.parentId];
+  if (!clonedParent) {
+    return {
+      ok: false,
+      error: '当前节点结构无效，无法创建子节点。',
+    };
+  }
+
+  clonedParent.childIds.push(createdNodeId);
   nodesById[createdNodeId] = buildCreatedNode(
     snapshot,
     input.parentId,
@@ -347,7 +361,15 @@ export function createDraftSiblingNode(
     const insertIndex = referenceIndex >= 0 ? referenceIndex + 1 : nextRootIds.length;
     nextRootIds.splice(insertIndex, 0, createdNodeId);
   } else {
-    const siblingIds = nodesById[parentId]!.childIds;
+    const clonedParent = nodesById[parentId];
+    if (!clonedParent) {
+      return {
+        ok: false,
+        error: '当前节点结构无效，无法创建同级节点。',
+      };
+    }
+
+    const siblingIds = clonedParent.childIds;
     const referenceIndex = siblingIds.indexOf(input.referenceNodeId);
     const insertIndex = referenceIndex >= 0 ? referenceIndex + 1 : siblingIds.length;
     siblingIds.splice(insertIndex, 0, createdNodeId);
@@ -435,7 +457,13 @@ export function moveDraftNode(
   const nodesById = Object.fromEntries(
     Object.entries(snapshot.nodesById).map(([id, node]) => [id, cloneNode(node)]),
   ) as Record<string, DraftGraphNode>;
-  const movingNode = nodesById[input.nodeId]!;
+  const movingNode = nodesById[input.nodeId];
+  if (!movingNode) {
+    return {
+      ok: false,
+      error: '当前节点结构无效，无法移动。',
+    };
+  }
   const sourceParentId = movingNode.parentId;
   const nextRootIds = [...snapshot.rootIds];
 
@@ -462,7 +490,15 @@ export function moveDraftNode(
     if (sourceParentId === null) {
       nextRootIds.splice(0, nextRootIds.length, ...nextSiblingIds);
     } else {
-      nodesById[sourceParentId]!.childIds = nextSiblingIds;
+      const sourceParent = nodesById[sourceParentId];
+      if (!sourceParent) {
+        return {
+          ok: false,
+          error: '当前节点结构无效，无法移动。',
+        };
+      }
+
+      sourceParent.childIds = nextSiblingIds;
     }
   } else {
     const nextSourceSiblingIds = sourceSiblingIds.filter((childId) => childId !== input.nodeId);
@@ -473,13 +509,29 @@ export function moveDraftNode(
     if (sourceParentId === null) {
       nextRootIds.splice(0, nextRootIds.length, ...nextSourceSiblingIds);
     } else {
-      nodesById[sourceParentId]!.childIds = nextSourceSiblingIds;
+      const sourceParent = nodesById[sourceParentId];
+      if (!sourceParent) {
+        return {
+          ok: false,
+          error: '当前节点结构无效，无法移动。',
+        };
+      }
+
+      sourceParent.childIds = nextSourceSiblingIds;
     }
 
     if (input.targetParentId === null) {
       nextRootIds.splice(0, nextRootIds.length, ...nextTargetSiblingIds);
     } else {
-      nodesById[input.targetParentId]!.childIds = nextTargetSiblingIds;
+      const targetParentNode = nodesById[input.targetParentId];
+      if (!targetParentNode) {
+        return {
+          ok: false,
+          error: '当前节点结构无效，无法移动。',
+        };
+      }
+
+      targetParentNode.childIds = nextTargetSiblingIds;
     }
   }
 
@@ -531,10 +583,11 @@ export function deleteDraftNodeSubtree(
       .map(([id, node]) => [id, cloneNode(node)]),
   ) as Record<string, DraftGraphNode>;
 
-  if (targetNode.parentId !== null && nodesById[targetNode.parentId]) {
-    nodesById[targetNode.parentId]!.childIds = nodesById[targetNode.parentId]!.childIds.filter(
-      (childId) => childId !== nodeId,
-    );
+  if (targetNode.parentId !== null) {
+    const parentNode = nodesById[targetNode.parentId];
+    if (parentNode) {
+      parentNode.childIds = parentNode.childIds.filter((childId) => childId !== nodeId);
+    }
   }
 
   const nextRootIds = snapshot.rootIds.filter((rootId) => rootId !== nodeId);

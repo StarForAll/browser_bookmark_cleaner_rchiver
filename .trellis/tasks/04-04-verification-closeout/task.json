@@ -3,7 +3,7 @@
   "name": "verification-closeout",
   "title": "Run Verification And Prepare Closeout",
   "description": "Run the verification matrix and prepare closeout artifacts without expanding the feature scope.",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": "frontend",
   "scope": null,
   "package": null,
@@ -15,7 +15,7 @@
   "branch": null,
   "base_branch": "master",
   "worktree_path": null,
-  "current_phase": 0,
+  "current_phase": 4,
   "next_action": [
     {
       "phase": 1,
@@ -48,6 +48,6 @@
     ".trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/",
     ".trellis/spec/"
   ],
-  "notes": "Created from parent task split strategy during pure plan stage. Task exists for later execution and is not started yet.",
+  "notes": "T13 is now explicitly selected and in progress. The final verification gate, check report, finish-work checklist, and delivery artifacts are prepared. Automated verification and repository-level hygiene scans are green. A fresh manual Chrome extension verification round is now human-confirmed with no issue. The remaining steps are human commit, archive, and record-session.",
   "meta": {}
 }
