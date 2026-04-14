@@ -1266,3 +1266,37 @@ Implemented and validated T12B WebDAV browser restore, fixed browser bookmark or
 
 - 剩余测试覆盖（T1-T3: localBackupArtifacts/availability/service-worker 单元测试）后续单独处理
 - `04-04-verification-closeout` 任务 (T13) 仍在 planning
+
+
+## Session 31: T13 verification closeout and archive
+
+**Date**: 2026-04-14
+**Task**: T13 verification closeout and archive
+**Branch**: `master`
+
+### Summary
+
+Completed T13 verification closeout: removed remaining non-null assertions, reran lint/typecheck/test/build/sonar, recorded human-confirmed manual acceptance, archived T13, and synchronized parent-task progress.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2a0f31c` | (see git log) |
+| `f8960f4` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

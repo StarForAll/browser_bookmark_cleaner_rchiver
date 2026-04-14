@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 30
-- **Last Active**: 2026-04-13
+- **Total Sessions**: 31
+- **Last Active**: 2026-04-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1203 | Active |
+| `journal-1.md` | ~1302 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 31 | 2026-04-14 | T13 verification closeout and archive | `2a0f31c`, `f8960f4` | `master` |
 | 30 | 2026-04-13 | 扩展入口与工作区收口 | `1b4788e`, `a59efb7`, `d485979` | `master` |
 | 29 | 2026-04-13 | T12B WebDAV browser restore closeout | `12c56d4`, `6e84638` | `master` |
 | 28 | 2026-04-13 | T12A WebDAV Draft Restore Closeout | `bbbe3f0`, `7f01339` | `master` |
