@@ -1333,3 +1333,44 @@ Archived the parent coordinator task 04-02-workflow-e2e-bookmark-cleaner after a
 ### Next Steps
 
 - None - task complete
+
+
+## Session 33: 修复 workspace action 消息通道关闭报错
+
+**Date**: 2026-04-19
+**Task**: 修复 workspace action 消息通道关闭报错
+**Branch**: `master`
+
+### Summary
+
+修复 workspace 页面启动时 runtime messaging 通道关闭报错，补齐 service worker 响应契约，并恢复全量验证闭环。
+
+### Main Changes
+
+- 修复 `workspace-action-target/register` 的 service worker 消息契约：仅对目标消息保持异步通道，并最终调用 `sendResponse`。
+- 保持 workspace target 继续写入 `chrome.storage.session`，发送端同时支持结构化失败响应。
+- 补充并更新了 `actionWorkspaceServiceWorker`、`registerWorkspaceActionTarget` 的自动化测试与前端 spec 说明。
+- 额外修复 `src/uiReferenceConstraints.test.ts`，让全量测试可以解析已归档的 `04-02` 设计文档路径，恢复仓库级验证闭环。
+
+- 自动化验证：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build` 全部通过。
+- 手工验证：已由人工在提交前完成 Chrome 扩展场景验证。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bd02077` | (see git log) |
+| `b7c1310` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
