@@ -56,4 +56,22 @@ describe('workspace action target registration', () => {
       windowId: 9,
     });
   });
+
+  test('rethrows a service-worker registration failure returned through the response payload', async () => {
+    const getCurrent = vi.fn(async () => ({
+      id: 17,
+      windowId: 9,
+    }));
+    const sendMessage = vi.fn(async () => ({
+      ok: false,
+      error: 'Session storage write failed.',
+    }));
+
+    await expect(
+      registerWorkspaceActionTarget({
+        runtimeApi: { sendMessage },
+        tabsApi: { getCurrent },
+      }),
+    ).rejects.toThrow('Session storage write failed.');
+  });
 });

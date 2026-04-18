@@ -289,6 +289,7 @@ Rules:
 - if `getCurrent()` returns no tab, registration becomes a no-op
 - if `tabId` or `windowId` is missing, registration becomes a no-op
 - the registration message is fire-and-forget; the sender does not depend on a payload response
+- if the service worker keeps the channel open for async storage work, it must complete the message contract with `sendResponse`; do not return `true` without an eventual response
 
 #### Session storage contract
 
@@ -353,6 +354,7 @@ When the user clicks the extension action icon:
 - adding `default_popup` silently disables `action.onClicked`
 - adding `tabs` permission just to search for the workspace tab
 - registration throws instead of no-op when tab context is absent
+- returning `true` from `runtime.onMessage` without ever calling `sendResponse`, causing the workspace bootstrap message channel to close with an error
 - stale remembered target causes action click to fail without opening a fresh workspace tab
 
 ### 6. Tests Required
@@ -369,6 +371,7 @@ Required automated tests:
   - assert no-op when tab context is unavailable
 - `src/features/workspace-entry/application/actionWorkspaceServiceWorker.test.ts`
   - assert registration message stores the remembered target
+  - assert async registration messages eventually respond through `sendResponse`
   - assert action click refocuses the remembered target
   - assert no remembered target opens a new workspace tab
   - assert stale remembered target is cleared and replaced by new-tab fallback

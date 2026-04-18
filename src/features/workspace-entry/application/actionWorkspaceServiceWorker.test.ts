@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 import {
   handleWorkspaceActionClick,
   handleWorkspaceActionMessage,
+  installWorkspaceActionServiceWorker,
   WORKSPACE_ACTION_TARGET_STORAGE_KEY,
 } from './actionWorkspaceServiceWorker';
 
@@ -30,6 +31,83 @@ describe('workspace action service worker', () => {
         windowId: 9,
       },
     });
+  });
+
+  test('responds to runtime registration messages after persisting the workspace target', async () => {
+    let messageListener:
+      | ((
+          message: unknown,
+          sender: unknown,
+          sendResponse: (response: unknown) => void,
+        ) => void | boolean | Promise<unknown>)
+      | undefined;
+
+    installWorkspaceActionServiceWorker({
+      runtimeApi: {
+        getURL: vi.fn((path: string) => `chrome-extension://extension-id/${path}`),
+        onMessage: {
+          addListener: vi.fn((callback) => {
+            messageListener = callback;
+          }),
+        },
+      },
+      storageSession: {
+        get: vi.fn(async () => ({})),
+        set: vi.fn(async () => undefined),
+        remove: vi.fn(async () => undefined),
+      },
+    });
+
+    const sendResponse = vi.fn();
+    const handled = messageListener?.(
+      {
+        type: 'workspace-action-target/register',
+        tabId: 17,
+        windowId: 9,
+      },
+      undefined,
+      sendResponse,
+    );
+
+    expect(handled).toBe(true);
+    await vi.waitFor(() => {
+      expect(sendResponse).toHaveBeenCalledWith({
+        ok: true,
+        handled: true,
+      });
+    });
+  });
+
+  test('ignores unrelated runtime messages without claiming the async response channel', () => {
+    let messageListener:
+      | ((
+          message: unknown,
+          sender: unknown,
+          sendResponse: (response: unknown) => void,
+        ) => void | boolean | Promise<unknown>)
+      | undefined;
+
+    installWorkspaceActionServiceWorker({
+      runtimeApi: {
+        getURL: vi.fn((path: string) => `chrome-extension://extension-id/${path}`),
+        onMessage: {
+          addListener: vi.fn((callback) => {
+            messageListener = callback;
+          }),
+        },
+      },
+      storageSession: {
+        get: vi.fn(async () => ({})),
+        set: vi.fn(async () => undefined),
+        remove: vi.fn(async () => undefined),
+      },
+    });
+
+    const sendResponse = vi.fn();
+    const handled = messageListener?.({ type: 'other-message' }, undefined, sendResponse);
+
+    expect(handled).toBe(false);
+    expect(sendResponse).not.toHaveBeenCalled();
   });
 
   test('focuses the registered workspace tab instead of opening a duplicate tab', async () => {

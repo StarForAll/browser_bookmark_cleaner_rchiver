@@ -1,18 +1,36 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
 const repoRoot = process.cwd();
+const taskSlug = '04-02-workflow-e2e-bookmark-cleaner';
+
+function listTaskRootCandidates() {
+  const activeTaskRoot = join(repoRoot, '.trellis/tasks', taskSlug);
+  const archiveRoot = join(repoRoot, '.trellis/tasks/archive');
+  const archivedTaskRoots = existsSync(archiveRoot)
+    ? readdirSync(archiveRoot, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(archiveRoot, entry.name, taskSlug))
+    : [];
+
+  return [activeTaskRoot, ...archivedTaskRoots];
+}
 
 function readDoc(relativePath: string) {
-  return readFileSync(join(repoRoot, relativePath), 'utf8');
+  for (const taskRoot of listTaskRootCandidates()) {
+    const filePath = join(taskRoot, relativePath);
+    if (existsSync(filePath)) {
+      return readFileSync(filePath, 'utf8');
+    }
+  }
+
+  throw new Error(`Unable to resolve design doc for ${relativePath}.`);
 }
 
 describe('T02 ui reference constraints', () => {
   test('freezes the allowed inheritance boundary in the visual system spec', () => {
-    const visualSystem = readDoc(
-      '.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/visual-system.md',
-    );
+    const visualSystem = readDoc('design/specs/visual-system.md');
 
     expect(visualSystem).toContain('atmosphere');
     expect(visualSystem).toContain('spacing rhythm');
@@ -22,9 +40,7 @@ describe('T02 ui reference constraints', () => {
   });
 
   test('freezes explicit forbidden tmp/ui reuse paths', () => {
-    const visualSystem = readDoc(
-      '.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/specs/visual-system.md',
-    );
+    const visualSystem = readDoc('design/specs/visual-system.md');
 
     expect(visualSystem).toContain('tmp/ui/src/**');
     expect(visualSystem).toContain('tmp/ui/package.json');
@@ -34,12 +50,8 @@ describe('T02 ui reference constraints', () => {
   });
 
   test('freezes the five-region workspace hierarchy and seven explicit actions', () => {
-    const visualDirection = readDoc(
-      '.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/visual-direction.md',
-    );
-    const workspacePage = readDoc(
-      '.trellis/tasks/04-02-workflow-e2e-bookmark-cleaner/design/pages/workspace.md',
-    );
+    const visualDirection = readDoc('design/pages/visual-direction.md');
+    const workspacePage = readDoc('design/pages/workspace.md');
 
     expect(visualDirection).toContain('Top-right operation hint area');
     expect(visualDirection).toContain('Bottom-right status popup/history');

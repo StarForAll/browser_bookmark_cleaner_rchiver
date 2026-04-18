@@ -1,0 +1,5 @@
+{"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "review verification expectations and required commands"}
+{"file": ".trellis/spec/frontend/browser-import-startup.md", "reason": "review workspace entry contract after fix"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "review message/storage/service worker boundary consistency"}

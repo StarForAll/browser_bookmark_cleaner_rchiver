@@ -1,5 +1,17 @@
 export const WORKSPACE_ACTION_TARGET_STORAGE_KEY = 'workspace-action-target';
 
+type WorkspaceActionMessageResponse =
+  | {
+      ok: true;
+      handled: boolean;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
+
+type RuntimeSendResponse = (response: WorkspaceActionMessageResponse) => void;
+
 type RuntimeApi = {
   getURL: (path: string) => string;
   onMessage?: {
@@ -7,7 +19,7 @@ type RuntimeApi = {
       callback: (
         message: unknown,
         sender: unknown,
-        sendResponse: unknown,
+        sendResponse: RuntimeSendResponse,
       ) => void | boolean | Promise<unknown>,
     ) => void;
   };
@@ -47,6 +59,14 @@ type ActionWorkerDependencies = {
   windowsApi?: WindowsApi;
 };
 
+function toWorkspaceActionMessageError(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return 'Workspace action target registration failed.';
+}
+
 function isWorkspaceActionTarget(value: unknown): value is WorkspaceActionTarget {
   if (!value || typeof value !== 'object') {
     return false;
@@ -54,6 +74,25 @@ function isWorkspaceActionTarget(value: unknown): value is WorkspaceActionTarget
 
   const candidate = value as Record<string, unknown>;
   return typeof candidate.tabId === 'number' && typeof candidate.windowId === 'number';
+}
+
+function isWorkspaceActionRegisterMessage(
+  value: unknown,
+): value is {
+  type: 'workspace-action-target/register';
+  tabId: number;
+  windowId: number;
+} {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    candidate.type === 'workspace-action-target/register' &&
+    typeof candidate.tabId === 'number' &&
+    typeof candidate.windowId === 'number'
+  );
 }
 
 async function openNewWorkspaceTab(input: {
@@ -70,16 +109,7 @@ export async function handleWorkspaceActionMessage(
   message: unknown,
   dependencies: ActionWorkerDependencies = {},
 ): Promise<boolean> {
-  if (!message || typeof message !== 'object') {
-    return false;
-  }
-
-  const candidate = message as Record<string, unknown>;
-  if (
-    candidate.type !== 'workspace-action-target/register' ||
-    typeof candidate.tabId !== 'number' ||
-    typeof candidate.windowId !== 'number'
-  ) {
+  if (!isWorkspaceActionRegisterMessage(message)) {
     return false;
   }
 
@@ -95,8 +125,8 @@ export async function handleWorkspaceActionMessage(
 
   await storageSession.set({
     [WORKSPACE_ACTION_TARGET_STORAGE_KEY]: {
-      tabId: candidate.tabId,
-      windowId: candidate.windowId,
+      tabId: message.tabId,
+      windowId: message.windowId,
     },
   });
   return true;
@@ -163,8 +193,25 @@ export function installWorkspaceActionServiceWorker(
       chrome?: { action?: ActionApi };
     }).chrome?.action;
 
-  runtimeApi?.onMessage?.addListener((message) => {
-    void handleWorkspaceActionMessage(message, dependencies);
+  runtimeApi?.onMessage?.addListener((message, _sender, sendResponse) => {
+    if (!isWorkspaceActionRegisterMessage(message)) {
+      return false;
+    }
+
+    void handleWorkspaceActionMessage(message, dependencies).then(
+      (handled) => {
+        sendResponse({
+          ok: true,
+          handled,
+        });
+      },
+      (error) => {
+        sendResponse({
+          ok: false,
+          error: toWorkspaceActionMessageError(error),
+        });
+      },
+    );
     return true;
   });
   actionApi?.onClicked?.addListener(() => {

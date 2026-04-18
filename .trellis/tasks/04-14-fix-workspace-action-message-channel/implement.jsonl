@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "verification matrix and frontend test expectations for this bugfix"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "message flow crosses page bootstrap, runtime messaging, storage.session, and service worker"}
+{"file": ".trellis/spec/frontend/browser-import-startup.md", "reason": "workspace action entry message contract and action refocus behavior"}

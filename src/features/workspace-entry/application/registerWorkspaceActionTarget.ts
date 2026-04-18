@@ -17,12 +17,28 @@ type RegisterWorkspaceActionTargetDependencies = {
   tabsApi?: TabsApi;
 };
 
+type WorkspaceActionMessageFailureResponse = {
+  ok: false;
+  error: string;
+};
+
 function isIgnorableRuntimeRegistrationError(error: unknown): boolean {
   return (
     error instanceof Error &&
     (error.message.includes('Receiving end does not exist') ||
       error.message.includes('message port closed before a response was received'))
   );
+}
+
+function isWorkspaceActionMessageFailureResponse(
+  value: unknown,
+): value is WorkspaceActionMessageFailureResponse {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return candidate.ok === false && typeof candidate.error === 'string';
 }
 
 export async function registerWorkspaceActionTarget(
@@ -49,11 +65,15 @@ export async function registerWorkspaceActionTarget(
   }
 
   try {
-    await runtimeApi.sendMessage({
+    const response = await runtimeApi.sendMessage({
       type: 'workspace-action-target/register',
       tabId: currentTab.id,
       windowId: currentTab.windowId,
     });
+
+    if (isWorkspaceActionMessageFailureResponse(response)) {
+      throw new Error(response.error);
+    }
   } catch (error) {
     if (isIgnorableRuntimeRegistrationError(error)) {
       return;

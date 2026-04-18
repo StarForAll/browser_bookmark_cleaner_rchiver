@@ -1,0 +1,52 @@
+{
+  "id": "fix-workspace-action-message-channel",
+  "name": "fix-workspace-action-message-channel",
+  "title": "修复 workspace action 消息通道关闭报错",
+  "description": "",
+  "status": "planning",
+  "dev_type": "frontend",
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "xzc",
+  "assignee": "xzc",
+  "createdAt": "2026-04-14",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "src/features/workspace-entry/application/actionWorkspaceServiceWorker.ts",
+    "src/features/workspace-entry/application/actionWorkspaceServiceWorker.test.ts",
+    "src/features/workspace-entry/application/registerWorkspaceActionTarget.ts",
+    "src/features/workspace-entry/application/registerWorkspaceActionTarget.test.ts",
+    "src/uiReferenceConstraints.test.ts",
+    ".trellis/spec/frontend/browser-import-startup.md"
+  ],
+  "notes": "Workspace action message-channel fix is implemented and the verification matrix now passes: pnpm lint, pnpm typecheck, pnpm test, and pnpm build are green. A small test-only follow-up in src/uiReferenceConstraints.test.ts was required so full pnpm test no longer depends on the pre-archive location of the 04-02 design docs. Manual verification in a real Chrome extension runtime is still not run and remains the main pre-commit gap before human commit, archive, and record-session.",
+  "meta": {}
+}
