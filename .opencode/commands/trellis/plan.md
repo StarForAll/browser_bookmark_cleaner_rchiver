@@ -73,8 +73,8 @@ description: 设计好了？拆任务 — AI 驱动任务拆解、排期、DoR/D
 |------|---------|---------|------|
 | 复杂依赖推理 | `sequential-thinking` | 当任务依赖链 ≥3 层或并行冲突判定涉及 ≥3 个条件时 | 复杂依赖场景 |
 | 任务依赖可视化 | `markmap` | 当需要生成任务依赖图时 | 生成任务依赖图 |
-| 参考 GitHub 项目结构 | `deepwiki` | 当需要参考外部开源项目时 | 回退：`exa_search` |
-| 技术方案深度研究 | `exa_create_research` | 当需要进行技术方案深度调研时 | 回退：`grok-search` |
+| 参考 GitHub 项目结构 | `deepwiki` | 当需要参考外部开源项目时 | 回退：`exa_web_search_exa` |
+| 技术方案深度研究 | `exa_web_search_advanced_exa(type=deep-reasoning)` | 当需要进行技术方案深度调研时 | 回退：`grok-search` |
 | 框架 / SDK API 文档 | `Context7` | 当需要查询第三方库或框架官方文档时 | 技术选型必查 |
 
 ```bash
