@@ -1,175 +1,110 @@
-# 开发向需求文档：界面交互与视觉全面优化
+# 开发向需求文档：工作区交互与视觉质量优化
 
-## 概述
+## 1. 目标
 
-为 `src/app/app.css` 全面补充交互状态和视觉细节，覆盖审计发现的 57 个改进点中的 **P0-P2 全量项（约 46 项）**，预计新增 ~300 行 CSS。
+在不改变业务逻辑和信息架构的前提下，补齐 `src/app/app.css` 中的交互状态、动效、滚动条、错误提示和细节视觉表现，让主工作区达到可交付产品级的界面质量。
 
-### 用户确认
-- 范围：全量执行 P0-P2（选项 A）
-- 拖拽节点样式：半透明"幽灵"效果（选项 A）
-- 动画强度：适中 — slide-up + fade，200-280ms（选项 B）
+## 2. 用户确认范围
 
-## 技术实现
+- 范围：全量执行 P0-P2。
+- 拖拽节点样式：半透明“幽灵”效果，不增加会干扰放置判断的边框高亮。
+- 动画强度：适中，使用 slide-up + fade，持续时间约 200-280ms。
+- 改动类型：CSS 优化为主，不新增依赖，不改业务行为。
 
-### 修改文件
-- `src/app/app.css` — 唯一需要修改的文件
+## 3. 修改文件
 
-### P0：核心交互反馈（必须完成）
+主要修改：
 
-#### 1. 顶部动作区按钮
-```css
-/* 选择器: .action-grid button, .secondary-actions button, .search-placeholder button */
-/* 需添加: transition, :hover, :active, :focus-visible */
-```
+- `src/app/app.css`
 
-#### 2. 对话框按钮（含所有变体）
-```css
-/* 选择器: .draft-dialog-button, .draft-dialog-button.is-primary, .draft-dialog-button.is-primary.is-danger */
-/* 需添加: transition, :hover, :active, :focus-visible, :disabled */
-```
+配套验证：
 
-#### 3. 搜索输入框
-```css
-/* 选择器: .search-placeholder input */
-/* 需添加: transition, :hover, :focus-visible, :disabled, ::placeholder */
-```
+- 现有 React 组件测试。
+- 现有交互和样式相关断言。
+- 手动检查 hover、active、focus-visible、拖拽、弹窗、空态和滚动条。
 
-#### 4. 表单输入框
-```css
-/* 选择器: .draft-field input */
-/* 需添加: transition, :hover, :focus-visible, :disabled, ::placeholder */
-```
+## 4. P0：核心交互反馈
 
-#### 5. 拖拽中节点（JS 已添加类，CSS 缺失）
-```css
-/* 选择器: .draft-node-button.is-dragging */
-/* 最终实现: opacity 降低 + 阴影抬升 + 轻微位移，不再添加虚线边框 */
-```
+必须完成：
 
-#### 6. 拖拽放置区
-```css
-/* 选择器: .draft-node-drop-zone.is-active */
-/* 最终实现: 保持功能命中区，不添加背景高亮或虚线边框，避免视觉干扰 */
-```
+- `.action-grid button`
+- `.secondary-actions button`
+- `.search-placeholder button`
+- `.draft-dialog-button`
+- `.search-placeholder input`
+- `.draft-field input`
+- `.draft-node-button.is-dragging`
+- `.draft-node-drop-zone.is-active`
 
-### P1：重要视觉增强
+要求：
 
-#### 7. 补全 active 态（已有 hover/focus 的元素）
-- `.draft-node-button:active` — 图谱节点按下态
-- `.page-back-to-top-button:active` — 回到顶部按下态
-- `.local-recovery-choice:active` — 恢复选择按下态
-- `.status-close:active` — 状态关闭按下态
-- `.status-anchor:active` — 状态锚点按下态
-- `.draft-layout-popover-close:active` — 布局关闭按下态
+- 补齐 transition。
+- 补齐 hover、active、focus-visible、disabled。
+- 拖拽节点使用透明度、阴影和轻微位移体现“正在拖拽”。
+- 放置区保持命中能力，不添加强干扰背景或虚线边框。
 
-#### 8. 弹窗入场动画
-```css
-/* .draft-dialog-backdrop — fade-in */
-/* .draft-dialog-card — slide-up + fade-in (translateY(12px) scale(0.98) → 0 1) */
-```
+## 5. P1：重要视觉增强
 
-#### 9. 悬浮层展开按钮
-```css
-/* 选择器: .draft-hover-expand-button */
-/* 需添加: transition, :hover, :active, :focus-visible */
-```
+必须完成：
 
-#### 10. 节点图标和 URL 预览 hover 增强
-```css
-/* .draft-node-button:hover .draft-node-icon — opacity: 1, filter: none */
-/* .draft-node-button:hover .draft-node-url-preview — opacity: 1 */
-```
+- 为已有 hover / focus 的元素补齐 active 态。
+- 弹窗 backdrop fade-in。
+- 弹窗 card slide-up + fade-in。
+- 悬浮层展开按钮 hover / active / focus-visible。
+- 节点图标和 URL 预览在 hover 时增强可读性。
 
-### P2：精致细节
+重点选择器：
 
-#### 11. 滚动条统一
-```css
-/* 需添加自定义滚动条的元素: */
-/* .draft-dialog-card::-webkit-scrollbar */
-/* .draft-hover-duplicates-list::-webkit-scrollbar */
-/* .draft-layout-popover::-webkit-scrollbar */
-/* .draft-graph-tree — 添加 Firefox scrollbar-width/scrollbar-color */
-```
+- `.draft-node-button:active`
+- `.page-back-to-top-button:active`
+- `.local-recovery-choice:active`
+- `.status-close:active`
+- `.status-anchor:active`
+- `.draft-layout-popover-close:active`
+- `.draft-dialog-backdrop`
+- `.draft-dialog-card`
+- `.draft-hover-expand-button`
 
-#### 12. 入场动画
-```css
-/* .status-popover — slide-in + fade */
-/* .hint-overlay — fade-in */
-/* .canvas-draft-card — fade-in + scale-up */
-/* .draft-empty-state — emoji @keyframes float + 文字 fade-in */
-/* .draft-search-empty-state — fade-in */
-/* .page-back-to-top-button — fade-in + slide-up */
-```
+## 6. P2：精致细节
 
-#### 13. 列表项 hover 高亮
-- `.status-history-list li:hover`
-- `.startup-preview li:hover`
-- `.draft-hover-duplicates-path:hover`
-- `.duplicate-focus-card:hover`
-- `.duplicate-focus-group-item:hover`
+必须完成：
 
-#### 14. 错误/警告横幅样式
-- `.draft-form-error` — 添加左边框 accent + 背景色
-- `.draft-dialog-warning` — 添加警告背景
-- `.overwrite-confirmation-caution` — 区别于 warning 的 caution 样式
+- 主要滚动区域滚动条统一，并包含 Firefox 兼容。
+- 状态弹窗、操作提示、草稿卡片、空态、搜索空态、回到顶部按钮入场动画。
+- 状态历史、启动预览、重复路径、重复聚焦卡片列表项 hover 高亮。
+- `.draft-form-error`、`.draft-dialog-warning`、`.overwrite-confirmation-caution` 形成明确层级。
+- 禁用按钮统一 `opacity`、`filter` 和 `cursor`。
+- `.action-note`、`.webdav-settings-result`、`.status-close` 补齐细节反馈。
 
-#### 15. 禁用按钮统一样式
-```css
-button:disabled {
-  opacity: 0.5;
-  filter: saturate(0.5);
-  cursor: not-allowed;
-}
-```
+## 7. 设计约束
 
-#### 16. 其他细节
-- `.action-note` — 添加 transform 滑入效果
-- `.webdav-settings-result` — 按测试状态着色
-- `.status-close` — 添加 hover 圆形背景（与 `.draft-layout-popover-close` 一致）
+- hover 位移控制在 `translateY(-1px)` 到 `translateY(-2px)`。
+- active 态回到 `translateY(0)` 或轻微下压。
+- focus-visible 使用清晰但不刺眼的 teal ring。
+- 动效使用 160-280ms，避免慢动画影响编辑效率。
+- 拖拽态不增加虚线边框，避免与可投放命中状态混淆。
+- 不引入紫色主导、纯白后台感或装饰性过强的视觉主题。
 
-### 设计约束
+## 8. 验收标准
 
-复用现有设计系统的交互参数：
-- **hover 效果**：`translateY(-1px)` ~ `translateY(-2px)`，阴影加深，边框色加深
-- **active 效果**：`translateY(0)` 或 `translateY(1px)`，阴影减小
-- **focus-visible 效果**：`box-shadow: 0 0 0 2px rgba(49, 109, 114, 0.35)` 或 `0 0 0 3px`
-- **过渡参数**：`transition: all 160ms cubic-bezier(0.22, 1, 0.36, 1)` 或 `ease`
-- **动画参数**：200-280ms（适中强度），`cubic-bezier(0.22, 1, 0.36, 1)`
-- **禁用态**：`opacity: 0.5` + `filter: saturate(0.5)`
-- **拖拽态**：`opacity: 0.6` + `border-style: dashed`
+- 所有 P0 项完成。
+- 所有 P1 项完成。
+- 所有 P2 项完成。
+- `pnpm test` 通过。
+- `pnpm lint` 无错误。
+- `pnpm typecheck` 无错误。
+- 手动验证 Tab 导航焦点环、按钮 hover / active、弹窗动画、拖拽视觉区分、空态、滚动条。
 
-### 实现顺序建议
+## 9. 测试策略
 
-1. 先做 P0（核心交互反馈）— 约 120 行 CSS
-2. 再做 P1（重要视觉增强）— 约 60 行 CSS
-3. 最后做 P2（精致细节）— 约 120 行 CSS
+- 纯 CSS 变更通常不需要新增业务单元测试。
+- 如样式变更影响可访问名称、DOM 结构、按钮启用条件或交互流程，必须补充组件测试。
+- 保留现有组件测试作为回归门禁。
+- 人工检查必须覆盖键盘、鼠标、拖拽、弹窗和 WebDAV 设置反馈。
 
-每完成一个优先级后运行 `pnpm test` 确认无回归。
+## 10. 风险
 
-## 验收标准
-
-- [ ] 所有 P0 项完成（6 个核心交互反馈）
-- [ ] 所有 P1 项完成（active 补全 + 弹窗动画 + 展开按钮 + 节点 hover 增强）
-- [ ] 所有 P2 项完成（滚动条 + 入场动画 + 列表 hover + 错误横幅 + 禁用态 + 其他细节）
-- [ ] `pnpm test` 全部通过
-- [ ] `pnpm lint` 无错误
-- [ ] `pnpm typecheck` 无错误
-- [ ] 手动验证：Tab 导航可见焦点环，鼠标悬停/点击有反馈，弹窗有动画，拖拽有区分
-
-## 测试策略
-
-- 纯 CSS 变更，无需新增单元测试
-- 现有 React 组件测试应不受影响
-- 建议手动验证以下场景：
-  - Tab 键遍历所有可交互元素
-  - 鼠标悬停/点击动作区按钮、对话框按钮
-  - 拖拽节点时的视觉区分
-  - 弹窗打开/关闭动画
-  - 空态页面呈现
-  - 滚动条样式一致性
-
-## 风险
-
-- 极低风险：仅 CSS 变更，不影响功能逻辑
-- 回归风险：需确认 `.draft-node-button` 的现有 hover 效果未被覆盖
-- 浏览器兼容：`::-webkit-scrollbar` 仅 Chrome/Safari，Firefox 需 `scrollbar-width`/`scrollbar-color`
+- CSS 选择器过宽可能影响无关按钮。
+- 动画可能影响对话框焦点和测试时序。
+- 拖拽态可能干扰 drop zone 命中判断。
+- 滚动条样式在不同浏览器上的支持不同，需要分别处理 WebKit 与 Firefox。
